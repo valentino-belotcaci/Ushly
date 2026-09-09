@@ -3,6 +3,7 @@ const COOKIE_SAME_SITE_VALUES = ['lax', 'strict', 'none'] as const;
 
 type NodeEnv = (typeof NODE_ENV_VALUES)[number];
 type CookieSameSite = (typeof COOKIE_SAME_SITE_VALUES)[number];
+type TrustProxyValue = boolean | string | string[];
 
 type EnvironmentInput = Record<string, string | undefined>;
 
@@ -19,6 +20,8 @@ export type EnvironmentConfig = {
     sameSite: CookieSameSite;
     maxAgeMs: number;
   };
+  corsAllowedOrigins: string[];
+  trustProxy: TrustProxyValue;
 };
 
 function requireString(input: EnvironmentInput, key: string): string {
@@ -28,6 +31,34 @@ function requireString(input: EnvironmentInput, key: string): string {
   }
 
   return value.trim();
+}
+
+function parseStringList(raw: string | undefined, key: string): string[] {
+  if (!raw || raw.trim() === '') {
+    throw new Error(`Missing or invalid environment variable: ${key}`);
+  }
+
+  return raw
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
+function parseTrustProxy(raw: string | undefined): TrustProxyValue {
+  if (!raw || raw.trim() === '') {
+    return false;
+  }
+
+  const value = raw.trim();
+  if (value === 'true') {
+    return true;
+  }
+
+  if (value === 'false') {
+    return false;
+  }
+
+  return value.includes(',') ? value.split(',').map((entry) => entry.trim()).filter(Boolean) : value;
 }
 
 function parseNodeEnv(raw: string): NodeEnv {
@@ -92,6 +123,8 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
   const cookieSecure = parseBoolean(requireString(input, 'COOKIE_SECURE'), 'COOKIE_SECURE');
   const cookieSameSite = parseSameSite(requireString(input, 'COOKIE_SAME_SITE'));
   const cookieMaxAgeMs = parseMaxAge(requireString(input, 'COOKIE_MAX_AGE'));
+  const corsAllowedOrigins = parseStringList(input.CORS_ALLOWED_ORIGINS, 'CORS_ALLOWED_ORIGINS');
+  const trustProxy = parseTrustProxy(input.TRUST_PROXY);
 
   const isSecureCookieAllowed = nodeEnv === 'production' ? cookieSecure : true;
   if (!isSecureCookieAllowed && nodeEnv === 'production') {
@@ -111,5 +144,7 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
       sameSite: cookieSameSite,
       maxAgeMs: cookieMaxAgeMs,
     },
+    corsAllowedOrigins,
+    trustProxy,
   };
 }

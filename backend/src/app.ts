@@ -1,4 +1,7 @@
-import Fastify, { type FastifyError, type FastifyInstance, type FastifyLoggerOptions } from 'fastify';
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+import Fastify, { type FastifyError, type FastifyLoggerOptions } from 'fastify';
 
 import { getEnvironmentConfig, type EnvironmentConfig } from './config/env.js';
 
@@ -21,6 +24,10 @@ const SENSITIVE_KEY_TOKENS = [
   'refresh-token',
 ];
 
+const DEFAULT_BODY_LIMIT_BYTES = 1024 * 1024;
+const DEFAULT_RATE_LIMIT_MAX = 100;
+const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
+
 type ErrorDetails = Record<string, unknown> | unknown[] | null;
 
 type ErrorResponse = {
@@ -32,6 +39,10 @@ type ErrorResponse = {
 type BuildAppOptions = {
   env?: EnvironmentConfig;
   logger?: boolean | LoggerWithRedaction;
+  rateLimitConfig?: {
+    max?: number;
+    timeWindow?: number | string;
+  };
 };
 
 export class AppError extends Error {
@@ -119,11 +130,53 @@ function toValidationDetails(error: FastifyError): unknown[] {
   }));
 }
 
-export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
+export async function buildApp(options: BuildAppOptions = {}) {
   const env = options.env ?? getEnvironmentConfig();
   const app = Fastify({
     logger: getLoggerOptions(env.nodeEnv, options.logger),
-    trustProxy: env.nodeEnv === 'production',
+    trustProxy: env.trustProxy,
+    bodyLimit: DEFAULT_BODY_LIMIT_BYTES,
+  });
+
+  await app.register(helmet, {
+    global: true,
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+  });
+
+  const allowedOrigins = env.corsAllowedOrigins;
+  await app.register(cors, {
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 600,
+  });
+
+  await app.register(rateLimit, {
+    global: true,
+    max: options.rateLimitConfig?.max ?? DEFAULT_RATE_LIMIT_MAX,
+    timeWindow: options.rateLimitConfig?.timeWindow ?? DEFAULT_RATE_LIMIT_WINDOW_MS,
+    keyGenerator: (request) => request.ip ?? 'unknown',
+    addHeaders: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+      'retry-after': true,
+    },
   });
 
   app.setErrorHandler((error, request, reply) => {
@@ -147,6 +200,19 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         details: toValidationDetails(validationError),
       };
       return reply.code(400).send(response);
+    }
+
+    const statusCode =
+      typeof error === 'object' && error !== null && 'statusCode' in error && typeof error.statusCode === 'number'
+        ? error.statusCode
+        : undefined;
+
+    if (statusCode === 429) {
+      return reply.code(429).send({
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'Rate limit exceeded',
+      });
     }
 
     logger.error({ err: error }, 'Unhandled request error');
