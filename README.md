@@ -63,3 +63,19 @@ docker compose stop
 - PostgreSQL runs on version 16 and Redis runs on version 7.
 - Named volumes preserve data between restarts and health checks ensure services are ready before use.
 - Keep local infrastructure changes minimal and consistent with the project roadmap; do not add production dependencies without approval.
+
+### API error format
+
+The backend uses a consistent JSON response shape for safe client/server errors:
+
+```json
+{
+  "error": "validation_error",
+  "message": "Request validation failed",
+  "details": [
+    { "field": "body/email", "message": "must match format \"email\"" }
+  ]
+}
+```
+
+For known application errors, the `error` value is the domain-specific code and the HTTP status matches the declared app error status. Unexpected failures return a generic `internal_server_error` response with no internal details or stack traces.
