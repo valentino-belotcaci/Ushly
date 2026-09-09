@@ -10,7 +10,7 @@
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "test": "echo \"no test yet\" && exit 0"
+    "test": "tsx --test ./tests/**/*.test.ts"
   },
   "keywords": [],
   "author": "",
