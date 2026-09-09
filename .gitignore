@@ -44,3 +44,6 @@ docker-compose.override.yml
 
 # Vite cache
 frontend/.vite/
+
+AGENTS.md
+ROADMAP.md
