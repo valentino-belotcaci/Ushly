@@ -59,7 +59,7 @@ docker compose stop
 ### Notes
 
 - The backend uses strict TypeScript mode and the existing lint/build pipeline is currently passing.
-- Keep real secrets in the ignored root `.env` file only. The example file contains non-secret placeholder values only.
+- Keep real secrets in ignored local environment files only. The example file contains non-secret placeholder values only.
 - PostgreSQL runs on version 16 and Redis runs on version 7.
 - Named volumes preserve data between restarts and health checks ensure services are ready before use.
 - Keep local infrastructure changes minimal and consistent with the project roadmap; do not add production dependencies without approval.
@@ -119,20 +119,75 @@ npm run lint
 npm run build
 ```
 
-The unit suite mocks Prisma queries and needs no database. The focused integration
-test requires a migrated, dedicated **local `ushly_t22_test`** database. It refuses
-missing configuration, other database names, remote hosts, and production mode;
-it never falls back to the application's `DATABASE_URL`. Create that database
-once, then set `TEST_DATABASE_URL` privately in your shell to its connection URL:
+### Integration database strategy (T2.3)
+
+Unit tests (`npm test`) mock database calls. Integration tests use the separate
+local database **`ushly_test`**, never development's `ushly`. Existing
+`ushly_t22_test` and verification databases are not used or deleted.
+
+With Node 22 and installed backend dependencies, start PostgreSQL and create the
+test database once, from the repository root:
 
 ```bash
-DATABASE_URL="$TEST_DATABASE_URL" npx prisma migrate deploy
-npm run test:integration
+docker compose up -d postgres
+docker compose exec postgres sh -c 'createdb -U "$POSTGRES_USER" ushly_test'
 ```
 
-The integration test verifies a startup query, decoration inheritance, readiness,
-a user insert/read, and real disconnection via `app.close()`. It removes only its
-randomly named test user in a `finally` block and does not reset the database.
-Error, timeout, recovery, and safe logging behavior use mocked queries so testing
-does not require stopping shared PostgreSQL or manipulating networks. The full
-reusable test-database setup remains T2.3 work.
+If it already exists, keep it; do not reset or recreate it. From `backend/`:
+
+```bash
+cp .env.test.example .env.test
+```
+
+Edit **`backend/.env.test`** privately: keep `NODE_ENV=test` and set
+`TEST_DATABASE_URL` to the existing local PostgreSQL credentials, port, and exact
+database name `ushly_test`. Use the URL format in the example, with URL-encoded
+credentials and no query parameters or fragment. The file is Git-ignored.
+Do not modify the development `.env` for testing. Then run from `backend/`:
+
+```bash
+npm run test:integration
+npm run test:integration
+npm test
+npm run lint
+npm run build
+```
+
+The integration command loads `.env.test` using Node's built-in environment-file
+support. Exported shell variables take precedence: unset a stale `DATABASE_URL`,
+`TEST_DATABASE_URL`, or non-test `NODE_ENV` in the shell if the guard rejects it.
+It does not silently override unsafe values or fall back to the development URL.
+
+Before spawning Prisma, the shared guard requires:
+
+- `NODE_ENV` is exactly `test` and `TEST_DATABASE_URL` is explicitly present.
+- The URL uses `postgres:` or `postgresql:`, host `127.0.0.1` or `localhost`,
+  and exactly `/ushly_test` (not a name merely containing "test").
+- Username/password are present, and there are no query parameters or fragments
+  that could override the host, database options, or schema.
+- An existing `DATABASE_URL`, if present, equals `TEST_DATABASE_URL` exactly.
+
+The runner passes that validated URL to `prisma migrate deploy` before running
+all `tests/*.integration.ts` files serially. It applies the versioned migrations;
+it does not use a shadow database, reset, or `db push`. Migration failures stop
+the suite with a safe message. Keep real credentials out of test fixtures/logs.
+
+`cleanTestDatabase()` checks the guard on **every call**, then verifies the actual
+connection's `current_database()` is `ushly_test` and `current_schema()` is
+`public` inside the cleanup transaction. It deletes Click, RefreshToken, Link,
+then User rows, preserving tables, constraints, indexes, and `_prisma_migrations`.
+Every row in this dedicated database is considered disposable test data.
+Tests clean before creating their own fixtures and clean afterward, including on
+assertion failures. Fixed fixture values and repeated cleanup give each run the
+same starting state. A killed process may leave rows; the next setup removes them.
+
+Run only **one integration command at a time** against this database. Serial test
+files prevent interference within a suite; separate concurrent processes would
+need separate databases. The host/name guard prevents accidental misuse, not a
+maliciously configured local proxy. CI will need an explicitly reviewed host
+allowlist and preferably a test-only role when its environment is introduced.
+
+The suite covers real Prisma read/write and lifecycle behavior, repeatable cleanup
+of related and anonymous records, and preservation of migration history. Unit
+safety tests reject development/production modes, missing/conflicting URLs,
+non-test names, remote hosts, and connection-option overrides.

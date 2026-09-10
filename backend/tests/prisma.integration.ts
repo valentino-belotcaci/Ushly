@@ -1,45 +1,14 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import { buildApp } from '../src/app.js';
-import { getEnvironmentConfig } from '../src/config/env.js';
 
-// This one focused test must never fall back to the application's DATABASE_URL.
-const databaseUrl = process.env.TEST_DATABASE_URL;
-if (!databaseUrl)
-  throw new Error('TEST_DATABASE_URL is required for Prisma integration tests');
-let target: URL;
-try {
-  target = new URL(databaseUrl);
-} catch {
-  throw new Error('Invalid TEST_DATABASE_URL');
-}
-if (
-  !['postgres:', 'postgresql:'].includes(target.protocol) ||
-  !['127.0.0.1', 'localhost'].includes(target.hostname) ||
-  target.pathname !== '/ushly_t22_test' ||
-  process.env.NODE_ENV === 'production'
-) {
-  throw new Error(
-    'Prisma integration tests require the local ushly_t22_test database',
-  );
-}
+import {
+  cleanTestDatabase,
+  getTestEnvironment,
+} from './helpers/test-database.js';
 
-const env = getEnvironmentConfig({
-  NODE_ENV: 'test',
-  HOST: '127.0.0.1',
-  PORT: '3000',
-  DATABASE_URL: databaseUrl,
-  DATABASE_READY_TIMEOUT_MS: '1000',
-  REDIS_URL: 'redis://127.0.0.1:1',
-  JWT_SECRET: 'test-only-secret-with-at-least-32-characters',
-  COOKIE_NAME: 'session',
-  COOKIE_SECURE: 'false',
-  COOKIE_SAME_SITE: 'lax',
-  COOKIE_MAX_AGE: '1000',
-  CORS_ALLOWED_ORIGINS: 'http://localhost:5173',
-});
+const env = getTestEnvironment();
 
 test('plugin owns a shared working client, probes PostgreSQL, and disconnects on close', async (t) => {
   const app = await buildApp({ env });
@@ -54,7 +23,8 @@ test('plugin owns a shared working client, probes PostgreSQL, and disconnects on
   assert.equal((await app.inject('/health/ready')).statusCode, 200);
   assert.equal(query.mock.callCount(), 2);
 
-  const email = `prisma-${randomUUID()}@example.test`;
+  await cleanTestDatabase(app.prisma);
+  const email = 'prisma-lifecycle@example.test';
   try {
     const created = await app.prisma.user.create({ data: { email } });
     const loaded = await app.prisma.user.findUnique({
@@ -62,9 +32,72 @@ test('plugin owns a shared working client, probes PostgreSQL, and disconnects on
     });
     assert.equal(loaded?.email, email);
   } finally {
-    await app.prisma.user.deleteMany({ where: { email } });
+    await cleanTestDatabase(app.prisma);
   }
   await app.close();
   assert.equal(disconnect.mock.callCount(), 1);
   await assert.rejects(app.inject('/health/live'), /closed|closing|destroyed/i);
+});
+
+test('cleanup is repeatable, removes related and anonymous data, and preserves migration history', async (t) => {
+  const app = await buildApp({ env });
+  t.after(async () => {
+    try {
+      await cleanTestDatabase(app.prisma);
+    } finally {
+      await app.close();
+    }
+  });
+  await app.ready();
+  await cleanTestDatabase(app.prisma);
+  const historyBefore = await app.prisma
+    .$queryRaw`SELECT migration_name, checksum FROM _prisma_migrations ORDER BY migration_name`;
+  const user = await app.prisma.user.create({
+    data: { email: 'cleanup@example.test' },
+  });
+  const link = await app.prisma.link.create({
+    data: {
+      userId: user.id,
+      shortCode: 'cleanup-owned',
+      destinationUrl: 'https://example.test/',
+    },
+  });
+  await app.prisma.link.create({
+    data: {
+      shortCode: 'cleanup-anonymous',
+      destinationUrl: 'https://example.test/',
+    },
+  });
+  await app.prisma.click.create({
+    data: { linkId: link.id, ipHash: 'a'.repeat(64) },
+  });
+  await app.prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      tokenHash: 'b'.repeat(64),
+      expiresAt: new Date('2030-01-01T00:00:00Z'),
+    },
+  });
+
+  await assert.rejects(
+    cleanTestDatabase(app.prisma, { ...process.env, NODE_ENV: 'development' }),
+    /NODE_ENV exactly test/,
+  );
+  assert.equal(await app.prisma.user.count(), 1);
+  await cleanTestDatabase(app.prisma);
+  await cleanTestDatabase(app.prisma);
+  assert.deepEqual(
+    await Promise.all([
+      app.prisma.user.count(),
+      app.prisma.link.count(),
+      app.prisma.click.count(),
+      app.prisma.refreshToken.count(),
+    ]),
+    [0, 0, 0, 0],
+  );
+  assert.deepEqual(
+    await app.prisma
+      .$queryRaw`SELECT migration_name, checksum FROM _prisma_migrations ORDER BY migration_name`,
+    historyBefore,
+  );
 });

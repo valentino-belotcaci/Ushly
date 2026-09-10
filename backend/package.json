@@ -11,7 +11,7 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "tsx --test ./tests/**/*.test.ts",
-    "test:integration": "tsx --test ./tests/prisma.integration.ts"
+    "test:integration": "node --env-file=.env.test --import tsx ./tests/run-integration.ts"
   },
   "keywords": [],
   "author": "",
