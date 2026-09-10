@@ -7,7 +7,7 @@ import {
   createLocalUser,
   findUserByEmail,
 } from '../src/modules/auth/auth.repository.js';
-import { verifyPassword } from '../src/utils/password.js';
+import { hashPassword, verifyPassword } from '../src/utils/password.js';
 import {
   cleanTestDatabase,
   getTestEnvironment,
@@ -25,9 +25,10 @@ test('local users are persisted with hashes and found by normalized email; dupli
   await app.ready();
   await cleanTestDatabase(app.prisma);
   const password = 'integration-only password with spaces';
+  const passwordHash = await hashPassword(password);
   const created = await createLocalUser(app.prisma, {
     email: '  Alice.Example+test@Example.TEST  ',
-    password,
+    passwordHash,
   });
   assert.equal(created.email, 'alice.example+test@example.test');
   assert.equal(created.provider, 'local');
@@ -46,7 +47,7 @@ test('local users are persisted with hashes and found by normalized email; dupli
   await assert.rejects(
     createLocalUser(app.prisma, {
       email: 'ALICE.EXAMPLE+TEST@example.test',
-      password,
+      passwordHash,
     }),
     (error: unknown) => {
       assert.ok(error instanceof AppError);
@@ -74,11 +75,11 @@ test('database uniqueness resolves concurrent normalized-email creation', async 
   const outcomes = await Promise.allSettled([
     createLocalUser(app.prisma, {
       email: 'race@example.test',
-      password: 'race-test password',
+      passwordHash: await hashPassword('race-test password'),
     }),
     createLocalUser(app.prisma, {
       email: ' RACE@EXAMPLE.TEST ',
-      password: 'race-test password',
+      passwordHash: await hashPassword('race-test password'),
     }),
   ]);
   assert.equal(

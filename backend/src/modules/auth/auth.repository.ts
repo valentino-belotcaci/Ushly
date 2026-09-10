@@ -1,7 +1,6 @@
 import { Prisma, type PrismaClient, type User } from '@prisma/client';
 
 import { AppError } from '../../errors/app-error.js';
-import { hashPassword } from '../../utils/password.js';
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -9,20 +8,18 @@ function normalizeEmail(email: string): string {
 
 type CreateLocalUserInput = {
   email: string;
-  password: string;
+  passwordHash: string;
 };
 
 export async function createLocalUser(
   prisma: PrismaClient,
   input: CreateLocalUserInput,
 ): Promise<User> {
-  // Hash before constructing Prisma data so raw passwords never reach the driver.
-  const passwordHash = await hashPassword(input.password);
   try {
     return await prisma.user.create({
       data: {
         email: normalizeEmail(input.email),
-        passwordHash,
+        passwordHash: input.passwordHash,
         provider: 'local',
         providerId: null,
       },

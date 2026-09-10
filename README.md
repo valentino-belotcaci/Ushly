@@ -206,9 +206,9 @@ The native addon must be supported by the deployment platform; benchmark cost
 and concurrency on deployment hardware before authentication endpoints go live.
 
 `src/modules/auth/auth.repository.ts` exports only `createLocalUser(prisma,
-{ email, password })` and `findUserByEmail(prisma, email)`. Pass `app.prisma`;
-the repository never creates a client. Creation calls the separate password
-utility before constructing Prisma data, so a raw password never reaches Prisma.
+{ email, passwordHash })` and `findUserByEmail(prisma, email)`. Pass `app.prisma`;
+the repository never creates a client. The registration service calls the password
+utility before invoking the repository, so a raw password never reaches Prisma.
 Returned User objects are internal persistence records and include passwordHash;
 future HTTP code must explicitly select safe response fields.
 
@@ -233,3 +233,41 @@ They cover exact-password verification (including whitespace/Unicode), fresh
 salts, wrong passwords, malformed hashes, normalized create/find, missing users,
 duplicate and concurrent creation, and persisted hashes instead of raw passwords.
 Integration fixtures and cleanup remain restricted to `ushly_test`.
+
+
+### Registration (T3.2)
+
+`POST /auth/register` accepts a JSON object containing only `email` and `password`.
+Email whitespace is trimmed before JSON Schema email validation, and the service
+lowercases it before persistence. The email limit is 254 characters. Passwords
+must contain 15–128 characters (Unicode code points), with spaces and Unicode
+allowed and no uppercase/digit/symbol composition rule. Passwords are never
+trimmed. The route rejects non-string fields and extra fields before Fastify can
+coerce or remove them. The body limit is 4096 bytes, including JSON encoding.
+
+Success is HTTP 201 with only `id`, normalized `email`, and ISO `createdAt`.
+The controller chooses the HTTP status; the service normalizes email, hashes the
+password and selects public fields; the repository performs the Prisma insert.
+The response schema supplies an additional field allowlist. No role field exists
+in the current model, and this endpoint does not create tokens or cookies.
+
+Duplicate normalized emails return HTTP 409 using the existing error shape:
+`{"error":"user_creation_failed","message":"Unable to create user","details":null}`.
+The database unique constraint resolves concurrent attempts without a pre-check.
+The conflict status still indicates that creation was refused; this is not an
+account-enumeration-resistant signup flow. Other persistence failures become a
+safe 500 before logging, without retaining Prisma query arguments or hashes.
+Malformed JSON, oversized bodies, and unsupported content types are mapped safely
+by the existing global error handler rather than logging parser diagnostics.
+
+Registration permits 5 attempts per minute per IP, including invalid requests,
+with the existing trusted-proxy configuration. The global 100/minute baseline
+remains for other routes. Limits are in-memory per process; shared limits and
+hashing concurrency controls need review before multi-instance deployment.
+The length policy favors passphrases and bounds work; breached-password screening
+and email verification are not implemented in this task.
+
+Run `npm test`, `npm run test:integration`, `npm run lint`, and `npm run build`
+from `backend/`. Persistent tests cover success, invalid input, size limits,
+duplicates and races; unit tests cover service projection, the route limit, and
+absence of passwords/hash/driver markers in failure responses and captured logs.

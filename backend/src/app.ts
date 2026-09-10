@@ -6,6 +6,7 @@ import Fastify, { type FastifyError, type FastifyLoggerOptions } from 'fastify';
 import { getEnvironmentConfig, type EnvironmentConfig } from './config/env.js';
 import { AppError, type ErrorDetails } from './errors/app-error.js';
 import prismaPlugin from './plugins/prisma.plugin.js';
+import authRoutes from './modules/auth/auth.routes.js';
 
 export { AppError } from './errors/app-error.js';
 
@@ -208,6 +209,14 @@ export async function buildApp(options: BuildAppOptions = {}) {
       });
     }
 
+    if (statusCode === 413 || statusCode === 415 || (error as FastifyError).code === 'FST_ERR_CTP_INVALID_JSON_BODY') {
+      return reply.code(statusCode === 413 ? 413 : statusCode === 415 ? 415 : 400).send({
+        error: 'validation_error',
+        message: 'Request body is invalid or unsupported',
+        details: null,
+      });
+    }
+
     logger.error({ err: error }, 'Unhandled request error');
     const response: ErrorResponse = {
       error: 'internal_server_error',
@@ -227,6 +236,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     await app.checkDatabaseConnection();
     return { ok: true };
   });
+
+  await app.register(authRoutes);
 
   return app;
 }
