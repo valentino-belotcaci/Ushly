@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { mock } from 'node:test';
 
 import { AppError, buildApp } from '../src/app.js';
 
-const buildTestApp = async () =>
-  buildApp({
+const buildTestApp = async () => {
+  const app = await buildApp({
     env: {
       nodeEnv: 'test',
       host: '127.0.0.1',
       port: 3000,
-      databaseUrl: 'postgresql://postgres:postgres@localhost:5432/ushly',
+      databaseUrl: 'postgresql://unused:unused@127.0.0.1:1/ushly_test',
+      databaseReadyTimeoutMs: 1000,
       redisUrl: 'redis://localhost:6379',
       jwtSecret: 'this-is-a-valid-jwt-secret-32b',
       cookie: {
@@ -23,6 +24,9 @@ const buildTestApp = async () =>
     },
     logger: false,
   });
+  mock.method(app.prisma, '$queryRaw', async () => [{ value: 1 }]);
+  return app;
+};
 
 test('buildApp exposes a health endpoint with service metadata', async () => {
   const app = await buildTestApp();

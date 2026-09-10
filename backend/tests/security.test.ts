@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { mock } from 'node:test';
 
 import { buildApp } from '../src/app.js';
 
-const buildSecurityApp = async () =>
-  buildApp({
+const buildSecurityApp = async () => {
+  const app = await buildApp({
     env: {
       nodeEnv: 'test',
       host: '127.0.0.1',
       port: 3000,
-      databaseUrl: 'postgresql://postgres:postgres@localhost:5432/ushly',
+      databaseUrl: 'postgresql://unused:unused@127.0.0.1:1/ushly_test',
+      databaseReadyTimeoutMs: 1000,
       redisUrl: 'redis://localhost:6379',
       jwtSecret: 'this-is-a-valid-jwt-secret-32b',
       cookie: {
@@ -22,6 +23,9 @@ const buildSecurityApp = async () =>
       trustProxy: false,
     },
   });
+  mock.method(app.prisma, '$queryRaw', async () => [{ value: 1 }]);
+  return app;
+};
 
 void test('allowed origins receive expected CORS headers', async () => {
   const app = await buildSecurityApp();
