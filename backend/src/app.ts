@@ -1,4 +1,6 @@
 import cors from '@fastify/cors';
+import jwt from '@fastify/jwt';
+import { authenticate } from './modules/auth/authenticate.js';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError, type FastifyLoggerOptions } from 'fastify';
@@ -76,18 +78,16 @@ function getLoggerOptions(
     return false;
   }
 
-  if (loggerOverride && typeof loggerOverride !== 'boolean') {
-    return loggerOverride;
-  }
-
-  if (nodeEnv === 'test') {
+  if (nodeEnv === 'test' && !loggerOverride) {
     return false;
   }
 
   const level = nodeEnv === 'production' ? 'info' : 'debug';
 
+  const overrides = typeof loggerOverride === 'object' ? loggerOverride : {};
   return {
-    level,
+    ...overrides,
+    level: overrides.level ?? level,
     redact: [
       'authorization',
       'cookie',
@@ -104,6 +104,9 @@ function getLoggerOptions(
       'jwtSecret',
       'accessToken',
       'refreshToken',
+      'passwordHash',
+      'req.body.passwordHash',
+      ...overrides.redact ?? [],
     ],
   };
 }
@@ -131,6 +134,14 @@ export async function buildApp(options: BuildAppOptions = {}) {
     databaseUrl: env.databaseUrl,
     timeoutMs: env.databaseReadyTimeoutMs,
   });
+
+  await app.register(jwt, {
+    secret: env.jwtSecret,
+    sign: { algorithm: 'HS256', expiresIn: env.accessTokenTtlSeconds },
+    verify: { algorithms: ['HS256'], requiredClaims: ['sub', 'iat', 'exp'] },
+  });
+  app.decorateRequest('authenticatedUser', null);
+  app.decorate('authenticate', authenticate);
 
   await app.register(helmet, {
     global: true,

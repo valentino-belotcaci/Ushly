@@ -15,6 +15,7 @@ export type EnvironmentConfig = {
   databaseReadyTimeoutMs: number;
   redisUrl: string;
   jwtSecret: string;
+  accessTokenTtlSeconds: number;
   cookie: {
     name: string;
     secure: boolean;
@@ -116,6 +117,14 @@ function parseDatabaseReadyTimeout(raw: string | undefined): number {
   return value;
 }
 
+function parseAccessTokenTtl(raw: string | undefined): number {
+  const value = raw === undefined ? 900 : Number(raw);
+  if (!Number.isInteger(value) || value < 60 || value > 3600) {
+    throw new Error('Invalid ACCESS_TOKEN_TTL_SECONDS: expected an integer between 60 and 3600.');
+  }
+  return value;
+}
+
 export function getEnvironmentConfig(input: EnvironmentInput = process.env): EnvironmentConfig {
   const nodeEnv = parseNodeEnv(requireString(input, 'NODE_ENV'));
   const host = requireString(input, 'HOST');
@@ -148,6 +157,7 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
     databaseReadyTimeoutMs: parseDatabaseReadyTimeout(input.DATABASE_READY_TIMEOUT_MS),
     redisUrl,
     jwtSecret,
+    accessTokenTtlSeconds: parseAccessTokenTtl(input.ACCESS_TOKEN_TTL_SECONDS),
     cookie: {
       name: cookieName,
       secure: cookieSecure,

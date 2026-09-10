@@ -271,3 +271,55 @@ Run `npm test`, `npm run test:integration`, `npm run lint`, and `npm run build`
 from `backend/`. Persistent tests cover success, invalid input, size limits,
 duplicates and races; unit tests cover service projection, the route limit, and
 absence of passwords/hash/driver markers in failure responses and captured logs.
+
+
+### Login and access tokens (T3.3)
+
+`POST /auth/login` accepts only JSON `email` and `password`. It uses registration's
+email trimming/lowercasing and format/length checks, a 4 KiB body limit, and a
+1–128-character password input limit. Login verifies existing passwords rather
+than imposing the registration minimum again. No password normalization occurs.
+
+Success returns HTTP 200 with `{ accessToken, user: { id, email, createdAt } }`
+and `Cache-Control: no-store`. The service looks up the normalized email through
+the repository and verifies Argon2 via the existing utility. The controller signs
+the token using Fastify JWT. Unknown email, wrong password, and accounts without
+a local password all return the same HTTP 401 body:
+`{"error":"invalid_credentials","message":"Invalid email or password","details":null}`.
+A non-account dummy hash with the same Argon2 cost avoids an obvious fast failure
+path for missing users; this does not guarantee perfectly equal response times.
+
+`ACCESS_TOKEN_TTL_SECONDS` defaults to **900 (15 minutes)** and must be an integer
+between 60 and 3600. `JWT_SECRET` remains required through environment validation;
+use a high-entropy secret unique to this application. The existing `@fastify/jwt`
+plugin signs/verifies only HS256 here. Issued claims are just `sub` (user ID),
+`iat`, and `exp`. JWTs are signed, not encrypted: personal data and credentials
+do not belong in their readable payloads.
+
+Future routes opt into authentication with `{ preHandler: app.authenticate }`.
+The hook verifies the Bearer token, requires and validates subject and temporal
+claims, and sets `request.authenticatedUser` to `{ id }`. It is nullable on
+unprotected requests. Missing, malformed, expired, invalid-claim, and tampered
+tokens all return `401 {"error":"unauthorized","message":"Authentication required",
+"details":null}` through the existing error handler, without exposing verifier
+errors. Only test routes are added to exercise protected access in this task.
+
+Login permits **5 attempts/minute/IP**, including bad credentials and invalid
+requests. The global 100/minute baseline remains for other routes. Redaction
+rules for passwords, hashes, authorization headers, access tokens and JWT secrets
+remain applied even with logger overrides; auth errors do not retain raw driver
+or JWT errors. Do not log secrets inside free-form message strings.
+
+Access tokens authorize API requests until expiry. Refresh tokens would obtain
+new access tokens and require separate persistence/rotation/revocation behavior;
+none is implemented here. Current access tokens are not revoked by account
+changes or deletion, and the hook does not query the database. Ownership checks
+and authorization must still be enforced by future routes. Production follow-up
+includes shared rate limiting, signing-key rotation, HTTPS, and reviewed token
+storage. Do not reuse this signing secret across applications; issuer/audience
+policy must be revisited if token consumers expand.
+
+Verification uses `npm test`, `npm run test:integration`, `npm run lint`, and
+`npm run build`. Tests include configurable token lifetime, valid/protected access,
+all token failure categories, indistinguishable credential failures, rate limits,
+and captured log checks. Integration writes remain limited to `ushly_test`.

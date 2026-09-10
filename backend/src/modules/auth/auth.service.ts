@@ -1,8 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
 
 import { AppError } from '../../errors/app-error.js';
-import { hashPassword } from '../../utils/password.js';
-import { createLocalUser } from './auth.repository.js';
+import { hashPassword, verifyPassword } from '../../utils/password.js';
+import { createLocalUser, findUserByEmail } from './auth.repository.js';
 import type { RegisterBody } from './auth.schemas.js';
 
 export async function registerUser(prisma: PrismaClient, input: RegisterBody) {
@@ -26,4 +26,34 @@ export async function registerUser(prisma: PrismaClient, input: RegisterBody) {
       500,
     );
   }
+}
+
+// Public, non-account hash with the same cost as real passwords. It avoids the
+// obvious fast path for an unknown email or an account without a local password.
+const DUMMY_PASSWORD_HASH =
+  '$argon2id$v=19$m=65536,p=1,t=3$0vjEjA7oOhZb0+9rrBagSA$g95yXTNnqAXaIHpkgBc2Ang7BaVVzRxK2Cxu23qECTA';
+
+export async function loginUser(prisma: PrismaClient, input: RegisterBody) {
+  let user;
+  try {
+    user = await findUserByEmail(prisma, input.email.trim().toLowerCase());
+  } catch {
+    throw new AppError(
+      'internal_server_error',
+      'An unexpected error occurred',
+      500,
+    );
+  }
+  const valid = await verifyPassword(
+    input.password,
+    user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+  );
+  if (!user || user.provider !== 'local' || !user.passwordHash || !valid) {
+    throw new AppError('invalid_credentials', 'Invalid email or password', 401);
+  }
+  return {
+    id: user.id,
+    email: user.email,
+    createdAt: user.createdAt.toISOString(),
+  };
 }
