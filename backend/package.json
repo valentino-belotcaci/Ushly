@@ -20,6 +20,7 @@
     "@fastify/helmet": "^13.1.1",
     "@fastify/jwt": "^10.2.2",
     "@fastify/rate-limit": "^11.2.0",
+    "@prisma/client": "^5.22.0",
     "fastify": "^5.12.3"
   },
   "devDependencies": {
@@ -28,6 +29,7 @@
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.6",
+    "prisma": "^5.22.0",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0"
