@@ -12,6 +12,7 @@ export type EnvironmentConfig = {
   host: string;
   port: number;
   databaseUrl: string;
+  databaseReadyTimeoutMs: number;
   redisUrl: string;
   jwtSecret: string;
   cookie: {
@@ -107,6 +108,14 @@ function parseMaxAge(raw: string): number {
   return value;
 }
 
+function parseDatabaseReadyTimeout(raw: string | undefined): number {
+  const value = raw === undefined ? 1000 : Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > 5000) {
+    throw new Error('Invalid DATABASE_READY_TIMEOUT_MS: expected an integer between 1 and 5000.');
+  }
+  return value;
+}
+
 export function getEnvironmentConfig(input: EnvironmentInput = process.env): EnvironmentConfig {
   const nodeEnv = parseNodeEnv(requireString(input, 'NODE_ENV'));
   const host = requireString(input, 'HOST');
@@ -136,6 +145,7 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
     host,
     port,
     databaseUrl,
+    databaseReadyTimeoutMs: parseDatabaseReadyTimeout(input.DATABASE_READY_TIMEOUT_MS),
     redisUrl,
     jwtSecret,
     cookie: {

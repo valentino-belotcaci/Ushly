@@ -62,3 +62,16 @@ test('getEnvironmentConfig parses trust-proxy values as strings or arrays', () =
 
   assert.deepEqual(env.trustProxy, ['127.0.0.1', '10.0.0.0/8']);
 });
+
+test('database readiness timeout defaults to 1000ms and accepts a configured deadline', () => {
+  assert.equal(getEnvironmentConfig(validEnv).databaseReadyTimeoutMs, 1000);
+  assert.equal(getEnvironmentConfig({ ...validEnv, DATABASE_READY_TIMEOUT_MS: '250' }).databaseReadyTimeoutMs, 250);
+});
+
+test('database readiness timeout rejects invalid and excessive values without echoing input', () => {
+  for (const value of ['', '0', '-1', '1.5', '5001', '250ms', 'private-value']) {
+    assert.throws(() => getEnvironmentConfig({ ...validEnv, DATABASE_READY_TIMEOUT_MS: value }), {
+      message: 'Invalid DATABASE_READY_TIMEOUT_MS: expected an integer between 1 and 5000.',
+    });
+  }
+});

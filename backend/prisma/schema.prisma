@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  local
+  google
+}
+
+enum LinkStatus {
+  active
+  disabled
+  expired
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String?
+  passwordHash String?
+  provider     AuthProvider @default(local)
+  providerId   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  links         Link[]
+  refreshTokens RefreshToken[]
+
+  @@unique([provider, providerId])
+}
+
+model Link {
+  id             String     @id @default(cuid())
+  /// Nullable userId allows anonymous creation while retaining ownership for authenticated users.
+  userId         String?
+  shortCode      String     @unique
+  destinationUrl String     @db.VarChar(2048)
+  title          String?
+  status         LinkStatus @default(active)
+  expiresAt      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  lastClickedAt  DateTime?
+
+  /// SetNull keeps historical links intact if the owning user is deleted later.
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  clicks Click[]
+
+  /// User-scoped listing uses this index to support paginated owner dashboards.
+  @@index([userId, createdAt, id], name: "links_user_created_at_idx")
+}
+
+model Click {
+  id          String   @id @default(cuid())
+  linkId      String
+  clickedAt   DateTime @default(now())
+  ipHash      String
+  referrer    String?
+  userAgent   String?
+  countryCode String?
+
+  /// Cascading deletes keep click records consistent with the owning short link.
+  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  /// Analytics queries aggregate click volume by link over time.
+  @@index([linkId, clickedAt], name: "clicks_link_clicked_at_idx")
+}
+
+model RefreshToken {
+  id                String    @id @default(cuid())
+  userId            String
+  tokenHash         String    @unique
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  replacedByTokenId String?   @unique
+
+  /// Cascade delete removes session tokens when the owner account is removed.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  replacedByToken RefreshToken? @relation("TokenReplacement", fields: [replacedByTokenId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  replacesToken   RefreshToken? @relation("TokenReplacement")
+
+  /// This supports active-session checks and revocation lookups without scanning the whole table.
+  @@index([userId, revokedAt, expiresAt], name: "refresh_tokens_user_revoked_expires_idx")
+}

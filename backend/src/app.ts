@@ -4,6 +4,10 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError, type FastifyLoggerOptions } from 'fastify';
 
 import { getEnvironmentConfig, type EnvironmentConfig } from './config/env.js';
+import { AppError, type ErrorDetails } from './errors/app-error.js';
+import prismaPlugin from './plugins/prisma.plugin.js';
+
+export { AppError } from './errors/app-error.js';
 
 type LoggerWithRedaction = FastifyLoggerOptions & {
   redact?: string[];
@@ -28,8 +32,6 @@ const DEFAULT_BODY_LIMIT_BYTES = 1024 * 1024;
 const DEFAULT_RATE_LIMIT_MAX = 100;
 const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
 
-type ErrorDetails = Record<string, unknown> | unknown[] | null;
-
 type ErrorResponse = {
   error: string;
   message: string;
@@ -44,20 +46,6 @@ type BuildAppOptions = {
     timeWindow?: number | string;
   };
 };
-
-export class AppError extends Error {
-  readonly code: string;
-  readonly statusCode: number;
-  readonly details: ErrorDetails;
-
-  constructor(code: string, message: string, statusCode = 400, details: ErrorDetails = null) {
-    super(message);
-    this.name = 'AppError';
-    this.code = code;
-    this.statusCode = statusCode;
-    this.details = details;
-  }
-}
 
 export function redactSensitiveValue<T>(value: T): T {
   if (Array.isArray(value)) {
@@ -136,6 +124,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
     logger: getLoggerOptions(env.nodeEnv, options.logger),
     trustProxy: env.trustProxy,
     bodyLimit: DEFAULT_BODY_LIMIT_BYTES,
+  });
+
+  await app.register(prismaPlugin, {
+    databaseUrl: env.databaseUrl,
+    timeoutMs: env.databaseReadyTimeoutMs,
   });
 
   await app.register(helmet, {
@@ -229,6 +222,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
     service: 'ushly-backend',
     environment: env.nodeEnv,
   }));
+
+  app.get('/health/ready', async () => {
+    await app.checkDatabaseConnection();
+    return { ok: true };
+  });
 
   return app;
 }
