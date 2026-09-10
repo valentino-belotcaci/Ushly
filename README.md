@@ -191,3 +191,45 @@ The suite covers real Prisma read/write and lifecycle behavior, repeatable clean
 of related and anonymous records, and preservation of migration history. Unit
 safety tests reject development/production modes, missing/conflicting URLs,
 non-test names, remote hosts, and connection-option overrides.
+
+
+### Local user primitives (T3.1)
+
+`src/utils/password.ts` provides asynchronous `hashPassword(password)` and
+`verifyPassword(password, passwordHash)`. It uses pinned `argon2@0.45.1` with
+Argon2id, 64 MiB memory, three iterations, parallelism one, and a 32-byte output.
+The library generates a random salt and stores algorithm, parameters, salt, and
+hash in the encoded string. Passwords are not trimmed, lowercased, or otherwise
+normalized. Wrong passwords and malformed hashes return false; verification
+errors fail closed. Hashing errors propagate rather than creating a user.
+The native addon must be supported by the deployment platform; benchmark cost
+and concurrency on deployment hardware before authentication endpoints go live.
+
+`src/modules/auth/auth.repository.ts` exports only `createLocalUser(prisma,
+{ email, password })` and `findUserByEmail(prisma, email)`. Pass `app.prisma`;
+the repository never creates a client. Creation calls the separate password
+utility before constructing Prisma data, so a raw password never reaches Prisma.
+Returned User objects are internal persistence records and include passwordHash;
+future HTTP code must explicitly select safe response fields.
+
+Both writes and lookups use **`email.trim().toLowerCase()`** across the entire
+address. Dots and `+` suffixes remain intact. This is the product's case-insensitive
+identity rule, including the local part; provider-specific alias folding is not
+performed. Existing differently cased records are not rewritten in this task.
+Future import/OAuth writers must apply the same rule. Input syntax and password
+policy validation belong at the future registration boundary.
+
+PostgreSQL's existing unique email constraint prevents duplicate normalized
+addresses, including racing requests. There is no pre-insert existence check.
+Prisma P2002 is translated to a generic `user_creation_failed` AppError (409),
+without including the email, constraint details, or a raw Prisma error as cause.
+Other database failures propagate to the existing error handling. This primitive
+alone is not an account-enumeration defense: T3.2 must decide consistent public
+registration responses and timing, rather than exposing this conflict outcome
+as an email-availability check.
+
+Tests run with the existing `npm test` and `npm run test:integration` commands.
+They cover exact-password verification (including whitespace/Unicode), fresh
+salts, wrong passwords, malformed hashes, normalized create/find, missing users,
+duplicate and concurrent creation, and persisted hashes instead of raw passwords.
+Integration fixtures and cleanup remain restricted to `ushly_test`.
