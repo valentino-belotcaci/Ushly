@@ -13,6 +13,7 @@ const buildSecurityApp = async () => {
       databaseReadyTimeoutMs: 1000,
       redisUrl: 'redis://localhost:6379',
       jwtSecret: 'this-is-a-valid-jwt-secret-32b',
+      accessTokenTtlSeconds: 900,
       cookie: {
         name: 'ushly_session',
         secure: false,

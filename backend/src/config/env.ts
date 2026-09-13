@@ -15,6 +15,7 @@ export type EnvironmentConfig = {
   databaseReadyTimeoutMs: number;
   redisUrl: string;
   jwtSecret: string;
+  accessTokenTtlSeconds: number;
   cookie: {
     name: string;
     secure: boolean;
@@ -100,9 +101,9 @@ function parseSameSite(raw: string): CookieSameSite {
 }
 
 function parseMaxAge(raw: string): number {
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isInteger(value) || value < 0) {
-    throw new Error(`Invalid COOKIE_MAX_AGE: ${raw}. Expected a non-negative integer.`);
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1000) {
+    throw new Error(`Invalid COOKIE_MAX_AGE: ${raw}. Expected an integer of at least 1000 milliseconds.`);
   }
 
   return value;
@@ -112,6 +113,14 @@ function parseDatabaseReadyTimeout(raw: string | undefined): number {
   const value = raw === undefined ? 1000 : Number(raw);
   if (!Number.isInteger(value) || value < 1 || value > 5000) {
     throw new Error('Invalid DATABASE_READY_TIMEOUT_MS: expected an integer between 1 and 5000.');
+  }
+  return value;
+}
+
+function parseAccessTokenTtl(raw: string | undefined): number {
+  const value = raw === undefined ? 900 : Number(raw);
+  if (!Number.isInteger(value) || value < 60 || value > 3600) {
+    throw new Error('Invalid ACCESS_TOKEN_TTL_SECONDS: expected an integer between 60 and 3600.');
   }
   return value;
 }
@@ -129,8 +138,14 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
   }
 
   const cookieName = requireString(input, 'COOKIE_NAME');
+  if (!/^[A-Za-z0-9_-]+$/.test(cookieName) || cookieName.startsWith('__Host-')) {
+    throw new Error('Invalid COOKIE_NAME for an /auth scoped cookie.');
+  }
   const cookieSecure = parseBoolean(requireString(input, 'COOKIE_SECURE'), 'COOKIE_SECURE');
   const cookieSameSite = parseSameSite(requireString(input, 'COOKIE_SAME_SITE'));
+  if ((cookieSameSite === 'none' || cookieName.startsWith('__Secure-')) && !cookieSecure) {
+    throw new Error('Cookie configuration requires COOKIE_SECURE=true.');
+  }
   const cookieMaxAgeMs = parseMaxAge(requireString(input, 'COOKIE_MAX_AGE'));
   const corsAllowedOrigins = parseStringList(input.CORS_ALLOWED_ORIGINS, 'CORS_ALLOWED_ORIGINS');
   const trustProxy = parseTrustProxy(input.TRUST_PROXY);
@@ -148,6 +163,7 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
     databaseReadyTimeoutMs: parseDatabaseReadyTimeout(input.DATABASE_READY_TIMEOUT_MS),
     redisUrl,
     jwtSecret,
+    accessTokenTtlSeconds: parseAccessTokenTtl(input.ACCESS_TOKEN_TTL_SECONDS),
     cookie: {
       name: cookieName,
       secure: cookieSecure,

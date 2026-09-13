@@ -191,3 +191,167 @@ The suite covers real Prisma read/write and lifecycle behavior, repeatable clean
 of related and anonymous records, and preservation of migration history. Unit
 safety tests reject development/production modes, missing/conflicting URLs,
 non-test names, remote hosts, and connection-option overrides.
+
+
+### Local user primitives (T3.1)
+
+`src/utils/password.ts` provides asynchronous `hashPassword(password)` and
+`verifyPassword(password, passwordHash)`. It uses pinned `argon2@0.45.1` with
+Argon2id, 64 MiB memory, three iterations, parallelism one, and a 32-byte output.
+The library generates a random salt and stores algorithm, parameters, salt, and
+hash in the encoded string. Passwords are not trimmed, lowercased, or otherwise
+normalized. Wrong passwords and malformed hashes return false; verification
+errors fail closed. Hashing errors propagate rather than creating a user.
+The native addon must be supported by the deployment platform; benchmark cost
+and concurrency on deployment hardware before authentication endpoints go live.
+
+`src/modules/auth/auth.repository.ts` exports only `createLocalUser(prisma,
+{ email, passwordHash })` and `findUserByEmail(prisma, email)`. Pass `app.prisma`;
+the repository never creates a client. The registration service calls the password
+utility before invoking the repository, so a raw password never reaches Prisma.
+Returned User objects are internal persistence records and include passwordHash;
+future HTTP code must explicitly select safe response fields.
+
+Both writes and lookups use **`email.trim().toLowerCase()`** across the entire
+address. Dots and `+` suffixes remain intact. This is the product's case-insensitive
+identity rule, including the local part; provider-specific alias folding is not
+performed. Existing differently cased records are not rewritten in this task.
+Future import/OAuth writers must apply the same rule. Input syntax and password
+policy validation belong at the future registration boundary.
+
+PostgreSQL's existing unique email constraint prevents duplicate normalized
+addresses, including racing requests. There is no pre-insert existence check.
+Prisma P2002 is translated to a generic `user_creation_failed` AppError (409),
+without including the email, constraint details, or a raw Prisma error as cause.
+Other database failures propagate to the existing error handling. This primitive
+alone is not an account-enumeration defense: T3.2 must decide consistent public
+registration responses and timing, rather than exposing this conflict outcome
+as an email-availability check.
+
+Tests run with the existing `npm test` and `npm run test:integration` commands.
+They cover exact-password verification (including whitespace/Unicode), fresh
+salts, wrong passwords, malformed hashes, normalized create/find, missing users,
+duplicate and concurrent creation, and persisted hashes instead of raw passwords.
+Integration fixtures and cleanup remain restricted to `ushly_test`.
+
+
+### Registration (T3.2)
+
+`POST /auth/register` accepts a JSON object containing only `email` and `password`.
+Email whitespace is trimmed before JSON Schema email validation, and the service
+lowercases it before persistence. The email limit is 254 characters. Passwords
+must contain 15–128 characters (Unicode code points), with spaces and Unicode
+allowed and no uppercase/digit/symbol composition rule. Passwords are never
+trimmed. The route rejects non-string fields and extra fields before Fastify can
+coerce or remove them. The body limit is 4096 bytes, including JSON encoding.
+
+Success is HTTP 201 with only `id`, normalized `email`, and ISO `createdAt`.
+The controller chooses the HTTP status; the service normalizes email, hashes the
+password and selects public fields; the repository performs the Prisma insert.
+The response schema supplies an additional field allowlist. No role field exists
+in the current model, and this endpoint does not create tokens or cookies.
+
+Duplicate normalized emails return HTTP 409 using the existing error shape:
+`{"error":"user_creation_failed","message":"Unable to create user","details":null}`.
+The database unique constraint resolves concurrent attempts without a pre-check.
+The conflict status still indicates that creation was refused; this is not an
+account-enumeration-resistant signup flow. Other persistence failures become a
+safe 500 before logging, without retaining Prisma query arguments or hashes.
+Malformed JSON, oversized bodies, and unsupported content types are mapped safely
+by the existing global error handler rather than logging parser diagnostics.
+
+Registration permits 5 attempts per minute per IP, including invalid requests,
+with the existing trusted-proxy configuration. The global 100/minute baseline
+remains for other routes. Limits are in-memory per process; shared limits and
+hashing concurrency controls need review before multi-instance deployment.
+The length policy favors passphrases and bounds work; breached-password screening
+and email verification are not implemented in this task.
+
+Run `npm test`, `npm run test:integration`, `npm run lint`, and `npm run build`
+from `backend/`. Persistent tests cover success, invalid input, size limits,
+duplicates and races; unit tests cover service projection, the route limit, and
+absence of passwords/hash/driver markers in failure responses and captured logs.
+
+
+### Login and access tokens (T3.3)
+
+`POST /auth/login` accepts only JSON `email` and `password`. It uses registration's
+email trimming/lowercasing and format/length checks, a 4 KiB body limit, and a
+1–128-character password input limit. Login verifies existing passwords rather
+than imposing the registration minimum again. No password normalization occurs.
+
+Success returns HTTP 200 with `{ accessToken, user: { id, email, createdAt } }`
+and `Cache-Control: no-store`. The service looks up the normalized email through
+the repository and verifies Argon2 via the existing utility. The controller signs
+the token using Fastify JWT. Unknown email, wrong password, and accounts without
+a local password all return the same HTTP 401 body:
+`{"error":"invalid_credentials","message":"Invalid email or password","details":null}`.
+A non-account dummy hash with the same Argon2 cost avoids an obvious fast failure
+path for missing users; this does not guarantee perfectly equal response times.
+
+`ACCESS_TOKEN_TTL_SECONDS` defaults to **900 (15 minutes)** and must be an integer
+between 60 and 3600. `JWT_SECRET` remains required through environment validation;
+use a high-entropy secret unique to this application. The existing `@fastify/jwt`
+plugin signs/verifies only HS256 here. Issued claims are just `sub` (user ID),
+`iat`, and `exp`. JWTs are signed, not encrypted: personal data and credentials
+do not belong in their readable payloads.
+
+Future routes opt into authentication with `{ preHandler: app.authenticate }`.
+The hook verifies the Bearer token, requires and validates subject and temporal
+claims, and sets `request.authenticatedUser` to `{ id }`. It is nullable on
+unprotected requests. Missing, malformed, expired, invalid-claim, and tampered
+tokens all return `401 {"error":"unauthorized","message":"Authentication required",
+"details":null}` through the existing error handler, without exposing verifier
+errors. Only test routes are added to exercise protected access in this task.
+
+Login permits **5 attempts/minute/IP**, including bad credentials and invalid
+requests. The global 100/minute baseline remains for other routes. Redaction
+rules for passwords, hashes, authorization headers, access tokens and JWT secrets
+remain applied even with logger overrides; auth errors do not retain raw driver
+or JWT errors. Do not log secrets inside free-form message strings.
+
+Access tokens authorize API requests until expiry. Refresh tokens would obtain
+new access tokens and require separate persistence/rotation/revocation behavior;
+none is implemented here. Current access tokens are not revoked by account
+changes or deletion, and the hook does not query the database. Ownership checks
+and authorization must still be enforced by future routes. Production follow-up
+includes shared rate limiting, signing-key rotation, HTTPS, and reviewed token
+storage. Do not reuse this signing secret across applications; issuer/audience
+policy must be revisited if token consumers expand.
+
+Verification uses `npm test`, `npm run test:integration`, `npm run lint`, and
+`npm run build`. Tests include configurable token lifetime, valid/protected access,
+all token failure categories, indistinguishable credential failures, rate limits,
+and captured log checks. Integration writes remain limited to `ushly_test`.
+
+### Refresh sessions (T3.4)
+
+Successful login sets the configured refresh cookie. `POST /auth/refresh` reads
+that cookie, rotates it, and returns only `{ accessToken }`. `POST /auth/logout`
+revokes the session and clears the cookie, returning 204 even if it is absent or
+already revoked. Both endpoints use `Cache-Control: no-store`.
+
+Refresh tokens contain 32 cryptographically random bytes. PostgreSQL stores only
+SHA-256 hashes; unlike passwords, these tokens already have sufficient entropy
+and do not require an expensive password hash. The existing replacement links
+identify a session chain, so no schema change is required. A transaction locks
+the user's row before rereading token state, serializing refresh/logout even
+across server processes. Replaying a rotated token revokes its descendants;
+other login sessions remain usable. Concurrent refresh requests count as replay,
+so clients must serialize refreshes. Revocation commits before returning 401.
+
+`COOKIE_MAX_AGE` is the session's absolute lifetime in milliseconds (minimum
+1000). Rotation preserves that deadline. Cookies are HttpOnly, host-only, scoped
+to `/auth`, Secure in production, and use `COOKIE_SAME_SITE`. `none` requires
+Secure even outside production. `__Host-` names cannot use the `/auth` path.
+Browser origins must be explicitly listed in `CORS_ALLOWED_ORIGINS`, including
+the API origin if a same-origin browser deployment uses it. Cookie auth routes
+reject unlisted Origins; cross-site requests without Origin are also rejected.
+Nonbrowser clients may omit Origin. CORS alone is not a CSRF defense.
+
+Existing access JWTs remain valid until expiration after logout or replay.
+Retain rotated token records until the session expires for replay detection;
+a future cleanup job may delete expired chains. Chain traversal costs grow with
+rotation count, and the per-user lock serializes separate sessions too. Revisit
+a session/family table if usage warrants it. Database errors are mapped to safe
+public errors before logging. Never log cookie or token values in message text.

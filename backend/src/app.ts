@@ -1,4 +1,6 @@
 import cors from '@fastify/cors';
+import jwt from '@fastify/jwt';
+import { authenticate } from './modules/auth/authenticate.js';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError, type FastifyLoggerOptions } from 'fastify';
@@ -6,6 +8,7 @@ import Fastify, { type FastifyError, type FastifyLoggerOptions } from 'fastify';
 import { getEnvironmentConfig, type EnvironmentConfig } from './config/env.js';
 import { AppError, type ErrorDetails } from './errors/app-error.js';
 import prismaPlugin from './plugins/prisma.plugin.js';
+import authRoutes from './modules/auth/auth.routes.js';
 
 export { AppError } from './errors/app-error.js';
 
@@ -75,18 +78,16 @@ function getLoggerOptions(
     return false;
   }
 
-  if (loggerOverride && typeof loggerOverride !== 'boolean') {
-    return loggerOverride;
-  }
-
-  if (nodeEnv === 'test') {
+  if (nodeEnv === 'test' && !loggerOverride) {
     return false;
   }
 
   const level = nodeEnv === 'production' ? 'info' : 'debug';
 
+  const overrides = typeof loggerOverride === 'object' ? loggerOverride : {};
   return {
-    level,
+    ...overrides,
+    level: overrides.level ?? level,
     redact: [
       'authorization',
       'cookie',
@@ -103,6 +104,10 @@ function getLoggerOptions(
       'jwtSecret',
       'accessToken',
       'refreshToken',
+      'tokenHash',
+      'passwordHash',
+      'req.body.passwordHash',
+      ...overrides.redact ?? [],
     ],
   };
 }
@@ -130,6 +135,14 @@ export async function buildApp(options: BuildAppOptions = {}) {
     databaseUrl: env.databaseUrl,
     timeoutMs: env.databaseReadyTimeoutMs,
   });
+
+  await app.register(jwt, {
+    secret: env.jwtSecret,
+    sign: { algorithm: 'HS256', expiresIn: env.accessTokenTtlSeconds },
+    verify: { algorithms: ['HS256'], requiredClaims: ['sub', 'iat', 'exp'] },
+  });
+  app.decorateRequest('authenticatedUser', null);
+  app.decorate('authenticate', authenticate);
 
   await app.register(helmet, {
     global: true,
@@ -208,6 +221,14 @@ export async function buildApp(options: BuildAppOptions = {}) {
       });
     }
 
+    if (statusCode === 413 || statusCode === 415 || (error as FastifyError).code === 'FST_ERR_CTP_INVALID_JSON_BODY') {
+      return reply.code(statusCode === 413 ? 413 : statusCode === 415 ? 415 : 400).send({
+        error: 'validation_error',
+        message: 'Request body is invalid or unsupported',
+        details: null,
+      });
+    }
+
     logger.error({ err: error }, 'Unhandled request error');
     const response: ErrorResponse = {
       error: 'internal_server_error',
@@ -227,6 +248,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     await app.checkDatabaseConnection();
     return { ok: true };
   });
+
+  await app.register(authRoutes, { env });
 
   return app;
 }

@@ -75,3 +75,11 @@ test('database readiness timeout rejects invalid and excessive values without ec
     });
   }
 });
+
+test('access token expiration defaults to fifteen minutes and validates configured seconds', () => {
+  assert.equal(getEnvironmentConfig(validEnv).accessTokenTtlSeconds, 900);
+  assert.equal(getEnvironmentConfig({ ...validEnv, ACCESS_TOKEN_TTL_SECONDS: '120' }).accessTokenTtlSeconds, 120);
+  for (const value of ['', '0', '-1', '59', '3601', '1.5', '15m']) {
+    assert.throws(() => getEnvironmentConfig({ ...validEnv, ACCESS_TOKEN_TTL_SECONDS: value }), /Invalid ACCESS_TOKEN_TTL_SECONDS/);
+  }
+});
