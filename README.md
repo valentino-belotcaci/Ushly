@@ -323,3 +323,35 @@ Verification uses `npm test`, `npm run test:integration`, `npm run lint`, and
 `npm run build`. Tests include configurable token lifetime, valid/protected access,
 all token failure categories, indistinguishable credential failures, rate limits,
 and captured log checks. Integration writes remain limited to `ushly_test`.
+
+### Refresh sessions (T3.4)
+
+Successful login sets the configured refresh cookie. `POST /auth/refresh` reads
+that cookie, rotates it, and returns only `{ accessToken }`. `POST /auth/logout`
+revokes the session and clears the cookie, returning 204 even if it is absent or
+already revoked. Both endpoints use `Cache-Control: no-store`.
+
+Refresh tokens contain 32 cryptographically random bytes. PostgreSQL stores only
+SHA-256 hashes; unlike passwords, these tokens already have sufficient entropy
+and do not require an expensive password hash. The existing replacement links
+identify a session chain, so no schema change is required. A transaction locks
+the user's row before rereading token state, serializing refresh/logout even
+across server processes. Replaying a rotated token revokes its descendants;
+other login sessions remain usable. Concurrent refresh requests count as replay,
+so clients must serialize refreshes. Revocation commits before returning 401.
+
+`COOKIE_MAX_AGE` is the session's absolute lifetime in milliseconds (minimum
+1000). Rotation preserves that deadline. Cookies are HttpOnly, host-only, scoped
+to `/auth`, Secure in production, and use `COOKIE_SAME_SITE`. `none` requires
+Secure even outside production. `__Host-` names cannot use the `/auth` path.
+Browser origins must be explicitly listed in `CORS_ALLOWED_ORIGINS`, including
+the API origin if a same-origin browser deployment uses it. Cookie auth routes
+reject unlisted Origins; cross-site requests without Origin are also rejected.
+Nonbrowser clients may omit Origin. CORS alone is not a CSRF defense.
+
+Existing access JWTs remain valid until expiration after logout or replay.
+Retain rotated token records until the session expires for replay detection;
+a future cleanup job may delete expired chains. Chain traversal costs grow with
+rotation count, and the per-user lock serializes separate sessions too. Revisit
+a session/family table if usage warrants it. Database errors are mapped to safe
+public errors before logging. Never log cookie or token values in message text.

@@ -1,3 +1,6 @@
+import cookie from '@fastify/cookie';
+import type { EnvironmentConfig } from '../../config/env.js';
+import { refreshControllers } from './refresh.controller.js';
 import type {
   FastifyPluginAsync,
   preValidationAsyncHookHandler,
@@ -30,7 +33,42 @@ const validateCredentials: preValidationAsyncHookHandler = async (request) => {
   body.email = body.email.trim();
 };
 
-const authRoutes: FastifyPluginAsync = async (app) => {
+const authRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
+  app,
+  { env },
+) => {
+  await app.register(cookie);
+  // CORS alone does not prevent writes. Reject browser origins outside the
+  // deployment allowlist before accepting or issuing a session cookie.
+  app.addHook('onRequest', async (request) => {
+    const origin = request.headers.origin;
+    if (
+      (origin && !env.corsAllowedOrigins.includes(origin)) ||
+      (!origin && request.headers['sec-fetch-site'] === 'cross-site')
+    ) {
+      throw new AppError('forbidden', 'Request not allowed', 403);
+    }
+  });
+  const controllers = refreshControllers(env);
+  app.post(
+    '/auth/refresh',
+    {
+      bodyLimit: 1024,
+      config: { rateLimit: { max: 30, timeWindow: 60_000 } },
+      schema: {
+        response: {
+          200: {
+            type: 'object',
+            required: ['accessToken'],
+            additionalProperties: false,
+            properties: { accessToken: { type: 'string' } },
+          },
+        },
+      },
+    },
+    controllers.refresh,
+  );
+  app.post('/auth/logout', { bodyLimit: 1024 }, controllers.logout);
   app.post<{ Body: RegisterBody }>(
     '/auth/login',
     {
@@ -39,7 +77,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       schema: loginSchema,
       preValidation: validateCredentials,
     },
-    loginController,
+    loginController(env),
   );
   app.post<{ Body: RegisterBody }>(
     '/auth/register',

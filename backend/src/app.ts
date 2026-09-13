@@ -104,6 +104,7 @@ function getLoggerOptions(
       'jwtSecret',
       'accessToken',
       'refreshToken',
+      'tokenHash',
       'passwordHash',
       'req.body.passwordHash',
       ...overrides.redact ?? [],
@@ -248,7 +249,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     return { ok: true };
   });
 
-  await app.register(authRoutes);
+  await app.register(authRoutes, { env });
 
   return app;
 }
