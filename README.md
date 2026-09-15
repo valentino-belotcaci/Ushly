@@ -291,6 +291,21 @@ provided returns **401**; invalid input returns **400** for schema failures or
 **422** for an unsupported URL/expiration; exhausted link-creation limits
 return **429**; an exhausted short-code collision retry returns **503**.
 
+### Owner link management (T4.3)
+
+Authenticated users can list `GET /links`, view `GET /links/:id`, update with
+`PATCH /links/:id`, activate or deactivate with `POST /links/:id/activate` and
+`POST /links/:id/deactivate`, and delete with `DELETE /links/:id`. These routes
+require a verified JWT. The server uses the verified token subject for every
+database query; client-supplied ownership values are not accepted.
+
+List requests accept `page` and `pageSize`; pages start at 1 and page size is
+bounded to 100 (default 20). Results are ordered by `createdAt DESC, id DESC`
+for stable pagination. Missing and foreign links both return **404**. Successful
+list/detail/update/status responses return **200**; deletion returns **204**;
+invalid input returns **400** or **422**, and missing authentication returns
+**401**.
+
 ### Login and access tokens (T3.3)
 
 `POST /auth/login` accepts only JSON `email` and `password`. It uses registration's
