@@ -306,6 +306,17 @@ list/detail/update/status responses return **200**; deletion returns **204**;
 invalid input returns **400** or **422**, and missing authentication returns
 **401**.
 
+### Public redirects (T4.4)
+
+`GET /:shortCode` performs one PostgreSQL lookup and returns a **307 Temporary
+Redirect** for an existing active link whose expiration has not passed. Missing,
+disabled, and expired links return the same **404** response. The redirect path
+does not fetch destinations, record analytics, or use Redis/cache work.
+
+The integration test records a local, single-process latency baseline for 20
+sequential requests and prints average and p95 timings. This is a development
+measurement only and is not a capacity or production performance claim.
+
 ### Login and access tokens (T3.3)
 
 `POST /auth/login` accepts only JSON `email` and `password`. It uses registration's

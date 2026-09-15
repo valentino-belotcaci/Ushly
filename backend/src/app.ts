@@ -10,6 +10,7 @@ import { AppError, type ErrorDetails } from './errors/app-error.js';
 import prismaPlugin from './plugins/prisma.plugin.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import linksRoutes from './modules/links/link.routes.js';
+import redirectRoutes from './modules/redirects/redirect.routes.js';
 
 export { AppError } from './errors/app-error.js';
 
@@ -252,6 +253,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   await app.register(authRoutes, { env });
   await app.register(linksRoutes);
+  await app.register(redirectRoutes);
 
   return app;
 }
