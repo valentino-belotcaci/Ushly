@@ -1,13 +1,15 @@
+// a registration request body must have an email and password  
 export type RegisterBody = { email: string; password: string };
 
+//is the schema of the endpoint POST/register
 export const registerSchema = {
   body: {
-    type: 'object',
-    required: ['email', 'password'],
-    additionalProperties: false,
-    properties: {
+    type: 'object', //body must be a json object
+    required: ['email', 'password'], // email and password are required
+    additionalProperties: false,  //rejects any additional properties in the body
+    properties: { //describes every field in the body
       email: { type: 'string', format: 'email', maxLength: 254 },
-      password: { type: 'string', minLength: 15, maxLength: 128 },
+      password: { type: 'string', minLength: 8, maxLength: 128 },
     },
   },
   response: {
@@ -24,6 +26,7 @@ export const registerSchema = {
   },
 };
 
+//is the schema of the endpoint POST/login
 export const loginSchema = {
   body: {
     ...registerSchema.body,
