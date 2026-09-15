@@ -273,6 +273,24 @@ duplicates and races; unit tests cover service projection, the route limit, and
 absence of passwords/hash/driver markers in failure responses and captured logs.
 
 
+### Link creation (T4.2)
+
+`POST /links` accepts `{ url, title?, expiresAt? }`. `url` must be an
+`http:` or `https:` URL no longer than 2048 characters and is stored exactly as
+submitted. `title` is optional and limited to 200 characters. `expiresAt`, when
+provided, must be an ISO date-time in the future. The server never fetches the
+destination URL.
+
+Successful creation returns HTTP **201** with the generated `shortCode`, the
+stored destination, approved optional fields, active status, and timestamps.
+Requests without a bearer token create anonymous links and are limited to **5
+requests per minute per IP**. Authenticated requests require a verified JWT,
+associate the link with that token's `sub`, and are limited to **20 requests per
+minute per user**. Invalid or missing authentication when a bearer token is
+provided returns **401**; invalid input returns **400** for schema failures or
+**422** for an unsupported URL/expiration; exhausted link-creation limits
+return **429**; an exhausted short-code collision retry returns **503**.
+
 ### Login and access tokens (T3.3)
 
 `POST /auth/login` accepts only JSON `email` and `password`. It uses registration's

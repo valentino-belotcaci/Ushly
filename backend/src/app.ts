@@ -9,6 +9,7 @@ import { getEnvironmentConfig, type EnvironmentConfig } from './config/env.js';
 import { AppError, type ErrorDetails } from './errors/app-error.js';
 import prismaPlugin from './plugins/prisma.plugin.js';
 import authRoutes from './modules/auth/auth.routes.js';
+import linksRoutes from './modules/links/link.routes.js';
 
 export { AppError } from './errors/app-error.js';
 
@@ -250,6 +251,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
 
   await app.register(authRoutes, { env });
+  await app.register(linksRoutes);
 
   return app;
 }
