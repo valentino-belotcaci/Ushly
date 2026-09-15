@@ -13,5 +13,5 @@ export async function redirectController(
     request.params.shortCode,
   );
 
-  return reply.redirect(307, destinationUrl);
+  return reply.redirect(destinationUrl, 307);
 }
