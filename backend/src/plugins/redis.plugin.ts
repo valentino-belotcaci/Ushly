@@ -3,6 +3,9 @@ import fp from 'fastify-plugin';
 
 import { AppError } from '../errors/app-error.js';
 
+//we need to extend the FastifyInstance interface to include 
+// our Redis client and the checkRedisConnection method 
+//in order to use app.redis and app.checkRedisConnection in our application
 declare module 'fastify' {
   interface FastifyInstance {
     redis: RedisClientType;
@@ -10,6 +13,8 @@ declare module 'fastify' {
   }
 }
 
+//defines the options for the Redis plugin, including the URL,
+//connection timeout, maximum reconnect attempts, and base delay for reconnection
 type RedisPluginOptions = {
   url: string;
   connectTimeoutMs: number;
@@ -17,21 +22,26 @@ type RedisPluginOptions = {
   reconnectBaseDelayMs: number;
 };
 
+//should we reconnect again to REDIS? 
+//if yes, how long should we wait before trying to reconnect again?
 export function getRedisReconnectDelay(
   retries: number,
   maxReconnectAttempts: number,
   baseDelayMs: number,
 ): number | false {
-  if (retries >= maxReconnectAttempts) return false;
-  return Math.min(baseDelayMs * 2 ** retries, 5000);
+  if (retries >= maxReconnectAttempts) 
+    return false;
+  //exponential backoff, we wait longer each time we try to reconnect
+  return Math.min(baseDelayMs * 2 ** retries, 5000);//'**' 2^retries
 }
 
-export default fp<RedisPluginOptions>(async (app, options) => {
-  const client = createClient({
+//creates a Fastify plugin that sets up a Redis client and adds it to the Fastify instance.
+export default fp<RedisPluginOptions>(async (app, options) => {//fastify app and redis options
+  const client = createClient({//creates a redis client that will be reused for each request
     url: options.url,
-    socket: {
+    socket: {//configures network connection
       connectTimeout: options.connectTimeoutMs,
-      reconnectStrategy: (retries) =>
+      reconnectStrategy: (retries) =>//this function is called when the client loses connection to the Redis server and needs to reconnect
         getRedisReconnectDelay(
           retries,
           options.maxReconnectAttempts,
@@ -40,14 +50,15 @@ export default fp<RedisPluginOptions>(async (app, options) => {
     },
   });
 
-  client.on('error', () => {
+  client.on('error', () => {//safe error when redis is down
     // Redis errors are intentionally logged without the client error or URL.
     app.log.warn('Redis connection error');
   });
-  client.on('reconnecting', () => app.log.warn('Redis reconnecting'));
 
-  app.decorate('redis', client);
-  app.decorate('checkRedisConnection', async () => {
+  client.on('reconnecting', () => app.log.warn('Redis reconnecting'));//safe error when redis is reconnecting
+
+  app.decorate('redis', client);//attach redis client to fastify application
+  app.decorate('checkRedisConnection', async () => {//checks if redis is actually available
     if (!client.isReady) {
       throw new AppError('service_unavailable', 'Redis is unavailable', 503);
     }
@@ -59,6 +70,7 @@ export default fp<RedisPluginOptions>(async (app, options) => {
     }
   });
 
+  //run this code when the application is ready
   app.addHook('onReady', async () => {
     try {
       await client.connect();
@@ -67,6 +79,7 @@ export default fp<RedisPluginOptions>(async (app, options) => {
     }
   });
 
+  //run this code when the application being shut down
   app.addHook('onClose', async () => {
     if (client.isOpen) await client.close();
   });
