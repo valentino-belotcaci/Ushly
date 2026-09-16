@@ -82,20 +82,21 @@ For known application errors, the `error` value is the domain-specific code and 
 
 ### Prisma lifecycle and readiness (T2.2)
 
-The Prisma plugin owns one client per Fastify application (one application per
-server process). It registers before other plugins/routes, exposes the typed
-`app.prisma` decoration, runs a minimal `SELECT 1` check in `onReady`, and calls
-`$disconnect()` in `onClose`. The existing signal handler already calls
-`app.close()`. There is no separate global client. `fastify-plugin` exposes the
-root decoration to subsequent plugins; TypeScript module augmentation tells the
-compiler about that runtime property.
+The Prisma and Redis plugins each own one client per Fastify application (one
+application per server process). They register before routes, expose typed
+`app.prisma` and `app.redis` decorations, run connectivity checks in `onReady`,
+and close their clients in `onClose`. The existing signal handler already calls
+`app.close()`. There are no separate global clients. `fastify-plugin` exposes
+the root decorations to subsequent plugins; TypeScript module augmentation tells
+the compiler about those runtime properties.
 
 - `GET /health/live` reports that the HTTP application is running. It does not
   query PostgreSQL or Redis.
-- `GET /health/ready` queries PostgreSQL and returns `200 {"ok":true}` on success.
-  A failure or timeout returns `503` with `error: "service_unavailable"`,
-  `message: "Database is unavailable"`, and `details: null`, through the existing
-  global error handler. The original Prisma error is neither returned nor logged.
+- `GET /health/ready` queries PostgreSQL and Redis and returns `200 {"ok":true}`
+  only when both are reachable. A database failure returns `503` with
+  `message: "Database is unavailable"`; a Redis failure returns `503` with
+  `message: "Redis is unavailable"`. Both use `error: "service_unavailable"`
+  and `details: null`; original driver errors are neither returned nor logged.
 - `DATABASE_READY_TIMEOUT_MS` defaults to 1000 and accepts integers from 1 to
   5000. It bounds startup checking and readiness responses. Startup failure is
   logged safely and leaves HTTP available so liveness works and later readiness
@@ -104,11 +105,17 @@ compiler about that runtime property.
 
 The deadline does not cancel an underlying Prisma query. Concurrent probes share
 one pending query until it settles, including after timeout; subsequent probes
-then retry. For production, configure and verify Prisma connection/pool timeouts
+then retry. Redis uses a bounded exponential reconnect strategy; after the
+configured attempts it stops reconnecting until the process is restarted or the
+client is explicitly managed by a later task. Redis startup failure leaves HTTP
+available, while readiness remains unavailable. `REDIS_CONNECT_TIMEOUT_MS`
+defaults to 1000 (1–5000), `REDIS_MAX_RECONNECT_ATTEMPTS` defaults to 5 (0–10),
+and `REDIS_RECONNECT_BASE_DELAY_MS` defaults to 100 (1–1000). For production,
+configure and verify Prisma connection/pool timeouts
 and database statement timeouts against deployment requirements. Shutdown awaits
 Prisma disconnection; the readiness deadline is not a shutdown deadline. A
 successful connectivity probe does not verify migrations or every application
-query. Redis readiness belongs to its later lifecycle task. Existing HTTP rate
+query. Existing HTTP rate
 limits remain in force; choose a deployment probe frequency within those limits.
 
 From `backend/`:
@@ -272,6 +279,50 @@ from `backend/`. Persistent tests cover success, invalid input, size limits,
 duplicates and races; unit tests cover service projection, the route limit, and
 absence of passwords/hash/driver markers in failure responses and captured logs.
 
+
+### Link creation (T4.2)
+
+`POST /links` accepts `{ url, title?, expiresAt? }`. `url` must be an
+`http:` or `https:` URL no longer than 2048 characters and is stored exactly as
+submitted. `title` is optional and limited to 200 characters. `expiresAt`, when
+provided, must be an ISO date-time in the future. The server never fetches the
+destination URL.
+
+Successful creation returns HTTP **201** with the generated `shortCode`, the
+stored destination, approved optional fields, active status, and timestamps.
+Requests without a bearer token create anonymous links and are limited to **5
+requests per minute per IP**. Authenticated requests require a verified JWT,
+associate the link with that token's `sub`, and are limited to **20 requests per
+minute per user**. Invalid or missing authentication when a bearer token is
+provided returns **401**; invalid input returns **400** for schema failures or
+**422** for an unsupported URL/expiration; exhausted link-creation limits
+return **429**; an exhausted short-code collision retry returns **503**.
+
+### Owner link management (T4.3)
+
+Authenticated users can list `GET /links`, view `GET /links/:id`, update with
+`PATCH /links/:id`, activate or deactivate with `POST /links/:id/activate` and
+`POST /links/:id/deactivate`, and delete with `DELETE /links/:id`. These routes
+require a verified JWT. The server uses the verified token subject for every
+database query; client-supplied ownership values are not accepted.
+
+List requests accept `page` and `pageSize`; pages start at 1 and page size is
+bounded to 100 (default 20). Results are ordered by `createdAt DESC, id DESC`
+for stable pagination. Missing and foreign links both return **404**. Successful
+list/detail/update/status responses return **200**; deletion returns **204**;
+invalid input returns **400** or **422**, and missing authentication returns
+**401**.
+
+### Public redirects (T4.4)
+
+`GET /:shortCode` performs one PostgreSQL lookup and returns a **307 Temporary
+Redirect** for an existing active link whose expiration has not passed. Missing,
+disabled, and expired links return the same **404** response. The redirect path
+does not fetch destinations, record analytics, or use Redis/cache work.
+
+The integration test records a local, single-process latency baseline for 20
+sequential requests and prints average and p95 timings. This is a development
+measurement only and is not a capacity or production performance claim.
 
 ### Login and access tokens (T3.3)
 
