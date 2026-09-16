@@ -14,6 +14,9 @@ export type EnvironmentConfig = {
   databaseUrl: string;
   databaseReadyTimeoutMs: number;
   redisUrl: string;
+  redisConnectTimeoutMs: number;
+  redisMaxReconnectAttempts: number;
+  redisReconnectBaseDelayMs: number;
   jwtSecret: string;
   accessTokenTtlSeconds: number;
   cookie: {
@@ -125,6 +128,20 @@ function parseAccessTokenTtl(raw: string | undefined): number {
   return value;
 }
 
+function parseRedisSetting(
+  raw: string | undefined,
+  key: string,
+  defaultValue: number,
+  min: number,
+  max: number,
+): number {
+  const value = raw === undefined ? defaultValue : Number(raw);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(`Invalid ${key}: expected an integer between ${min} and ${max}.`);
+  }
+  return value;
+}
+
 export function getEnvironmentConfig(input: EnvironmentInput = process.env): EnvironmentConfig {
   const nodeEnv = parseNodeEnv(requireString(input, 'NODE_ENV'));
   const host = requireString(input, 'HOST');
@@ -162,6 +179,9 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
     databaseUrl,
     databaseReadyTimeoutMs: parseDatabaseReadyTimeout(input.DATABASE_READY_TIMEOUT_MS),
     redisUrl,
+    redisConnectTimeoutMs: parseRedisSetting(input.REDIS_CONNECT_TIMEOUT_MS, 'REDIS_CONNECT_TIMEOUT_MS', 1000, 1, 5000),
+    redisMaxReconnectAttempts: parseRedisSetting(input.REDIS_MAX_RECONNECT_ATTEMPTS, 'REDIS_MAX_RECONNECT_ATTEMPTS', 5, 0, 10),
+    redisReconnectBaseDelayMs: parseRedisSetting(input.REDIS_RECONNECT_BASE_DELAY_MS, 'REDIS_RECONNECT_BASE_DELAY_MS', 100, 1, 1000),
     jwtSecret,
     accessTokenTtlSeconds: parseAccessTokenTtl(input.ACCESS_TOKEN_TTL_SECONDS),
     cookie: {

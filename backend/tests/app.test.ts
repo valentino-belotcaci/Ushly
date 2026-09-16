@@ -12,6 +12,9 @@ const buildTestApp = async () => {
       databaseUrl: 'postgresql://unused:unused@127.0.0.1:1/ushly_test',
       databaseReadyTimeoutMs: 1000,
       redisUrl: 'redis://localhost:6379',
+      redisConnectTimeoutMs: 25,
+      redisMaxReconnectAttempts: 0,
+      redisReconnectBaseDelayMs: 1,
       jwtSecret: 'this-is-a-valid-jwt-secret-32b',
       accessTokenTtlSeconds: 900,
       cookie: {

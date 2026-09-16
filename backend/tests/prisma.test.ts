@@ -12,6 +12,9 @@ const env = getEnvironmentConfig({
   DATABASE_URL: 'postgresql://unused:unused@127.0.0.1:1/ushly_test',
   DATABASE_READY_TIMEOUT_MS: '25',
   REDIS_URL: 'redis://127.0.0.1:1',
+  REDIS_CONNECT_TIMEOUT_MS: '25',
+  REDIS_MAX_RECONNECT_ATTEMPTS: '0',
+  REDIS_RECONNECT_BASE_DELAY_MS: '1',
   JWT_SECRET: 'test-only-secret-with-at-least-32-characters',
   COOKIE_NAME: 'session',
   COOKIE_SECURE: 'false',
@@ -35,6 +38,7 @@ test('startup failure preserves liveness; probe errors are safe in responses and
   });
   const app = await buildApp({ env, logger: { level: 'warn', stream } });
   t.after(() => app.close());
+  t.mock.method(app, 'checkRedisConnection', async () => undefined);
   const query = t.mock.method(
     app.prisma,
     '$queryRaw',
@@ -61,6 +65,7 @@ test('startup failure preserves liveness; probe errors are safe in responses and
 test('timeout bounds responses, shares pending queries, and handles late rejection', async (t) => {
   const app = await buildApp({ env });
   t.after(() => app.close());
+  t.mock.method(app, 'checkRedisConnection', async () => undefined);
   let rejectQuery: (error: Error) => void = () => {
     throw new Error('Query did not start');
   };

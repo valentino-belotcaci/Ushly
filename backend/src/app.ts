@@ -11,6 +11,7 @@ import prismaPlugin from './plugins/prisma.plugin.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import linksRoutes from './modules/links/link.routes.js';
 import redirectRoutes from './modules/redirects/redirect.routes.js';
+import redisPlugin from './plugins/redis.plugin.js';
 
 export { AppError } from './errors/app-error.js';
 
@@ -137,6 +138,12 @@ export async function buildApp(options: BuildAppOptions = {}) {
     databaseUrl: env.databaseUrl,
     timeoutMs: env.databaseReadyTimeoutMs,
   });
+  await app.register(redisPlugin, {
+    url: env.redisUrl,
+    connectTimeoutMs: env.redisConnectTimeoutMs,
+    maxReconnectAttempts: env.redisMaxReconnectAttempts,
+    reconnectBaseDelayMs: env.redisReconnectBaseDelayMs,
+  });
 
   await app.register(jwt, {
     secret: env.jwtSecret,
@@ -248,6 +255,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   app.get('/health/ready', async () => {
     await app.checkDatabaseConnection();
+    await app.checkRedisConnection();
     return { ok: true };
   });
 

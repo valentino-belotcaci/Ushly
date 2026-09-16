@@ -82,20 +82,21 @@ For known application errors, the `error` value is the domain-specific code and 
 
 ### Prisma lifecycle and readiness (T2.2)
 
-The Prisma plugin owns one client per Fastify application (one application per
-server process). It registers before other plugins/routes, exposes the typed
-`app.prisma` decoration, runs a minimal `SELECT 1` check in `onReady`, and calls
-`$disconnect()` in `onClose`. The existing signal handler already calls
-`app.close()`. There is no separate global client. `fastify-plugin` exposes the
-root decoration to subsequent plugins; TypeScript module augmentation tells the
-compiler about that runtime property.
+The Prisma and Redis plugins each own one client per Fastify application (one
+application per server process). They register before routes, expose typed
+`app.prisma` and `app.redis` decorations, run connectivity checks in `onReady`,
+and close their clients in `onClose`. The existing signal handler already calls
+`app.close()`. There are no separate global clients. `fastify-plugin` exposes
+the root decorations to subsequent plugins; TypeScript module augmentation tells
+the compiler about those runtime properties.
 
 - `GET /health/live` reports that the HTTP application is running. It does not
   query PostgreSQL or Redis.
-- `GET /health/ready` queries PostgreSQL and returns `200 {"ok":true}` on success.
-  A failure or timeout returns `503` with `error: "service_unavailable"`,
-  `message: "Database is unavailable"`, and `details: null`, through the existing
-  global error handler. The original Prisma error is neither returned nor logged.
+- `GET /health/ready` queries PostgreSQL and Redis and returns `200 {"ok":true}`
+  only when both are reachable. A database failure returns `503` with
+  `message: "Database is unavailable"`; a Redis failure returns `503` with
+  `message: "Redis is unavailable"`. Both use `error: "service_unavailable"`
+  and `details: null`; original driver errors are neither returned nor logged.
 - `DATABASE_READY_TIMEOUT_MS` defaults to 1000 and accepts integers from 1 to
   5000. It bounds startup checking and readiness responses. Startup failure is
   logged safely and leaves HTTP available so liveness works and later readiness
@@ -104,11 +105,17 @@ compiler about that runtime property.
 
 The deadline does not cancel an underlying Prisma query. Concurrent probes share
 one pending query until it settles, including after timeout; subsequent probes
-then retry. For production, configure and verify Prisma connection/pool timeouts
+then retry. Redis uses a bounded exponential reconnect strategy; after the
+configured attempts it stops reconnecting until the process is restarted or the
+client is explicitly managed by a later task. Redis startup failure leaves HTTP
+available, while readiness remains unavailable. `REDIS_CONNECT_TIMEOUT_MS`
+defaults to 1000 (1–5000), `REDIS_MAX_RECONNECT_ATTEMPTS` defaults to 5 (0–10),
+and `REDIS_RECONNECT_BASE_DELAY_MS` defaults to 100 (1–1000). For production,
+configure and verify Prisma connection/pool timeouts
 and database statement timeouts against deployment requirements. Shutdown awaits
 Prisma disconnection; the readiness deadline is not a shutdown deadline. A
 successful connectivity probe does not verify migrations or every application
-query. Redis readiness belongs to its later lifecycle task. Existing HTTP rate
+query. Existing HTTP rate
 limits remain in force; choose a deployment probe frequency within those limits.
 
 From `backend/`:
