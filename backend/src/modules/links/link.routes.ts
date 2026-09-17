@@ -23,6 +23,8 @@ import {
   type LinkQuery,
   type UpdateLinkBody,
 } from './link.schemas.js';
+import { getLinkStatisticsController } from '../clicks/click.controller.js';
+import { statisticsSchema, type StatisticsParams, type StatisticsQuery } from '../clicks/click.schemas.js';
 
 const ANONYMOUS_MAX = 5;
 const AUTHENTICATED_MAX = 20;
@@ -73,6 +75,11 @@ const linksRoutes: FastifyPluginAsync = async (app) => {
   );
 
   const ownerPreHandler = { preHandler: app.authenticate };
+  app.get<{ Params: StatisticsParams; Querystring: StatisticsQuery }>(
+    '/links/:id/statistics',
+    { ...ownerPreHandler, schema: statisticsSchema },
+    getLinkStatisticsController,
+  );
   app.get<{ Querystring: LinkQuery }>(
     '/links',
     { ...ownerPreHandler, schema: ownerLinkListSchema },

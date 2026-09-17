@@ -72,6 +72,7 @@ test('redirect cache handles miss, database fallback, and hit', async (t) => {
 
   assert.equal(first.statusCode, 307);
   assert.equal(second.statusCode, 307);
+  assert.equal(await app.prisma.click.count({ where: { linkId: (await app.prisma.link.findUniqueOrThrow({ where: { shortCode: 'cache01' } })).id } }), 2);
   assert.deepEqual(getRedirectCacheMetrics(), { cacheHits: 1, cacheMisses: 1 });
 });
 

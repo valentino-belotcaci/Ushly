@@ -13,10 +13,12 @@ export async function getRedirectTarget(
   prisma: PrismaClient,
   redis: RedisClientType,
   shortCode: string,
-): Promise<string> {
+): Promise<{ destinationUrl: string; linkId: string; shortCode: string }> {
   const cachedDestination = await getCachedRedirect(redis, shortCode);
   //found in cache, return the url
-  if (cachedDestination !== null) return cachedDestination;
+  if (cachedDestination !== null) {
+    return { ...cachedDestination, shortCode };
+  }
 
   //not found in cache, check the database
   const link = await findRedirectTarget(prisma, shortCode);
@@ -32,9 +34,10 @@ export async function getRedirectTarget(
   await setCachedRedirect(
     redis,
     shortCode,
+    link.id,
     link.destinationUrl,
     link.status,
     link.expiresAt,
   );
-  return link.destinationUrl;
+  return { destinationUrl: link.destinationUrl, linkId: link.id, shortCode };
 }

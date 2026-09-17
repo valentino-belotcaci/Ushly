@@ -5,6 +5,7 @@ export const REDIRECT_CACHE_TTL_SECONDS = 300;//5 minutes, the maximum time a re
 
 type CachedRedirect = {//json structure stored in redis
   version: number;
+  linkId: string;
   destinationUrl: string;
   status: 'active' | 'disabled' | 'expired';
   expiresAt: string | null;
@@ -30,12 +31,17 @@ export function resetRedirectCacheMetrics(): void {//for testing
 //if this function returns true,typescript will treat the value as a CachedRedirect type
 function isValidCachedRedirect(value: unknown): value is CachedRedirect {
   if (typeof value !== 'object' || value === null) return false;
-  if (!('version' in value) || !('destinationUrl' in value)) return false;
+  if (
+    !('version' in value) ||
+    !('linkId' in value) ||
+    !('destinationUrl' in value)
+  ) return false;
   if (!('status' in value) || !('expiresAt' in value)) return false;
 
   //vaidate values and types of the cached data
   return (
     value.version === REDIRECT_CACHE_VERSION &&
+    typeof value.linkId === 'string' &&
     typeof value.destinationUrl === 'string' &&
     ['active', 'disabled', 'expired'].includes(value.status as string) &&
     (value.expiresAt === null || typeof value.expiresAt === 'string')
@@ -53,7 +59,7 @@ function isUsableCachedRedirect(value: CachedRedirect): boolean {
 export async function getCachedRedirect(//read cache
   redis: RedisClientType,
   shortCode: string,
-): Promise<string | null> {
+): Promise<{ destinationUrl: string; linkId: string } | null> {
   if (!redis.isReady) {
     cacheMisses += 1;
     return null;
@@ -61,7 +67,7 @@ export async function getCachedRedirect(//read cache
 
   try {
     const raw = await redis.get(redirectCacheKey(shortCode));
-    if (raw === null) {//bot found
+    if (raw === null) {//not found
       cacheMisses += 1;
       return null;
     }
@@ -83,7 +89,7 @@ export async function getCachedRedirect(//read cache
     }
 
     cacheHits += 1;
-    return parsed.destinationUrl;
+    return { destinationUrl: parsed.destinationUrl, linkId: parsed.linkId };
   } catch {
     cacheMisses += 1;
     return null;
@@ -93,6 +99,7 @@ export async function getCachedRedirect(//read cache
 export async function setCachedRedirect(//put redirect into cache
   redis: RedisClientType,
   shortCode: string,
+  linkId: string,
   destinationUrl: string,
   status: 'active' | 'disabled' | 'expired',
   expiresAt: Date | null,
@@ -114,6 +121,7 @@ export async function setCachedRedirect(//put redirect into cache
   //build cached redirect object to store in redis
   const value: CachedRedirect = {
     version: REDIRECT_CACHE_VERSION,
+    linkId,
     destinationUrl,
     status,
     expiresAt: expiresAt?.toISOString() ?? null,

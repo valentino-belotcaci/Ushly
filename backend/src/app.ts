@@ -15,6 +15,12 @@ import redisPlugin from './plugins/redis.plugin.js';
 
 export { AppError } from './errors/app-error.js';
 
+declare module 'fastify' {
+  interface FastifyInstance {
+    env: EnvironmentConfig;
+  }
+}
+
 type LoggerWithRedaction = FastifyLoggerOptions & {
   redact?: string[];
 };
@@ -133,6 +139,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     trustProxy: env.trustProxy,
     bodyLimit: DEFAULT_BODY_LIMIT_BYTES,
   });
+  app.decorate('env', env);
 
   await app.register(prismaPlugin, {
     databaseUrl: env.databaseUrl,

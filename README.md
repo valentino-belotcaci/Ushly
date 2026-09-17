@@ -318,17 +318,100 @@ invalid input returns **400** or **422**, and missing authentication returns
 `GET /:shortCode` performs one PostgreSQL lookup and returns a **307 Temporary
 Redirect** for an existing active link whose expiration has not passed. Missing,
 disabled, and expired links return the same **404** response. The redirect path
-does not fetch destinations, record analytics, or use Redis/cache work.
+does not fetch destinations; click capture is described below.
 
 The integration test records a local, single-process latency baseline for 20
 sequential requests and prints average and p95 timings. This is a development
 measurement only and is not a capacity or production performance claim.
 
+### Click privacy and capture (T6.1)
+
+Redirects synchronously attempt to record one click before returning the `307`
+response. The client IP is stored only as an HMAC-SHA-256 digest using the
+separate `IP_HASH_SECRET`; raw IP addresses are never sent to Prisma or click
+logs. User-agent values are limited to 256 characters, referrers are reduced to
+their URL origin and limited to 256 characters, and geolocation is currently
+stored as null because no geolocation provider is enabled.
+
+Click records are retained for `CLICK_RETENTION_DAYS` (default 90 days). T6.1
+defines the retention policy; scheduled deletion of records is a later
+operational task. A tracking write failure is logged as a safe generic warning
+and counted in the in-process click tracking failure metric, but does not fail
+the redirect response. There is no fire-and-forget tracking promise and no
+durable queue in this task.
+
+### Click pipeline decision (T6.2)
+
+The current implementation keeps click persistence as a controlled, awaited
+direct PostgreSQL write. The available redirect baseline measured cache hits,
+cache misses, and not-found requests, but it did not isolate click-write
+latency or record whether T6.1 persistence was enabled. Those results therefore
+do not justify adding a Redis-backed queue or claiming that asynchronous
+processing is required.
+
+This choice keeps PostgreSQL authoritative and makes failures observable: the
+write is awaited, failures increment the in-process tracking-failure metric and
+produce a safe warning, and the redirect still returns its correct `307`
+response. It also avoids an unobserved promise and avoids introducing queue
+delivery semantics before they are needed.
+
+The tradeoff is that a database write remains on the redirect critical path and
+a failed write is not retried, so that click may be lost. Before reconsidering
+this decision, run a paired measurement with click capture enabled and disabled,
+including click-write latency, redirect p95/p99 latency, database contention,
+and failure rates. A Redis queue should be introduced only if those measurements
+show that direct persistence violates the required latency or reliability
+target; that future change would need bounded backpressure, retries with
+idempotency, dead-letter handling, and lifecycle metrics.
+
+### Owner click statistics (T6.3)
+
+Authenticated users can request `GET /links/:id/statistics`. The verified JWT
+subject is the only ownership input; links belonging to another user and
+anonymous links return **404**. The optional `from` and `to` query parameters
+are ISO-8601 timestamps, default to the previous 30 days through now, and are
+limited to a maximum 90-day range. Supported `granularity` values are
+`hour`, `day`, and `week`; the default is `day`. Buckets and returned timestamps
+use UTC, and the end of the range is exclusive.
+
+The response contains the total click count, first and last click timestamps,
+the bounded time series, and the ten most frequent stored referrer origins and
+user-agent values. `countryCode` is not reported because no country detection
+is currently supported. The repository performs one ownership check followed
+by bounded aggregate queries; it does not load individual clicks or run an
+N+plus-one query per bucket. The existing `Click(linkId, clickedAt)` index is
+used by the link-scoped time filters; no additional index was added without
+query-plan evidence.
+
+#### Query-plan verification
+
+`EXPLAIN ANALYZE` was not run for this implementation: the local PostgreSQL
+service was unavailable to the workspace (the Docker daemon socket and the
+configured PostgreSQL socket could not be accessed), and no realistic click
+dataset was available for execution. Therefore this task does not claim an
+observed plan, cost, or runtime.
+
+Static query-shape inspection shows that the existing
+`clicks_link_clicked_at_idx` index has the required leading equality column
+(`linkId`) followed by the time filter (`clickedAt`). It is therefore the
+appropriate candidate for the summary aggregate and the UTC time-series query
+when PostgreSQL executes them for one owned link. The ownership relation check
+may also require a lookup on `Link`; that is bounded to one link and is covered
+by the primary key plus the owner predicate. The top-referrer and user-agent
+breakdowns use the same link and time predicates, but their grouping fields are
+not indexed speculatively.
+
+Before adding an index, run `EXPLAIN (ANALYZE, BUFFERS)` against a realistic
+dataset for the exact endpoint range and granularity queries, confirm whether
+the composite index is chosen, and compare planning/execution time and buffer
+usage. Record the dataset size, PostgreSQL version, date distribution, and
+query parameters with the result.
+
 ### Redirect cache-aside (T5.2)
 
 Redirects use a versioned Redis key in the form
-`ushly:v1:redirect:<shortCode>`. Values contain the version, destination URL,
-link status, and expiration timestamp. Only active, non-expired values are
+`ushly:v1:redirect:<shortCode>`. Values contain the version, database `linkId`,
+destination URL, link status, and expiration timestamp. Only active, non-expired values are
 cached, with a maximum TTL of 300 seconds; links expiring sooner receive the
 shorter remaining TTL.
 

@@ -7,6 +7,7 @@ export async function findRedirectTarget(
   return prisma.link.findUnique({
     where: { shortCode },
     select: {
+      id: true,
       destinationUrl: true,
       status: true,
       expiresAt: true,
