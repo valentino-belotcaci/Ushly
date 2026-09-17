@@ -41,7 +41,10 @@ export function requireTestDatabase(
   return value;
 }
 
-export function getTestEnvironment(input: TestEnvironment = process.env) {
+export function getTestEnvironment(
+  input: TestEnvironment = process.env,
+  options: { redisUrl?: string } = {},
+) {
   const databaseUrl = requireTestDatabase(input);
   return getEnvironmentConfig({
     NODE_ENV: 'test',
@@ -49,7 +52,7 @@ export function getTestEnvironment(input: TestEnvironment = process.env) {
     PORT: '3000',
     DATABASE_URL: databaseUrl,
     DATABASE_READY_TIMEOUT_MS: '1000',
-    REDIS_URL: 'redis://127.0.0.1:1',
+    REDIS_URL: options.redisUrl ?? 'redis://127.0.0.1:1',
     REDIS_CONNECT_TIMEOUT_MS: '25',
     REDIS_MAX_RECONNECT_ATTEMPTS: '0',
     REDIS_RECONNECT_BASE_DELAY_MS: '1',

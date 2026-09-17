@@ -1,6 +1,6 @@
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
-import { authenticate } from './modules/auth/authenticate.js';
+import { authenticate, requireAdmin } from './modules/auth/authenticate.js';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError, type FastifyLoggerOptions } from 'fastify';
@@ -159,6 +159,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   });
   app.decorateRequest('authenticatedUser', null);
   app.decorate('authenticate', authenticate);
+  app.decorate('requireAdmin', requireAdmin);
 
   await app.register(helmet, {
     global: true,

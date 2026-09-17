@@ -8,7 +8,7 @@ import {
   getTestEnvironment,
 } from './helpers/test-database.js';
 
-const env = getTestEnvironment();
+const env = getTestEnvironment(process.env, { redisUrl: 'redis://127.0.0.1:6379' });
 
 test('plugin owns a shared working client, probes PostgreSQL, and disconnects on close', async (t) => {
   const app = await buildApp({ env });

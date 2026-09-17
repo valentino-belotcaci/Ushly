@@ -103,7 +103,7 @@ test('corrupt and unusable cached values fall back to PostgreSQL', async (t) => 
 test('expired and disabled cached values never redirect', async (t) => {
   const app = await createApp(t);
   const values = useFakeRedis(app, t);
-  for (const shortCode of ['cached-disabled', 'cached-expired']) {
+  for (const shortCode of ['cachedDisabled', 'cachedExpired']) {
     values.set(
       redirectCacheKey(shortCode),
       JSON.stringify({
@@ -117,12 +117,12 @@ test('expired and disabled cached values never redirect', async (t) => {
     );
   }
 
-  await createActiveLink(app, 'cached-disabled', { status: 'disabled' });
-  await createActiveLink(app, 'cached-expired', {
+  await createActiveLink(app, 'cachedDisabled', { status: 'disabled' });
+  await createActiveLink(app, 'cachedExpired', {
     expiresAt: new Date(Date.now() - 1_000),
   });
-  assert.equal((await app.inject('/cached-disabled')).statusCode, 404);
-  assert.equal((await app.inject('/cached-expired')).statusCode, 404);
+  assert.equal((await app.inject('/cachedDisabled')).statusCode, 404);
+  assert.equal((await app.inject('/cachedExpired')).statusCode, 404);
 });
 
 test('cache invalidation removes the affected versioned key', async (t) => {
@@ -137,10 +137,10 @@ test('cache invalidation removes the affected versioned key', async (t) => {
 
 test('Redis unavailability falls back to the database redirect', async (t) => {
   const app = await createApp(t);
-  await createActiveLink(app, 'redis-down');
+  await createActiveLink(app, 'redisDown');
 
-  const response = await app.inject('/redis-down');
+  const response = await app.inject('/redisDown');
 
   assert.equal(response.statusCode, 307);
-  assert.match(response.headers.location ?? '', /redis-down/);
+  assert.match(response.headers.location ?? '', /redisDown/);
 });

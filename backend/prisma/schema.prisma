@@ -12,6 +12,11 @@ enum AuthProvider {
   google
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 enum LinkStatus {
   active
   disabled
@@ -25,6 +30,7 @@ model User {
   passwordHash String?
   provider     AuthProvider @default(local)
   providerId   String?
+  role         UserRole @default(USER)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 

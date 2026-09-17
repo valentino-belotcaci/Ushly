@@ -12,11 +12,31 @@ declare module '@fastify/jwt' {
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: preHandlerAsyncHookHandler;
+    requireAdmin: preHandlerAsyncHookHandler;
   }
   interface FastifyRequest {
     authenticatedUser: { id: string } | null;
   }
 }
+
+export const requireAdmin: preHandlerAsyncHookHandler = async (request) => {
+  const userId = request.authenticatedUser?.id;
+  if (!userId) {
+    throw new AppError('unauthorized', 'Authentication required', 401);
+  }
+
+  const user = await request.server.prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+
+  if (!user) {
+    throw new AppError('unauthorized', 'Authentication required', 401);
+  }
+  if (user.role !== 'ADMIN') {
+    throw new AppError('forbidden', 'Admin access required', 403);
+  }
+};
 
 export const authenticate: preHandlerAsyncHookHandler = async (request) => {
   request.authenticatedUser = null;

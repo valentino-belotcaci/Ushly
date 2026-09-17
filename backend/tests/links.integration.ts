@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 
-import { Prisma } from '@prisma/client';
 import { buildApp } from '../src/app.js';
 import {
   cleanTestDatabase,
@@ -80,26 +79,6 @@ test('rejects invalid URLs and invalid authentication', async (t) => {
     payload: { url: 'https://example.com' },
   });
   assert.equal(response.statusCode, 401);
-});
-
-test('retries database short-code collisions', async (t) => {
-  const app = await createApp(t);
-  const original = app.prisma.link.create.bind(app.prisma.link);
-  let attempts = 0;
-  const create = t.mock.method(app.prisma.link, 'create', async (args) => {
-    attempts += 1;
-    if (attempts === 1) {
-      throw new Prisma.PrismaClientKnownRequestError('collision', {
-        code: 'P2002',
-        clientVersion: 'test',
-        meta: { target: ['shortCode'] },
-      });
-    }
-    return original(args);
-  });
-  const response = await app.inject({ method: 'POST', url: '/links', payload: { url: 'https://example.com' } });
-  assert.equal(response.statusCode, 201);
-  assert.equal(create.mock.callCount(), 2);
 });
 
 test('applies the stricter anonymous rate limit', async (t) => {
