@@ -10,6 +10,7 @@ export async function redirectController(
 ) {
   const destinationUrl = await getRedirectTarget(
     request.server.prisma,
+    request.server.redis,
     request.params.shortCode,
   );
 
