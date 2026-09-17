@@ -183,7 +183,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   await app.register(rateLimit, {
     global: true,
-    max: options.rateLimitConfig?.max ?? DEFAULT_RATE_LIMIT_MAX,
+    max:
+      options.rateLimitConfig?.max ??
+      (env.loadTestMode ? env.loadTestRateLimitMax : DEFAULT_RATE_LIMIT_MAX),
     timeWindow: options.rateLimitConfig?.timeWindow ?? DEFAULT_RATE_LIMIT_WINDOW_MS,
     keyGenerator: (request) => request.ip ?? 'unknown',
     addHeaders: {

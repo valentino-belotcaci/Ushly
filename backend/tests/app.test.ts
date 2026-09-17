@@ -15,6 +15,8 @@ const buildTestApp = async () => {
       redisConnectTimeoutMs: 25,
       redisMaxReconnectAttempts: 0,
       redisReconnectBaseDelayMs: 1,
+      loadTestMode: false,
+      loadTestRateLimitMax: 100000,
       jwtSecret: 'this-is-a-valid-jwt-secret-32b',
       accessTokenTtlSeconds: 900,
       cookie: {

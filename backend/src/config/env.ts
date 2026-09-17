@@ -17,6 +17,8 @@ export type EnvironmentConfig = {
   redisConnectTimeoutMs: number;
   redisMaxReconnectAttempts: number;
   redisReconnectBaseDelayMs: number;
+  loadTestMode: boolean;
+  loadTestRateLimitMax: number;
   jwtSecret: string;
   accessTokenTtlSeconds: number;
   cookie: {
@@ -142,6 +144,14 @@ function parseRedisSetting(
   return value;
 }
 
+function parseLoadTestMode(raw: string | undefined, nodeEnv: NodeEnv): boolean {
+  const enabled = raw === undefined ? false : parseBoolean(raw, 'LOAD_TEST_MODE');
+  if (enabled && nodeEnv === 'production') {
+    throw new Error('Invalid LOAD_TEST_MODE: benchmark mode is not allowed in production.');
+  }
+  return enabled;
+}
+
 export function getEnvironmentConfig(input: EnvironmentInput = process.env): EnvironmentConfig {
   const nodeEnv = parseNodeEnv(requireString(input, 'NODE_ENV'));
   const host = requireString(input, 'HOST');
@@ -149,6 +159,7 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
   const databaseUrl = requireString(input, 'DATABASE_URL');
   const redisUrl = requireString(input, 'REDIS_URL');
   const jwtSecret = requireString(input, 'JWT_SECRET');
+  const loadTestMode = parseLoadTestMode(input.LOAD_TEST_MODE, nodeEnv);
 
   if (jwtSecret.length < 32) {
     throw new Error('Invalid JWT_SECRET: expected a value with at least 32 characters.');
@@ -182,6 +193,8 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
     redisConnectTimeoutMs: parseRedisSetting(input.REDIS_CONNECT_TIMEOUT_MS, 'REDIS_CONNECT_TIMEOUT_MS', 1000, 1, 5000),
     redisMaxReconnectAttempts: parseRedisSetting(input.REDIS_MAX_RECONNECT_ATTEMPTS, 'REDIS_MAX_RECONNECT_ATTEMPTS', 5, 0, 10),
     redisReconnectBaseDelayMs: parseRedisSetting(input.REDIS_RECONNECT_BASE_DELAY_MS, 'REDIS_RECONNECT_BASE_DELAY_MS', 100, 1, 1000),
+    loadTestMode,
+    loadTestRateLimitMax: parseRedisSetting(input.LOAD_TEST_RATE_LIMIT_MAX, 'LOAD_TEST_RATE_LIMIT_MAX', 100000, 101, 1000000),
     jwtSecret,
     accessTokenTtlSeconds: parseAccessTokenTtl(input.ACCESS_TOKEN_TTL_SECONDS),
     cookie: {

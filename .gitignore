@@ -33,6 +33,14 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Load-test generated output
+loadtest/results/
+loadtest/reports/*.json
+loadtest/reports/*.csv
+
+# Local load-test environment files
+loadtest/.env
+
 # Prisma
 backend/prisma/dev.db
 backend/prisma/*.db-journal
