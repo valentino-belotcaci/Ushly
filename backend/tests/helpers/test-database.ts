@@ -88,6 +88,7 @@ export async function cleanTestDatabase(
     await tx.click.deleteMany();
     await tx.refreshToken.deleteMany();
     await tx.link.deleteMany();
+    await tx.adminAuditEvent.deleteMany();
     await tx.user.deleteMany();
   });
 }

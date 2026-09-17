@@ -12,6 +12,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import linksRoutes from './modules/links/link.routes.js';
 import redirectRoutes from './modules/redirects/redirect.routes.js';
 import redisPlugin from './plugins/redis.plugin.js';
+import adminRoutes from './modules/admin/admin.routes.js';
 
 export { AppError } from './errors/app-error.js';
 
@@ -151,7 +152,6 @@ export async function buildApp(options: BuildAppOptions = {}) {
     maxReconnectAttempts: env.redisMaxReconnectAttempts,
     reconnectBaseDelayMs: env.redisReconnectBaseDelayMs,
   });
-
   await app.register(jwt, {
     secret: env.jwtSecret,
     sign: { algorithm: 'HS256', expiresIn: env.accessTokenTtlSeconds },
@@ -160,6 +160,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   app.decorateRequest('authenticatedUser', null);
   app.decorate('authenticate', authenticate);
   app.decorate('requireAdmin', requireAdmin);
+  await app.register(adminRoutes);
 
   await app.register(helmet, {
     global: true,

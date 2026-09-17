@@ -436,6 +436,21 @@ The command must be run by an operator with database access; it is not exposed
 as a public endpoint. The role migration must be applied before using the
 command.
 
+### Administrative APIs (T7.3)
+
+All `/admin/*` endpoints require JWT authentication and the persisted `ADMIN`
+role. Users and links support bounded pages of at most 100 items with stable
+newest-first ordering; user search filters email, while link search filters
+short code or destination and supports status/user filters. Global statistics
+accept UTC `from`/`to` ranges of at most 90 days and return daily totals without
+exposing click-level data.
+
+User disable/enable, role changes, user deletion, and link disable/enable are
+audited with actor, action, target type, target ID, and timestamp only. The
+last effective administrator cannot be disabled, demoted, or deleted. Admin
+responses exclude passwords, refresh tokens, access tokens, IP hashes, and
+other authentication or click-identifying fields.
+
 ### Redirect cache-aside (T5.2)
 
 Redirects use a versioned Redis key in the form
