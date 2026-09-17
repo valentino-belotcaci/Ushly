@@ -16,6 +16,7 @@ const env = getEnvironmentConfig({
   REDIS_MAX_RECONNECT_ATTEMPTS: '0',
   REDIS_RECONNECT_BASE_DELAY_MS: '1',
   JWT_SECRET: 'test-only-secret-with-at-least-32-characters',
+  IP_HASH_SECRET: 'test-only-ip-hash-secret-with-at-least-32-characters',
   COOKIE_NAME: 'session',
   COOKIE_SECURE: 'false',
   COOKIE_SAME_SITE: 'lax',

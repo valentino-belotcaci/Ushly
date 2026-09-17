@@ -324,11 +324,27 @@ The integration test records a local, single-process latency baseline for 20
 sequential requests and prints average and p95 timings. This is a development
 measurement only and is not a capacity or production performance claim.
 
+### Click privacy and capture (T6.1)
+
+Redirects synchronously attempt to record one click before returning the `307`
+response. The client IP is stored only as an HMAC-SHA-256 digest using the
+separate `IP_HASH_SECRET`; raw IP addresses are never sent to Prisma or click
+logs. User-agent values are limited to 256 characters, referrers are reduced to
+their URL origin and limited to 256 characters, and geolocation is currently
+stored as null because no geolocation provider is enabled.
+
+Click records are retained for `CLICK_RETENTION_DAYS` (default 90 days). T6.1
+defines the retention policy; scheduled deletion of records is a later
+operational task. A tracking write failure is logged as a safe generic warning
+and counted in the in-process click tracking failure metric, but does not fail
+the redirect response. There is no fire-and-forget tracking promise and no
+durable queue in this task.
+
 ### Redirect cache-aside (T5.2)
 
 Redirects use a versioned Redis key in the form
-`ushly:v1:redirect:<shortCode>`. Values contain the version, destination URL,
-link status, and expiration timestamp. Only active, non-expired values are
+`ushly:v1:redirect:<shortCode>`. Values contain the version, database `linkId`,
+destination URL, link status, and expiration timestamp. Only active, non-expired values are
 cached, with a maximum TTL of 300 seconds; links expiring sooner receive the
 shorter remaining TTL.
 

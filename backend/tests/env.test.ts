@@ -10,6 +10,7 @@ const validEnv = {
   DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/ushly',
   REDIS_URL: 'redis://localhost:6379',
   JWT_SECRET: 'this-is-a-valid-jwt-secret-32-bytes!!',
+  IP_HASH_SECRET: 'this-is-a-separate-ip-hash-secret-32-bytes!!',
   COOKIE_NAME: 'ushly_session',
   COOKIE_SECURE: 'false',
   COOKIE_SAME_SITE: 'lax',

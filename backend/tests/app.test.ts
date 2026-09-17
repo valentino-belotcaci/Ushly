@@ -18,6 +18,8 @@ const buildTestApp = async () => {
       loadTestMode: false,
       loadTestRateLimitMax: 100000,
       jwtSecret: 'this-is-a-valid-jwt-secret-32b',
+      ipHashSecret: 'this-is-a-separate-ip-hash-secret-32b',
+      clickRetentionDays: 90,
       accessTokenTtlSeconds: 900,
       cookie: {
         name: 'ushly_session',

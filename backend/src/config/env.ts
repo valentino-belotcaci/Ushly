@@ -17,6 +17,8 @@ export type EnvironmentConfig = {
   redisConnectTimeoutMs: number;
   redisMaxReconnectAttempts: number;
   redisReconnectBaseDelayMs: number;
+  ipHashSecret: string;
+  clickRetentionDays: number;
   loadTestMode: boolean;
   loadTestRateLimitMax: number;
   jwtSecret: string;
@@ -159,10 +161,14 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
   const databaseUrl = requireString(input, 'DATABASE_URL');
   const redisUrl = requireString(input, 'REDIS_URL');
   const jwtSecret = requireString(input, 'JWT_SECRET');
+  const ipHashSecret = requireString(input, 'IP_HASH_SECRET');
   const loadTestMode = parseLoadTestMode(input.LOAD_TEST_MODE, nodeEnv);
 
   if (jwtSecret.length < 32) {
     throw new Error('Invalid JWT_SECRET: expected a value with at least 32 characters.');
+  }
+  if (ipHashSecret.length < 32) {
+    throw new Error('Invalid IP_HASH_SECRET: expected a value with at least 32 characters.');
   }
 
   const cookieName = requireString(input, 'COOKIE_NAME');
@@ -195,6 +201,8 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
     redisReconnectBaseDelayMs: parseRedisSetting(input.REDIS_RECONNECT_BASE_DELAY_MS, 'REDIS_RECONNECT_BASE_DELAY_MS', 100, 1, 1000),
     loadTestMode,
     loadTestRateLimitMax: parseRedisSetting(input.LOAD_TEST_RATE_LIMIT_MAX, 'LOAD_TEST_RATE_LIMIT_MAX', 100000, 101, 1000000),
+    ipHashSecret,
+    clickRetentionDays: parseRedisSetting(input.CLICK_RETENTION_DAYS, 'CLICK_RETENTION_DAYS', 90, 1, 3650),
     jwtSecret,
     accessTokenTtlSeconds: parseAccessTokenTtl(input.ACCESS_TOKEN_TTL_SECONDS),
     cookie: {
