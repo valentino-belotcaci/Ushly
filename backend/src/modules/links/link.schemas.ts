@@ -45,6 +45,11 @@ export const ownerLinkParamsSchema = {
   params: { type: 'object', required: ['id'], additionalProperties: false, properties: { id: { type: 'string', minLength: 1 } } },
 };
 
+export const qrSchema = {
+  ...ownerLinkParamsSchema,
+  response: { 200: { type: 'string' } },
+};
+
 export const updateLinkSchema = {
   ...ownerLinkParamsSchema,
   body: {

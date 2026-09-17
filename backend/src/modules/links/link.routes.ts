@@ -10,6 +10,7 @@ import {
   deactivateLinkController,
   deleteLinkController,
   getLinkController,
+  getLinkQrController,
   listLinksController,
   updateLinkController,
 } from './link.controller.js';
@@ -17,6 +18,7 @@ import {
   createLinkSchema,
   ownerLinkListSchema,
   ownerLinkResponseSchema,
+  qrSchema,
   updateLinkSchema,
   type CreateLinkBody,
   type LinkParams,
@@ -79,6 +81,11 @@ const linksRoutes: FastifyPluginAsync = async (app) => {
     '/links/:id/statistics',
     { ...ownerPreHandler, schema: statisticsSchema },
     getLinkStatisticsController,
+  );
+  app.get<{ Params: LinkParams }>(
+    '/links/:id/qr',
+    { ...ownerPreHandler, schema: qrSchema },
+    getLinkQrController,
   );
   app.get<{ Querystring: LinkQuery }>(
     '/links',
