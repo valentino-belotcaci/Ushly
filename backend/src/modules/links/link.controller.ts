@@ -46,6 +46,7 @@ export async function updateLinkController(
 ) {
   return updateLinkService(
     request.server.prisma,
+    request.server.redis,
     userId(request),
     request.params.id,
     request.body,
@@ -57,6 +58,7 @@ export async function activateLinkController(
 ) {
   return setLinkStatusService(
     request.server.prisma,
+    request.server.redis,
     userId(request),
     request.params.id,
     'active',
@@ -68,6 +70,7 @@ export async function deactivateLinkController(
 ) {
   return setLinkStatusService(
     request.server.prisma,
+    request.server.redis,
     userId(request),
     request.params.id,
     'disabled',
@@ -78,6 +81,11 @@ export async function deleteLinkController(
   request: FastifyRequest<{ Params: LinkParams }>,
   reply: FastifyReply,
 ) {
-  await deleteLinkService(request.server.prisma, userId(request), request.params.id);
+  await deleteLinkService(
+    request.server.prisma,
+    request.server.redis,
+    userId(request),
+    request.params.id,
+  );
   return reply.code(204).send();
 }

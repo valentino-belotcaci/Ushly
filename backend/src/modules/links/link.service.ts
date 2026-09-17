@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import type { RedisClientType } from 'redis';
 
 import { AppError } from '../../errors/app-error.js';
 import { validateDestinationUrl } from './link.validation.js';
@@ -16,6 +17,7 @@ import type {
   LinkQuery,
   UpdateLinkBody,
 } from './link.schemas.js';
+import { invalidateRedirectCache } from '../redirects/redirect.cache.js';
 
 //Take CreateLinkResponse, remove its old status, 
 // then add a new status that can be active, disabled, or expired.
@@ -109,7 +111,13 @@ export async function getLinkService(prisma: PrismaClient, userId: string, id: s
   return link ? projectLink(link) : notFound();
 }
 
-export async function updateLinkService(prisma: PrismaClient, userId: string, id: string, input: UpdateLinkBody) {
+export async function updateLinkService(
+  prisma: PrismaClient,
+  redis: RedisClientType,
+  userId: string,
+  id: string,
+  input: UpdateLinkBody,
+) {
   // '...' spreads the properties of an object into a new object.
   const data = {
     ...(input.url === undefined ? {} : { destinationUrl: validateDestinationUrl(input.url) }),
@@ -117,14 +125,34 @@ export async function updateLinkService(prisma: PrismaClient, userId: string, id
     ...(input.expiresAt === undefined ? {} : { expiresAt: parseExpiration(input.expiresAt) }),
   };
   const link = await updateOwnedLink(prisma, userId, id, data);
+
+  if (link) 
+    await invalidateRedirectCache(redis, link.shortCode);
+  
   return link ? projectLink(link) : notFound();
 }
 
-export async function setLinkStatusService(prisma: PrismaClient, userId: string, id: string, status: 'active' | 'disabled') {
+export async function setLinkStatusService(
+  prisma: PrismaClient,
+  redis: RedisClientType,
+  userId: string,
+  id: string,
+  status: 'active' | 'disabled',
+) {
   if (!(await updateOwnedStatus(prisma, userId, id, status))) notFound();
-  return getLinkService(prisma, userId, id);
+  const link = await getLinkService(prisma, userId, id);
+  await invalidateRedirectCache(redis, link.shortCode);
+  return link;
 }
 
-export async function deleteLinkService(prisma: PrismaClient, userId: string, id: string) {
+export async function deleteLinkService(
+  prisma: PrismaClient,
+  redis: RedisClientType,
+  userId: string,
+  id: string,
+) {
+  const link = await findOwnedLink(prisma, userId, id);
+  if (!link) notFound();
   if (!(await deleteOwnedLink(prisma, userId, id))) notFound();
+  await invalidateRedirectCache(redis, link.shortCode);
 }

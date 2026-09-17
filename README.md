@@ -324,6 +324,22 @@ The integration test records a local, single-process latency baseline for 20
 sequential requests and prints average and p95 timings. This is a development
 measurement only and is not a capacity or production performance claim.
 
+### Redirect cache-aside (T5.2)
+
+Redirects use a versioned Redis key in the form
+`ushly:v1:redirect:<shortCode>`. Values contain the version, destination URL,
+link status, and expiration timestamp. Only active, non-expired values are
+cached, with a maximum TTL of 300 seconds; links expiring sooner receive the
+shorter remaining TTL.
+
+PostgreSQL remains authoritative. Redis misses, malformed values, stale status
+or expiration values, connection failures, and cache writes that fail all fall
+back to the PostgreSQL redirect path. Redis failures therefore do not prevent a
+correct redirect or change link state. Cache entries are invalidated after
+owner-authorized updates, activation/deactivation, and deletion. Redirect cache
+metrics currently expose minimal in-process hit and miss counters for testing
+and future observability integration.
+
 ### Login and access tokens (T3.3)
 
 `POST /auth/login` accepts only JSON `email` and `password`. It uses registration's
