@@ -18,7 +18,8 @@ declare module 'fastify' {
     authenticatedUser: { id: string } | null;
   }
 }
-
+//This function is an authorization guard for admin-only routes
+//A pre-handler runs before the actual controller.
 export const requireAdmin: preHandlerAsyncHookHandler = async (request) => {
   const userId = request.authenticatedUser?.id;
   if (!userId) {
@@ -30,10 +31,10 @@ export const requireAdmin: preHandlerAsyncHookHandler = async (request) => {
     select: { role: true },
   });
 
-  if (!user) {
+  if (!user) {//dont know who the user is
     throw new AppError('unauthorized', 'Authentication required', 401);
   }
-  if (user.role !== 'ADMIN') {
+  if (user.role !== 'ADMIN') {//know who the user is
     throw new AppError('forbidden', 'Admin access required', 403);
   }
 };
