@@ -40,15 +40,20 @@ export async function listAdminUsers(
   prisma: PrismaClient,
   query: AdminUserListQuery,
 ) {
+  // Create an object containing the database filters, and let 
+  // TypeScript verify that the filters are valid for Prisma's User model.
+  // we can filter by email, role and disabled users
   const where: Prisma.UserWhereInput = {
     ...(query.search
-      ? { email: { contains: query.search, mode: 'insensitive' } }
+      ? { email: { contains: query.search, mode: 'insensitive' } }//Case insensitive matching
       : {}),
     ...(query.role ? { role: query.role } : {}),
     ...(query.disabled === undefined
       ? {}
       : { disabledAt: query.disabled ? { not: null } : null }),
   };
+  //items: users
+  //total: total users that match the filtering
   const [items, total] = await Promise.all([
     prisma.user.findMany({
       where,

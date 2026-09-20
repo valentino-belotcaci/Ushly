@@ -101,7 +101,7 @@ model RefreshToken {
 
 model AdminAuditEvent {
   id         String   @id @default(cuid())
-  actorId    String
+  actorId    String   ///who performed the action
   action     String   @db.VarChar(64)
   targetType String   @db.VarChar(32)
   targetId   String   @db.VarChar(64)
