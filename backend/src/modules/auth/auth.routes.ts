@@ -1,4 +1,5 @@
 import cookie from '@fastify/cookie';
+import googleRoutes from './google.routes.js';
 import type { EnvironmentConfig } from '../../config/env.js';
 import { refreshControllers } from './refresh.controller.js';
 import type {
@@ -54,6 +55,7 @@ const authRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
 
   app.addHook('onRequest', async (request) => {// hook that runs before the request is processed, to check if the origin of the request is allowed
     
+    if (env.google && request.method === 'GET' && request.raw.url?.split('?')[0] === '/auth/google/callback') return;
     const origin = request.headers.origin;//reads the Origin header from the request
     
     if (//this if controls if the origin is not in the list of allowed origins,
@@ -66,6 +68,7 @@ const authRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
   });
 
   //creates the controllers for the refresh and logout endpoints, passing the environment configuration to them
+  await app.register(googleRoutes, { env });
   const controllers = refreshControllers(env);
 
   app.post(

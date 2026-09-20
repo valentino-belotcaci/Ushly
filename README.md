@@ -550,115 +550,155 @@ rotation count, and the per-user lock serializes separate sessions too. Revisit
 a session/family table if usage warrants it. Database errors are mapped to safe
 public errors before logging. Never log cookie or token values in message text.
 
-### OAuth threat model and configuration (T8.1 — design only)
+### Google OAuth (T8.1 decisions and T8.2 implementation)
 
-No Google OAuth code or OAuth production dependency is implemented by T8.1.
-This section records the proposed contract that must be approved before T8.2.
+Google login uses the server-side authorization-code flow with
+`google-auth-library` 11.1.0 (Node 22+). No frontend OAuth UI is included.
 
-#### Recommended authorization-code flow
+#### Configuration and deployment
 
-The server will initiate an authorization-code flow and redirect the browser to
-Google's authorization endpoint. The callback will receive a short-lived,
-single-use authorization code, which the server exchanges directly with Google
-over TLS. Google ID-token claims will be validated against the configured
-issuer, audience, signature keys, nonce (if used by the selected client flow),
-and time claims before any account lookup or session creation. Google access or
-ID tokens will never be returned to the browser or stored in PostgreSQL.
+OAuth is disabled when all `GOOGLE_*` settings are absent. Supplying any setting
+requires a client ID, client secret, and an exact callback URI. Keep credentials
+in an untracked environment file or a deployment secret manager. Use separate
+Google clients for development, test, and production; examples contain only
+placeholders. Automated tests mock Google and need no provider credentials.
 
-Proposed exact callback URIs, each registered separately with Google, are:
+Register the exact `GOOGLE_OAUTH_REDIRECT_URI` in Google Cloud Console:
 
 - Development: `http://localhost:5173/auth/google/callback`
 - Test: `http://127.0.0.1:4173/auth/google/callback`
 - Production: `https://<approved-production-host>/auth/google/callback`
 
-The production host is deliberately a placeholder and must be replaced only in
-the provider console and deployment secret configuration. Redirect URI matching
-must be exact; the callback must reject any URI or host not in the environment's
-allowlist. The server must not accept a client-provided redirect URI.
+These are public callback addresses, **not an assumption that Vite is running**.
+Route `/auth/google`, `/auth/google/link`, and `/auth/google/callback` at the
+configured origin to Fastify. For direct backend development, explicitly
+configure and register `http://localhost:3000/auth/google/callback` instead.
+The callback path must remain `/auth/google/callback`. HTTPS is required in
+production; HTTP is allowed only for localhost/127.0.0.1 outside production.
+URLs with userinfo, query, fragment, or noncanonical spelling are rejected.
+Start and callback requests must match the configured public origin; the
+callback path must match exactly. Client-supplied redirect URIs are rejected.
+Behind a reverse proxy, preserve the public host and scheme and configure
+`TRUST_PROXY` only for the actual proxy addresses. Untrusted forwarded headers
+cannot select the callback host. Configure allowed browser origins separately
+through `CORS_ALLOWED_ORIGINS`.
 
-#### State, PKCE, cookies, and sessions
+The `20260920120000_add_google_identity` migration preserves every existing
+`User` field, adds `UserIdentity`, and backfills legacy Google mappings. It
+locks `User` during validation/backfill and aborts transactionally on missing,
+malformed, or inconsistent legacy mappings. Investigate failed records manually;
+never repair them by matching emails or use `db push` to bypass the migration.
+The pre-implementation local audit found one user, zero Google mappings, and
+zero inconsistent mappings; the test database was empty. Other deployments
+must run the guarded migration against their own data.
 
-Each login attempt will generate at least 128 bits of cryptographically secure
-random `state`. The server will store only a hash of state, the intended flow,
-creation time, expiry (proposed five minutes), and a consumed marker in a
-server-side store. The callback must compare state in constant-time, reject
-expired or already-consumed values, and atomically mark a valid value consumed
-before exchanging or accepting the code. State must not contain email, role, or
-other user data.
+From `backend/`, deploy the versioned migration and generate the client:
 
-PKCE with S256 is required for browser/public clients and recommended even when
-the server is the confidential OAuth client. The code verifier is generated per
-attempt, kept server-side or in a securely bound short-lived transaction cookie,
-and never logged or sent to the browser after callback completion. PKCE does
-not replace state; both protect different parts of the flow.
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
 
-Cancellation, access-denied, invalid-request, provider-unavailable, and
-invalid-code callbacks will clear the temporary OAuth transaction state, return
-a generic safe error, and never create or modify an account. The existing
-refresh session remains HttpOnly, scoped to `/auth`, Secure in production, and
-SameSite according to the environment. OAuth callback responses must be
-`no-store`; successful login will use the existing refresh-token rotation model.
+The migration is additive. Application rollback can leave the relation in
+place; do not drop it after linking users, because it holds their Google login
+associations. Back up the database before shared-environment migration.
 
-#### Identity and account-linking policy
+#### Routes and session behavior
 
-The proposed identity key is `(provider, providerId)`, with `provider =
-google`; email is an attribute, not the durable provider identity. The provider
-subject must come from a verified ID token, and the provider's email must be
-present and verified according to the approved provider claim policy.
+| Route | Behavior |
+| --- | --- |
+| `GET /auth/google` | Starts login and redirects to Google's fixed authorization endpoint. Accepts no query parameters. |
+| `POST /auth/google/link` | Requires an Ushly bearer access token and JSON `{ "password": "<current local password>" }`. Re-verifies the local password and returns `{ "authorizationUrl": "..." }` for explicit browser navigation. Accepts no user ID or redirect override. |
+| `GET /auth/google/callback` | Consumes the browser-bound attempt, exchanges the code, verifies Google identity, resolves/links the user, and issues the existing HttpOnly refresh cookie. Returns `{ "ok": true }` without tokens or a frontend redirect. |
+| `POST /auth/refresh` | Existing endpoint: rotates the refresh cookie and returns the Ushly JWT in JSON. |
 
-Recommended default policy: do not automatically link a Google identity to an
-existing local account solely because email addresses match. If the provider
-identity is new and the normalized email belongs to a local account, require an
-already authenticated local session and an explicit, recent account-linking
-confirmation. The confirmation must re-authenticate the local account when
-appropriate, then atomically create the provider mapping. A later T8.2 flow
-must never silently merge accounts, replace an existing provider mapping, or
-allow a Google claim to promote a role.
+The linking authorization URL contains public OAuth parameters, state, nonce,
+and a PKCE challenge; it never contains a password, verifier, or token. Browser
+clients must include cookies when starting linking and refreshing. Navigating
+explicitly to the returned Google URL avoids forwarding a linking request's
+bearer token through a fetch redirect.
 
-Duplicate provider identities return a safe conflict or sign in to the already
-mapped account, according to the approved product decision; they must never be
-attached to a second user. Disabled users cannot log in or link identities.
-Missing, unverified, malformed, or changed provider identities fail closed.
-Role, ownership, password, refresh-token, and admin state remain server-owned.
+OAuth responses use `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
+The temporary cookie is HttpOnly, host-only, SameSite=Lax, scoped to
+`/auth/google`, and Secure in production. The session cookie keeps the existing
+`/auth` scope and configured SameSite/Secure behavior. A top-level Google
+callback is exempt from the normal cross-site auth-route rejection; its exact
+URI, cookie binding, and single-use state are mandatory. Linking and refresh
+retain the normal origin checks. Each OAuth route is limited to 10 requests
+per minute per IP, in addition to the existing deployment controls.
 
-#### Credential, logging, and abuse controls
+#### State and provider validation
 
-Client IDs, client secrets, signing-key configuration, and any provider
-encryption material belong in environment variables or a managed secret
-manager. Only placeholders appear in `.env.example` and `.env.test.example`.
-Secrets, authorization codes, state values, verifiers, cookies, tokens, raw
-provider responses, email query values, and provider error details must be
-redacted from logs. Logs may retain a correlation ID, outcome category, and
-coarse provider error class.
+Each attempt has independent 256-bit random state, nonce, and PKCE verifier.
+Redis stores a SHA-256 state key/hash, creation/expiry timestamps, verifier,
+nonce, and login/link intent. A link intent also holds the authenticated user
+ID and a fingerprint of the re-verified password hash, so changing the password
+invalidates pending confirmation. State expires after 300 seconds by default
+(configurable from 30 to 300 seconds). No email or role is embedded in state.
 
-Threat-model checklist for T8.2:
+The callback compares browser state in constant time and atomically removes
+its Redis entry with `GETDEL` before provider exchange. Missing, expired,
+replayed, duplicated, or mismatched state is rejected; cancellation consumes
+the attempt and clears its cookie. Redis failures fail closed, with bounded
+command deadlines and no in-process fallback. Only one pending attempt per
+browser cookie is supported; older superseded entries expire automatically.
 
-- [ ] Login-CSRF is prevented with validated, single-use, expiring state.
-- [ ] Authorization-code replay is rejected after atomic state/code use.
-- [ ] PKCE S256 verifier binding is enforced where applicable.
-- [ ] Exact redirect URI allowlists prevent open-redirect abuse.
-- [ ] Callback errors do not create accounts or alter sessions.
-- [ ] Provider issuer, audience, signature, nonce, and time claims are validated.
-- [ ] Unverified or changed provider email claims fail closed.
-- [ ] Account linking requires explicit approval and authenticated local context.
-- [ ] Disabled accounts cannot authenticate or link a provider identity.
-- [ ] Secrets, codes, tokens, state, verifier, and raw provider payloads are not logged.
-- [ ] Callback and login responses use safe cache headers and secure cookies.
-- [ ] Rate limits and replay protections cover start and callback endpoints.
+PKCE S256 is always required. The verifier stays server-side and is sent only
+in the token exchange. Google verifies the challenge binding. The library
+verifies the ID-token signature using Google's keys, issuer, audience, and
+expiry. Additional checks require the configured audience/authorized party,
+a nonempty bounded subject, a verified well-formed email, nonce equality, and
+valid issuance/expiry times. Provider calls have five-second request timeouts
+and no automatic retries of single-use codes. Only `openid email` scopes are
+requested, with online access; no Google tokens are retained in the database
+or session. Provider error payloads and transport diagnostics are discarded.
 
-#### Approved decisions before T8.2
+#### Account linking and failures
 
-The following require explicit approval before implementation:
+`UserIdentity(provider, providerId)` is authoritative for Google login. Its
+unique constraints prevent assigning one Google identity to two users and
+permit only one Google identity per user. A normalized verified-email snapshot
+allows changed provider email claims to fail closed without modifying the
+Ushly account email. Database checks allow only Google identities in this task.
 
-1. The account-linking policy, especially whether same-email local accounts may
-   be linked and what recent re-authentication is required.
-2. The exact production host and provider-registered callback URI.
-3. Whether PKCE is mandatory for the confidential server flow or only for
-   public/development clients.
-4. The state store and retention mechanism, including its availability
-   fallback and atomic single-use operation.
-5. The provider email-verification rule and behavior for duplicate identities.
-6. Whether OAuth uses the existing refresh cookie/session model unchanged.
+- A new Google identity with an unused email creates a passwordless Google
+  `User` and its identity in one transaction. Existing `User.provider = google`
+  and `User.providerId` fields remain populated for compatibility.
+- Ordinary Google login never links by email. A collision returns a generic
+  `409 oauth_conflict`; authenticate using the existing method to initiate
+  explicit linking.
+- Explicit linking preserves the local user's provider, providerId,
+  passwordHash, role, owned links, and existing sessions. It requires fresh
+  password verification and rechecks account eligibility at callback time.
+  The Google email may differ from the local email, but cannot belong to a
+  different existing Ushly account.
+- An already mapped identity signs into its mapped account. Reconfirming the
+  same link is idempotent; attaching it elsewhere or replacing another Google
+  mapping returns a safe conflict. Concurrent creation conflicts are resolved
+  by database uniqueness and never become account merges.
+- Disabled/deleted users, changed password confirmations, missing or invalid
+  provider claims, changed provider email, and provider failures are rejected.
+  Session issuance rechecks disabled status under the user lock to close the
+  race with administrative disabling.
 
-T8.2 must not begin until these decisions, test and production client
-separation, secret storage, and redirect URI registrations are approved.
+Failures return generic JSON without reflecting codes, state, emails, provider
+errors, credentials, or tokens. Request logs omit query strings and raw request
+headers; OAuth sensitive fields are redacted. Configure upstream proxy/access
+logs to omit callback query strings too: application logging cannot sanitize
+logs written before a request reaches Fastify.
+
+#### Verification
+
+`npm test`, `npm run lint`, and `npm run build` run the local checks.
+`npm run test:integration` uses the guarded `ushly_test` database and requires
+local Redis on `127.0.0.1:6379` for OAuth state. It applies migrations before
+running tests. Google exchanges and signing-key responses are mocked; locally
+signed test ID tokens exercise the real library signature verifier.
+
+Coverage includes session issuance/rotation, local login after linking,
+identity/email collisions, concurrent uniqueness, state expiry/replay/browser
+binding, PKCE and nonce mismatches, signature/issuer/audience/time validation,
+cancellation, provider/Redis failures, disabled/deleted users, rate limiting,
+log/response secrecy, and migration rejection/backfill. No real Google browser
+round-trip has been performed; configuring a registered client and checking
+that flow remains a deployment verification step.

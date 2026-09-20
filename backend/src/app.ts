@@ -39,6 +39,12 @@ const SENSITIVE_KEY_TOKENS = [
   'apikey',
   'access-token',
   'refresh-token',
+  'state',
+  'nonce',
+  'verifier',
+  'authorizationcode',
+  'credential',
+  'providerresponse',
 ];
 
 const DEFAULT_BODY_LIMIT_BYTES = 1024 * 1024;
@@ -98,7 +104,28 @@ function getLoggerOptions(
   return {
     ...overrides,
     level: overrides.level ?? level,
+    serializers: {
+      ...overrides.serializers,
+      req(request) {
+        // OAuth callbacks carry credentials in their query; omit all query strings.
+        return {
+          method: request.method,
+          url: typeof request.url === 'string' ? request.url.split('?')[0] ?? '' : '',
+        };
+      },
+    },
     redact: [
+      'state',
+      'nonce',
+      'code',
+      'codeVerifier',
+      'verifier',
+      'id_token',
+      'access_token',
+      'refresh_token',
+      'client_secret',
+      'clientSecret',
+      'providerResponse',
       'authorization',
       'cookie',
       'set-cookie',

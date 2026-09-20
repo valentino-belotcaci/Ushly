@@ -35,6 +35,7 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  identities    UserIdentity[]
   links         Link[]
   refreshTokens RefreshToken[]
   auditEvents   AdminAuditEvent[] @relation("AdminActor")
@@ -112,4 +113,19 @@ model AdminAuditEvent {
 
   @@index([createdAt, id], name: "admin_audit_created_at_idx")
   @@index([targetType, targetId, createdAt], name: "admin_audit_target_idx")
+}
+
+model UserIdentity {
+  id         String       @id @default(cuid())
+  userId     String
+  provider   AuthProvider
+  providerId String       @db.VarChar(255)
+  // Snapshot used to reject changed Google email claims without changing account ownership.
+  email      String       @db.VarChar(254)
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([provider, providerId])
+  @@unique([userId, provider])
 }

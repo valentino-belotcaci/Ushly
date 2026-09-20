@@ -1,4 +1,5 @@
 import type { PrismaClient, RefreshToken } from '@prisma/client';
+import { AppError } from '../../errors/app-error.js';
 
 export async function createSession(
   prisma: PrismaClient,
@@ -6,7 +7,17 @@ export async function createSession(
   tokenHash: string,
   expiresAt: Date,
 ) {
-  await prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
+  await prisma.$transaction(async (tx) => {
+    // Disabling an account must also prevent a login already in progress from issuing a new session.
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+    const user = await tx.user.findUnique({
+      where: { id: userId }, select: { disabledAt: true },
+    });
+    if (!user || user.disabledAt !== null) {
+      throw new AppError('unauthorized', 'Authentication required', 401);
+    }
+    await tx.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
+  });
 }
 
 export async function changeSession(
