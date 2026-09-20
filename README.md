@@ -549,3 +549,116 @@ a future cleanup job may delete expired chains. Chain traversal costs grow with
 rotation count, and the per-user lock serializes separate sessions too. Revisit
 a session/family table if usage warrants it. Database errors are mapped to safe
 public errors before logging. Never log cookie or token values in message text.
+
+### OAuth threat model and configuration (T8.1 — design only)
+
+No Google OAuth code or OAuth production dependency is implemented by T8.1.
+This section records the proposed contract that must be approved before T8.2.
+
+#### Recommended authorization-code flow
+
+The server will initiate an authorization-code flow and redirect the browser to
+Google's authorization endpoint. The callback will receive a short-lived,
+single-use authorization code, which the server exchanges directly with Google
+over TLS. Google ID-token claims will be validated against the configured
+issuer, audience, signature keys, nonce (if used by the selected client flow),
+and time claims before any account lookup or session creation. Google access or
+ID tokens will never be returned to the browser or stored in PostgreSQL.
+
+Proposed exact callback URIs, each registered separately with Google, are:
+
+- Development: `http://localhost:5173/auth/google/callback`
+- Test: `http://127.0.0.1:4173/auth/google/callback`
+- Production: `https://<approved-production-host>/auth/google/callback`
+
+The production host is deliberately a placeholder and must be replaced only in
+the provider console and deployment secret configuration. Redirect URI matching
+must be exact; the callback must reject any URI or host not in the environment's
+allowlist. The server must not accept a client-provided redirect URI.
+
+#### State, PKCE, cookies, and sessions
+
+Each login attempt will generate at least 128 bits of cryptographically secure
+random `state`. The server will store only a hash of state, the intended flow,
+creation time, expiry (proposed five minutes), and a consumed marker in a
+server-side store. The callback must compare state in constant-time, reject
+expired or already-consumed values, and atomically mark a valid value consumed
+before exchanging or accepting the code. State must not contain email, role, or
+other user data.
+
+PKCE with S256 is required for browser/public clients and recommended even when
+the server is the confidential OAuth client. The code verifier is generated per
+attempt, kept server-side or in a securely bound short-lived transaction cookie,
+and never logged or sent to the browser after callback completion. PKCE does
+not replace state; both protect different parts of the flow.
+
+Cancellation, access-denied, invalid-request, provider-unavailable, and
+invalid-code callbacks will clear the temporary OAuth transaction state, return
+a generic safe error, and never create or modify an account. The existing
+refresh session remains HttpOnly, scoped to `/auth`, Secure in production, and
+SameSite according to the environment. OAuth callback responses must be
+`no-store`; successful login will use the existing refresh-token rotation model.
+
+#### Identity and account-linking policy
+
+The proposed identity key is `(provider, providerId)`, with `provider =
+google`; email is an attribute, not the durable provider identity. The provider
+subject must come from a verified ID token, and the provider's email must be
+present and verified according to the approved provider claim policy.
+
+Recommended default policy: do not automatically link a Google identity to an
+existing local account solely because email addresses match. If the provider
+identity is new and the normalized email belongs to a local account, require an
+already authenticated local session and an explicit, recent account-linking
+confirmation. The confirmation must re-authenticate the local account when
+appropriate, then atomically create the provider mapping. A later T8.2 flow
+must never silently merge accounts, replace an existing provider mapping, or
+allow a Google claim to promote a role.
+
+Duplicate provider identities return a safe conflict or sign in to the already
+mapped account, according to the approved product decision; they must never be
+attached to a second user. Disabled users cannot log in or link identities.
+Missing, unverified, malformed, or changed provider identities fail closed.
+Role, ownership, password, refresh-token, and admin state remain server-owned.
+
+#### Credential, logging, and abuse controls
+
+Client IDs, client secrets, signing-key configuration, and any provider
+encryption material belong in environment variables or a managed secret
+manager. Only placeholders appear in `.env.example` and `.env.test.example`.
+Secrets, authorization codes, state values, verifiers, cookies, tokens, raw
+provider responses, email query values, and provider error details must be
+redacted from logs. Logs may retain a correlation ID, outcome category, and
+coarse provider error class.
+
+Threat-model checklist for T8.2:
+
+- [ ] Login-CSRF is prevented with validated, single-use, expiring state.
+- [ ] Authorization-code replay is rejected after atomic state/code use.
+- [ ] PKCE S256 verifier binding is enforced where applicable.
+- [ ] Exact redirect URI allowlists prevent open-redirect abuse.
+- [ ] Callback errors do not create accounts or alter sessions.
+- [ ] Provider issuer, audience, signature, nonce, and time claims are validated.
+- [ ] Unverified or changed provider email claims fail closed.
+- [ ] Account linking requires explicit approval and authenticated local context.
+- [ ] Disabled accounts cannot authenticate or link a provider identity.
+- [ ] Secrets, codes, tokens, state, verifier, and raw provider payloads are not logged.
+- [ ] Callback and login responses use safe cache headers and secure cookies.
+- [ ] Rate limits and replay protections cover start and callback endpoints.
+
+#### Approved decisions before T8.2
+
+The following require explicit approval before implementation:
+
+1. The account-linking policy, especially whether same-email local accounts may
+   be linked and what recent re-authentication is required.
+2. The exact production host and provider-registered callback URI.
+3. Whether PKCE is mandatory for the confidential server flow or only for
+   public/development clients.
+4. The state store and retention mechanism, including its availability
+   fallback and atomic single-use operation.
+5. The provider email-verification rule and behavior for duplicate identities.
+6. Whether OAuth uses the existing refresh cookie/session model unchanged.
+
+T8.2 must not begin until these decisions, test and production client
+separation, secret storage, and redirect URI registrations are approved.
