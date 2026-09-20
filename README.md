@@ -407,6 +407,50 @@ the composite index is chosen, and compare planning/execution time and buffer
 usage. Record the dataset size, PostgreSQL version, date distribution, and
 query parameters with the result.
 
+### Owner QR codes (T7.1)
+
+Authenticated users can request `GET /links/:id/qr`. The endpoint checks the
+link through the owner-scoped repository query, constructs the URL from the
+server-derived origin and stored short code, and returns bounded SVG with the
+`image/svg+xml` content type. Foreign or missing links return **404**. PNG,
+admin access, and frontend QR rendering are not part of this endpoint.
+
+### Admin authorization and bootstrap (T7.2)
+
+Users have a persisted `UserRole`: new accounts always receive `USER`, and only
+the server can recognize `ADMIN`. Admin hooks run after JWT authentication and
+return **401** when there is no valid authenticated user, **403** for a normal
+user, and continue only for an administrator. No registration or HTTP request
+accepts a role field, so users cannot promote themselves.
+
+After registering the intended account, create the first administrator through
+the controlled command below. It refuses to run if an administrator already
+exists and updates only the named existing normal user:
+
+```bash
+cd backend
+npm run admin:bootstrap -- admin@example.com
+```
+
+The command must be run by an operator with database access; it is not exposed
+as a public endpoint. The role migration must be applied before using the
+command.
+
+### Administrative APIs (T7.3)
+
+All `/admin/*` endpoints require JWT authentication and the persisted `ADMIN`
+role. Users and links support bounded pages of at most 100 items with stable
+newest-first ordering; user search filters email, while link search filters
+short code or destination and supports status/user filters. Global statistics
+accept UTC `from`/`to` ranges of at most 90 days and return daily totals without
+exposing click-level data.
+
+User disable/enable, role changes, user deletion, and link disable/enable are
+audited with actor, action, target type, target ID, and timestamp only. The
+last effective administrator cannot be disabled, demoted, or deleted. Admin
+responses exclude passwords, refresh tokens, access tokens, IP hashes, and
+other authentication or click-identifying fields.
+
 ### Redirect cache-aside (T5.2)
 
 Redirects use a versioned Redis key in the form

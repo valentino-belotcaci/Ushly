@@ -53,7 +53,7 @@ export async function loginUser(prisma: PrismaClient, input: RegisterBody) {
     user?.passwordHash ?? DUMMY_PASSWORD_HASH,
   );
   //login fails if the user is not found, or if the user is not a local user, or if the password is not correct
-  if (!user || user.provider !== 'local' || !user.passwordHash || !valid) {
+  if (!user || user.provider !== 'local' || !user.passwordHash || !valid || user.disabledAt !== null) {
     throw new AppError('invalid_credentials', 'Invalid email or password', 401);
   }
   //return user data to the client, without the password hash

@@ -8,6 +8,7 @@ import {
   setLinkStatusService,
   updateLinkService,
 } from './link.service.js';
+import { generateOwnedLinkQr } from './qr.service.js';
 import type {
   CreateLinkBody,
   LinkParams,
@@ -88,4 +89,18 @@ export async function deleteLinkController(
     request.params.id,
   );
   return reply.code(204).send();
+}
+
+export async function getLinkQrController(
+  request: FastifyRequest<{ Params: LinkParams }>,
+  reply: FastifyReply,
+) {
+  const svg = await generateOwnedLinkQr(
+    request.server.prisma,
+    userId(request),
+    request.params.id,
+    `${request.protocol}://${typeof request.headers.host === 'string' ? request.headers.host : request.hostname}`,
+  );
+  //the data I'm sending is an svg image
+  return reply.type('image/svg+xml').send(svg);
 }

@@ -12,6 +12,11 @@ enum AuthProvider {
   google
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 enum LinkStatus {
   active
   disabled
@@ -25,11 +30,14 @@ model User {
   passwordHash String?
   provider     AuthProvider @default(local)
   providerId   String?
+  role         UserRole @default(USER)
+  disabledAt   DateTime?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   links         Link[]
   refreshTokens RefreshToken[]
+  auditEvents   AdminAuditEvent[] @relation("AdminActor")
 
   @@unique([provider, providerId])
 }
@@ -89,4 +97,19 @@ model RefreshToken {
 
   /// This supports active-session checks and revocation lookups without scanning the whole table.
   @@index([userId, revokedAt, expiresAt], name: "refresh_tokens_user_revoked_expires_idx")
+}
+
+model AdminAuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String   ///who performed the action
+  action     String   @db.VarChar(64)
+  targetType String   @db.VarChar(32)
+  targetId   String   @db.VarChar(64)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User @relation("AdminActor", fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([createdAt, id], name: "admin_audit_created_at_idx")
+  @@index([targetType, targetId, createdAt], name: "admin_audit_target_idx")
 }

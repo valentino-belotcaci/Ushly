@@ -11,7 +11,8 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "tsx --test ./tests/**/*.test.ts",
-    "test:integration": "node --env-file=.env.test --import tsx ./tests/run-integration.ts"
+    "test:integration": "node --env-file=.env.test --import tsx ./tests/run-integration.ts",
+    "admin:bootstrap": "node --env-file=.env --import tsx ./scripts/create-first-admin.ts"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,7 @@
     "argon2": "0.45.1",
     "fastify": "^5.12.3",
     "fastify-plugin": "6.0.0",
+    "qrcode": "^1.5.4",
     "redis": "^6.2.1"
   },
   "devDependencies": {
