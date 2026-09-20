@@ -84,3 +84,64 @@ test('access token expiration defaults to fifteen minutes and validates configur
     assert.throws(() => getEnvironmentConfig({ ...validEnv, ACCESS_TOKEN_TTL_SECONDS: value }), /Invalid ACCESS_TOKEN_TTL_SECONDS/);
   }
 });
+
+test('Google configuration is opt-in, complete, exact, bounded and HTTPS in production', () => {
+  assert.equal(getEnvironmentConfig(validEnv).google, undefined);
+  const google = {
+    GOOGLE_CLIENT_ID: 'test-client',
+    GOOGLE_CLIENT_SECRET: 'placeholder-secret',
+    GOOGLE_OAUTH_REDIRECT_URI: 'http://127.0.0.1:4173/auth/google/callback',
+  };
+  assert.equal(
+    getEnvironmentConfig({ ...validEnv, ...google }).google?.stateTtlSeconds,
+    300,
+  );
+  assert.throws(() =>
+    getEnvironmentConfig({ ...validEnv, GOOGLE_CLIENT_ID: 'test-client' }),
+  );
+  for (const uri of [
+    'https://evil.test/auth/google/callback?next=x',
+    'https://host.test/auth/google/callback#fragment',
+    'https://user:secret@host.test/auth/google/callback',
+    'https://host.test/auth/google/callback/',
+    'http://remote.test/auth/google/callback',
+    'https://HOST.test/auth/google/callback',
+    'https://host.test:443/auth/google/callback',
+  ]) {
+    assert.throws(
+      () =>
+        getEnvironmentConfig({
+          ...validEnv,
+          ...google,
+          GOOGLE_OAUTH_REDIRECT_URI: uri,
+        }),
+      /Invalid GOOGLE_OAUTH_REDIRECT_URI/,
+    );
+  }
+  assert.throws(() =>
+    getEnvironmentConfig({
+      ...validEnv,
+      ...google,
+      NODE_ENV: 'production',
+      COOKIE_SECURE: 'true',
+    }),
+  );
+  assert.equal(
+    getEnvironmentConfig({
+      ...validEnv,
+      ...google,
+      NODE_ENV: 'production',
+      COOKIE_SECURE: 'true',
+      GOOGLE_OAUTH_REDIRECT_URI: 'https://app.example.com/auth/google/callback',
+    }).google?.redirectUri,
+    'https://app.example.com/auth/google/callback',
+  );
+  for (const ttl of ['0', '301', 'NaN'])
+    assert.throws(() =>
+      getEnvironmentConfig({
+        ...validEnv,
+        ...google,
+        GOOGLE_OAUTH_STATE_TTL_SECONDS: ttl,
+      }),
+    );
+});

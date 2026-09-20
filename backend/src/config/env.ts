@@ -7,7 +7,62 @@ type TrustProxyValue = boolean | string | string[];
 
 type EnvironmentInput = Record<string, string | undefined>;
 
+export type GoogleOAuthConfig = {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  stateTtlSeconds: number;
+};
+
+function parseGoogle(
+  input: EnvironmentInput,
+  nodeEnv: NodeEnv,
+): GoogleOAuthConfig | undefined {
+  const keys = [
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
+    'GOOGLE_OAUTH_REDIRECT_URI',
+    'GOOGLE_OAUTH_STATE_TTL_SECONDS',
+  ];
+  if (!keys.some((key) => input[key] !== undefined)) return undefined;
+  const clientId = requireString(input, 'GOOGLE_CLIENT_ID');
+  const clientSecret = requireString(input, 'GOOGLE_CLIENT_SECRET');
+  const redirectUri = requireString(input, 'GOOGLE_OAUTH_REDIRECT_URI');
+  let url: URL;
+  try {
+    url = new URL(redirectUri);
+  } catch {
+    throw new Error('Invalid GOOGLE_OAUTH_REDIRECT_URI');
+  }
+  if (
+    input.GOOGLE_OAUTH_REDIRECT_URI !== redirectUri ||
+    url.href !== redirectUri ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    url.pathname !== '/auth/google/callback' ||
+    (url.protocol !== 'https:' &&
+      !(
+        nodeEnv !== 'production' &&
+        url.protocol === 'http:' &&
+        ['localhost', '127.0.0.1'].includes(url.hostname)
+      ))
+  ) {
+    throw new Error('Invalid GOOGLE_OAUTH_REDIRECT_URI');
+  }
+  const stateTtlSeconds = parseRedisSetting(
+    input.GOOGLE_OAUTH_STATE_TTL_SECONDS,
+    'GOOGLE_OAUTH_STATE_TTL_SECONDS',
+    300,
+    30,
+    300,
+  );
+  return { clientId, clientSecret, redirectUri, stateTtlSeconds };
+}
+
 export type EnvironmentConfig = {
+  google?: GoogleOAuthConfig;
   nodeEnv: NodeEnv;
   host: string;
   port: number;
@@ -189,7 +244,9 @@ export function getEnvironmentConfig(input: EnvironmentInput = process.env): Env
     throw new Error('Invalid COOKIE_SECURE: production requires secure cookies.');
   }
 
+  const google = parseGoogle(input, nodeEnv);
   return {
+    ...(google ? { google } : {}),
     nodeEnv,
     host,
     port,
