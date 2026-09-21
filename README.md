@@ -2,7 +2,23 @@
 
 ## Baseline setup
 
-This repository is configured for a Node 22 + TypeScript backend and a Dockerized PostgreSQL/Redis local stack.
+This repository contains a Node 22 + TypeScript backend, a React frontend foundation, and a Dockerized PostgreSQL/Redis local stack.
+
+### Frontend foundation (T9.1)
+
+The frontend uses Node 22.12+ within Node 22, npm, Vite, React, and strict
+TypeScript. From `frontend/`, run `npm ci`, then `npm run dev`. Visit
+`/dev/components` to explore the development-only design system. The production
+build contains a foundation placeholder; product pages and authentication are
+not implemented yet.
+
+Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and
+`npm run format:check`. For browser checks, run `npx playwright install chromium`
+once, then `npm run test:browser`. The browser suite starts and stops its own
+development and production-preview servers.
+
+See [frontend/README.md](frontend/README.md) for design tokens, component
+contracts, themes, assets, and test coverage.
 
 ### Verified working commands
 

@@ -49,5 +49,11 @@ docker-compose.override.yml
 # Vite cache
 frontend/.vite/
 
+# Playwright/browser test output
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+frontend/T9.1-REPORT.md
+
 AGENTS.md
 ROADMAP.md
