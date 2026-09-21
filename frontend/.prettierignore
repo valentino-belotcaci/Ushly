@@ -1,0 +1,8 @@
+node_modules
+package-lock.json
+dist
+playwright-report
+test-results
+# Preserve the supplied brand artwork byte-for-byte.
+src/assets
+public/*.png

@@ -1,0 +1,58 @@
+:root {
+  font-family: 'Plus Jakarta Sans Variable', system-ui, sans-serif;
+  font-synthesis: none;
+  --brand: #ff7a00;
+  --brand-hover: #ff9838;
+  --on-brand: #211206;
+  --radius-button: 12px;
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --content-width: 1280px;
+}
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #121212;
+  --surface: #1b1c20;
+  --surface-raised: #24262b;
+  --text: #f5f5f6;
+  --text-muted: #b2b6bf;
+  --border: #383b43;
+  --border-control: #7e8490;
+  --brand-ink: #ff9a42;
+  --focus: #ffb36b;
+  --success-bg: #163426;
+  --success-ink: #81d6ab;
+  --warning-bg: #3b2c14;
+  --warning-ink: #ffd17a;
+  --danger-bg: #3d2226;
+  --danger-ink: #ffa4a4;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --background: #f7f8fa;
+  --surface: #ffffff;
+  --surface-raised: #eceef2;
+  --text: #20242b;
+  --text-muted: #565e6c;
+  --border: #d3d7de;
+  --border-control: #747b85;
+  /* Brand orange stays exact on fills; a darker shade keeps small links readable. */
+  --brand-ink: #a74600;
+  --focus: #a74600;
+  --success-bg: #eaf6ef;
+  --success-ink: #11613f;
+  --warning-bg: #fff3d6;
+  --warning-ink: #794508;
+  --danger-bg: #ffedef;
+  --danger-ink: #a72230;
+}
