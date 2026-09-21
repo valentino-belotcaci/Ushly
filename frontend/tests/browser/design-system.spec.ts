@@ -174,7 +174,7 @@ test('production build excludes the component preview and serves existing icons'
 }) => {
   await page.goto('http://127.0.0.1:4174/');
   await expect(
-    page.getByRole('heading', { name: 'Frontend foundation' }),
+    page.getByRole('heading', { name: 'URL Shortener' }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'Explore the component library' }),

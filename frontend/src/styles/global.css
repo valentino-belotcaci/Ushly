@@ -452,3 +452,27 @@ a {
     border-color: Highlight;
   }
 }
+
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+}
+.theme-toggle__button {
+  width: 44px;
+  padding: 10px;
+  flex-shrink: 0;
+}
+.theme-toggle__tooltip {
+  position: absolute;
+  z-index: 30;
+  top: 100%;
+  right: 0;
+  width: max-content;
+  max-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8125rem;
+}

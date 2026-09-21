@@ -4,13 +4,13 @@
 
 This repository contains a Node 22 + TypeScript backend, a React frontend foundation, and a Dockerized PostgreSQL/Redis local stack.
 
-### Frontend foundation (T9.1)
+### Frontend foundation and layout (T9.1–T9.2)
 
 The frontend uses Node 22.12+ within Node 22, npm, Vite, React, and strict
 TypeScript. From `frontend/`, run `npm ci`, then `npm run dev`. Visit
 `/dev/components` to explore the development-only design system. The production
-build contains a foundation placeholder; product pages and authentication are
-not implemented yet.
+build contains the responsive header, footer, theme switch and placeholder
+navigation; product pages and authentication are not implemented yet.
 
 Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and
 `npm run format:check`. For browser checks, run `npx playwright install chromium`

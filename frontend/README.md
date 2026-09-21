@@ -1,8 +1,9 @@
 # Ushly frontend foundation
 
-T9.1 provides React, routing, themes, and shared interface components. It does
-not call the backend or implement product pages, navigation, authentication,
-link management, or analytics.
+T9.1 provides React, routing, themes, and shared interface components. T9.2 adds
+the responsive application shell, header, footer, and placeholder navigation.
+Neither calls the backend or implements product pages, authentication, link
+management, or analytics.
 
 ## Setup and commands
 
@@ -17,7 +18,8 @@ npm run dev
 
 Open the URL Vite prints, then `/dev/components` for the component library.
 This route and its preview code are removed from production builds. The `/`
-route is a small foundation placeholder; unknown routes have a basic fallback.
+route is the URL Shortener placeholder; all navigation destinations are explicitly
+unavailable placeholders. Unknown routes have a basic fallback in the same shell.
 `BrowserRouter` requires a deployment fallback to `index.html` for client-side
 routes. No proxy or backend API configuration is needed for this task.
 
@@ -51,7 +53,9 @@ screenshots and failure traces go to ignored `test-results/`.
 
 ```text
 src/
-  app/App.tsx              Route definitions and foundation placeholder
+  app/App.tsx              Route definitions and shared placeholder content
+  layout/                 ApplicationLayout, Header, Footer, PageLayout, PageContainer
+                          navigation.ts destinations and layout.css responsive styles
   assets/brand/            Original, unmodified SVG logos
   components/             Shared UI components and component behavior tests
   content/en.ts            Shared English labels; starting point for Italian later
@@ -156,7 +160,7 @@ a real canonical deployment URL belong to the later public-page tasks.
 | `ToastProvider` / `useToast` | `notify(message, tone)` adds to a polite live region. Keeps at most five recent messages; explicit dismissal, no time limit, no automatic focus stealing. Put essential errors inline as well.                                 |
 | `LoadingState`               | `label` in a status region plus decorative spinner. Set a surrounding data region's `aria-busy` when appropriate.                                                                                                              |
 | `ErrorState`                 | `title`, `message`, optional `onRetry`; text is announced as an alert. Errors supplied here must be safe user-facing messages.                                                                                                 |
-| `ThemeToggle`                | Named button that switches themes through the provider.                                                                                                                                                                        |
+| `ThemeToggle`                | Sun/moon icon button with a changing accessible name and hover/focus tooltip; switches through the provider.                                                                                                                   |
 | `BrandLogo`                  | Theme-aware supplied artwork and readable brand name.                                                                                                                                                                          |
 
 Example:
@@ -187,3 +191,46 @@ production build.
 Browser checks currently run in Chromium. Firefox, Safari/WebKit, physical
 devices and manual screen-reader testing are not included. Automated axe checks
 do not replace a manual accessibility assessment.
+
+## Application layout (T9.2)
+
+`ApplicationLayout` provides a skip link, `Header`, one focusable `main` with a
+router `Outlet`, and `Footer`. It fills at least the viewport height without a
+fixed footer. Navigation to a different path focuses main and resets scroll so
+keyboard and screen-reader users have a predictable starting point.
+
+`PageContainer` supplies the shared 1280px maximum width and 32px horizontal
+padding (16px on small screens). `PageLayout` adds page spacing and an `h1`;
+it deliberately does not nest another main landmark. Use these for later pages.
+
+`navigation.ts` holds labels and routes shared by the header, footer and
+placeholder routes. Product destinations are `/`, `/qr-codes`, `/analytics`,
+and `/features`; Resources use `/help`, `/faq`, `/about`, `/contact`; Legal uses
+`/privacy`, `/cookies`, `/terms`; Account uses `/login` and `/register`.
+These routes reserve destinations only: there are no forms, authentication
+requests, actual legal policies, or product features. The development component
+preview stays outside the application shell to keep its own landmarks intact.
+
+Below 64rem, primary navigation becomes a disclosure with a native button and
+`aria-expanded`/`aria-controls`. Hidden links are removed from keyboard navigation
+by CSS. Links retain normal Tab navigation, without ARIA menu roles or a focus
+trap. Escape closes the menu and restores trigger focus. Selecting a link closes
+it; a pathname change resets header state, including history navigation.
+Breakpoint changes close the disclosure and move focus if its control or links
+would become hidden. Desktop navigation stays visible. The footer uses four
+columns on desktop, two below 64rem, and one below 360px.
+
+Account actions are router links using the existing button CSS, rather than
+buttons pretending to navigate. The theme toggle reuses `Button` and
+`useTheme`; inline decorative sun/moon SVGs indicate the available action, and
+the accessible name changes between “Use light theme” and “Use dark theme”.
+Its tooltip appears on hover or focus, can be hovered itself, and closes with
+Escape. Existing persisted preference, blocked-storage behavior and theme
+metadata are unchanged. No new dependencies, tokens, animation, or language
+selector were introduced. Existing explanatory comments and original assets
+were preserved.
+
+Layout tests cover footer destinations, placeholders, active navigation,
+landmarks, disclosure state, route focus, keyboard switching, tooltip dismissal,
+theme persistence, browser history, breakpoint changes, and axe checks in both
+themes at 320, 768 and 1440px. The earlier design-system suite remains in place.
