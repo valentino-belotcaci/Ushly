@@ -6,3 +6,5 @@ test-results
 # Preserve the supplied brand artwork byte-for-byte.
 src/assets
 public/*.png
+
+.prerender/

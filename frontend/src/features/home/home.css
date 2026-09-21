@@ -1,0 +1,133 @@
+.homepage {
+  display: grid;
+  gap: var(--space-12);
+  padding-block: var(--space-12);
+}
+.home-hero {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 850px;
+}
+.home-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+}
+.home-hero h1 {
+  max-width: 24ch;
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  line-height: 1.15;
+}
+.home-intro {
+  max-width: 62ch;
+  color: var(--text-muted);
+  font-size: 1.0625rem;
+}
+.url-examples {
+  display: grid;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}
+.url-example {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  overflow-wrap: anywhere;
+  animation: example-arrive 600ms ease both;
+}
+.url-example:nth-child(3) {
+  animation-delay: 400ms;
+}
+@keyframes example-arrive {
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: none;
+  }
+}
+.homepage form {
+  display: grid;
+  gap: var(--space-4);
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.homepage form > [role='alert'] {
+  grid-column: 1 / -1;
+  color: var(--danger-ink);
+}
+.shorten-status {
+  color: var(--text-muted);
+  margin-top: var(--space-4);
+}
+.shorten-result {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  overflow-wrap: anywhere;
+}
+.qr-result {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+}
+.qr-result img {
+  background: white;
+}
+.home-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+.home-privacy {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 76ch;
+}
+.home-faq {
+  display: grid;
+  gap: var(--space-4);
+}
+.home-faq details {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-4);
+}
+.home-faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: var(--space-3);
+}
+.home-faq details p {
+  max-width: 76ch;
+  color: var(--text-muted);
+  padding-block: var(--space-3);
+}
+.home-account {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-6);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-8);
+}
+.home-account p {
+  margin-top: var(--space-3);
+}
+@media (max-width: 600px) {
+  .homepage form,
+  .home-features {
+    grid-template-columns: 1fr;
+  }
+  .homepage {
+    gap: var(--space-8);
+    padding-block: var(--space-8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .url-example {
+    animation: none;
+  }
+}

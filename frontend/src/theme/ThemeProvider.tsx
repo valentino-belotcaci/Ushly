@@ -1,4 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { ThemeContext } from './theme-context';
 import {
   applyTheme,
@@ -8,8 +13,19 @@ import {
   type Theme,
 } from './theme';
 
+const subscribeToHydration = () => () => {};
+const clientSnapshot = () => false;
+const serverSnapshot = () => true;
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, updateTheme] = useState(readTheme);
+  const [preference, updateTheme] = useState(readTheme);
+  // Match the dark server markup on the hydration pass, then show the saved preference.
+  const hydrating = useSyncExternalStore(
+    subscribeToHydration,
+    clientSnapshot,
+    serverSnapshot,
+  );
+  const theme = hydrating ? 'dark' : preference;
 
   useEffect(() => applyTheme(theme), [theme]);
   useEffect(() => {

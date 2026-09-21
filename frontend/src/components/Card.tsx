@@ -14,10 +14,10 @@ export function Card({
   const id = useId();
   return (
     <section className={`card ${className}`} aria-labelledby={id}>
-      <header className="card__header">
+      <div className="card__header">
         <h2 id={id}>{title}</h2>
         {description && <p>{description}</p>}
-      </header>
+      </div>
       <div className="card__body">{children}</div>
     </section>
   );

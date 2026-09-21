@@ -3,6 +3,8 @@ import { Link, Route, Routes } from 'react-router';
 import { LoadingState } from '../components/LoadingState';
 import { ApplicationLayout } from '../layout/ApplicationLayout';
 import { PageLayout } from '../layout/PageLayout';
+import { HomePage } from '../features/home/HomePage';
+import { RouteMetadata } from './RouteMetadata';
 import { footerGroups } from '../layout/navigation';
 
 // Vite removes this branch and its preview chunk from production builds.
@@ -26,36 +28,41 @@ function Placeholder({ title }: { title: string }) {
 
 export function App() {
   return (
-    <Routes>
-      <Route element={<ApplicationLayout />}>
-        {footerGroups
-          .flatMap((group) => group.links)
-          .map((link) => (
-            <Route
-              key={link.to}
-              path={link.to}
-              element={<Placeholder title={link.label} />}
-            />
-          ))}
-        <Route
-          path="*"
-          element={
-            <PageLayout title="Page unavailable">
-              <Link to="/">Return to Ushly</Link>
-            </PageLayout>
-          }
-        />
-      </Route>
-      {ComponentPreview && (
-        <Route
-          path="/dev/components"
-          element={
-            <Suspense fallback={<LoadingState />}>
-              <ComponentPreview />
-            </Suspense>
-          }
-        />
-      )}
-    </Routes>
+    <>
+      <RouteMetadata />
+      <Routes>
+        <Route element={<ApplicationLayout />}>
+          <Route path="/" element={<HomePage />} />
+          {footerGroups
+            .flatMap((group) => group.links)
+            .filter((link) => link.to !== '/')
+            .map((link) => (
+              <Route
+                key={link.to}
+                path={link.to}
+                element={<Placeholder title={link.label} />}
+              />
+            ))}
+          <Route
+            path="*"
+            element={
+              <PageLayout title="Page unavailable">
+                <Link to="/">Return to Ushly</Link>
+              </PageLayout>
+            }
+          />
+        </Route>
+        {ComponentPreview && (
+          <Route
+            path="/dev/components"
+            element={
+              <Suspense fallback={<LoadingState />}>
+                <ComponentPreview />
+              </Suspense>
+            }
+          />
+        )}
+      </Routes>
+    </>
   );
 }

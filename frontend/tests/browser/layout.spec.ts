@@ -46,6 +46,35 @@ for (const width of [320, 768, 1440]) {
   }
 }
 
+test('desktop header places brand, primary links, account links and theme control in order', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  const banner = page.getByRole('banner');
+  const positions = await banner.evaluate((header) => {
+    const selectors = [
+      '.brand-link',
+      '.primary-links',
+      '.account-links a:first-child',
+      '.account-links a:last-child',
+      '.theme-toggle',
+    ];
+    return selectors.map((selector) => {
+      const element = header.querySelector(selector);
+      if (!element) throw new Error(`Missing header element: ${selector}`);
+      const bounds = element.getBoundingClientRect();
+      return { left: bounds.left, right: bounds.right };
+    });
+  });
+  for (let index = 1; index < positions.length; index += 1) {
+    const previous = positions[index - 1];
+    const current = positions[index];
+    if (!previous || !current) throw new Error('Missing header position');
+    expect(previous.right).toBeLessThanOrEqual(current.left);
+  }
+});
+
 test('mobile disclosure keyboard order, Escape, navigation and breakpoint changes', async ({
   page,
 }) => {
@@ -137,7 +166,9 @@ test('footer links reach placeholders and browser history keeps mobile menu clos
       .click();
     await expect(page).toHaveURL(destination.href ?? '/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      destination.label ?? '',
+      destination.href === '/'
+        ? 'Free URL Shortener with QR Codes and Analytics'
+        : (destination.label ?? ''),
     );
   }
   await page.getByRole('button', { name: 'Menu', exact: true }).click();

@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import '@fontsource-variable/plus-jakarta-sans';
 import { App } from './app/App';
@@ -9,7 +9,7 @@ import './styles/global.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing application root');
-createRoot(root).render(
+const application = (
   <StrictMode>
     <ThemeProvider>
       <ToastProvider>
@@ -18,5 +18,11 @@ createRoot(root).render(
         </BrowserRouter>
       </ToastProvider>
     </ThemeProvider>
-  </StrictMode>,
+  </StrictMode>
 );
+
+if (root.dataset.prerendered && window.location.pathname === '/') {
+  hydrateRoot(root, application);
+} else {
+  createRoot(root).render(application);
+}

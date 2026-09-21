@@ -2,8 +2,9 @@
 
 T9.1 provides React, routing, themes, and shared interface components. T9.2 adds
 the responsive application shell, header, footer, and placeholder navigation.
-Neither calls the backend or implements product pages, authentication, link
-management, or analytics.
+T9.3 adds the public homepage and a native-fetch link client. Authentication
+pages, session lifecycle, management interfaces and analytics pages remain
+unimplemented.
 
 ## Setup and commands
 
@@ -18,10 +19,10 @@ npm run dev
 
 Open the URL Vite prints, then `/dev/components` for the component library.
 This route and its preview code are removed from production builds. The `/`
-route is the URL Shortener placeholder; all navigation destinations are explicitly
+route is the public homepage; the other navigation destinations remain explicitly
 unavailable placeholders. Unknown routes have a basic fallback in the same shell.
 `BrowserRouter` requires a deployment fallback to `index.html` for client-side
-routes. No proxy or backend API configuration is needed for this task.
+routes. Configure the API origin as described under T9.3 below.
 
 | Command                | Purpose                                                              |
 | ---------------------- | -------------------------------------------------------------------- |
@@ -142,8 +143,8 @@ twice. The existing PNGs supply the favicon, apple-touch icon and 192/512px app
 icons. All original artwork is preserved byte-for-byte. Manifests provide
 app metadata only; there is no service worker or offline feature.
 
-The foundation has `noindex, nofollow` metadata. Public-page SEO metadata and
-a real canonical deployment URL belong to the later public-page tasks.
+The homepage is indexable and prerendered in production. Placeholder routes
+remain non-indexable. Configure the actual public origin before deployment.
 
 ## Component contracts
 
@@ -207,8 +208,8 @@ it deliberately does not nest another main landmark. Use these for later pages.
 placeholder routes. Product destinations are `/`, `/qr-codes`, `/analytics`,
 and `/features`; Resources use `/help`, `/faq`, `/about`, `/contact`; Legal uses
 `/privacy`, `/cookies`, `/terms`; Account uses `/login` and `/register`.
-These routes reserve destinations only: there are no forms, authentication
-requests, actual legal policies, or product features. The development component
+T9.3 replaces `/` with the homepage and shortening form. Other routes still
+reserve destinations only: there are no authentication forms or real legal policies. The development component
 preview stays outside the application shell to keep its own landmarks intact.
 
 Below 64rem, primary navigation becomes a disclosure with a native button and
@@ -234,3 +235,108 @@ Layout tests cover footer destinations, placeholders, active navigation,
 landmarks, disclosure state, route focus, keyboard switching, tooltip dismissal,
 theme persistence, browser history, breakpoint changes, and axe checks in both
 themes at 320, 768 and 1440px. The earlier design-system suite remains in place.
+
+## Public homepage and API client (T9.3)
+
+Copy `.env.example` to `.env.local` and set these public build-time values:
+
+- `VITE_API_ORIGIN`: the HTTP(S) origin serving the existing backend. Its
+  `/links` endpoint creates links and `/:shortCode` serves redirects. For local
+  development the example uses `http://localhost:3000`. Configure the frontend
+  origin in backend `CORS_ALLOWED_ORIGINS`; this task does not change backend CORS.
+- `VITE_SITE_ORIGIN`: the actual deployed frontend origin, without a path,
+  credentials, query or fragment. Canonical, Open Graph URL and social image URLs
+  are derived from it. When unset, those absolute tags are omitted rather than
+  guessing a production domain. Set it before publishing and rebuild.
+
+`VITE_*` values are embedded in browser assets. Never put secrets in them.
+The API origin is also the short-link origin because the current QR endpoint
+uses its request origin. Deploy the API/redirect origin consistently; do not
+point returned short links at the frontend SPA server.
+
+`src/features/home/` contains page content, the form, examples, styles and
+metadata. `src/api/links.ts` makes native-fetch calls and validates the fields
+used from responses. It sends exactly `{ url }` to `POST /links`, accepts only
+HTTP(S) destinations up to 2,048 characters, and constructs share URLs from the
+configured origin plus the validated alphanumeric short code. Server errors
+are mapped to fixed messages rather than exposing arbitrary response bodies.
+Requests time out after 15 seconds and creation is never automatically retried.
+Copy failures leave a read-only, selectable short URL for manual copying.
+
+There is no session lifecycle in T9.3. The homepage sends anonymous requests.
+`ShortenForm` and the client accept an optional access-token argument in memory
+for later authenticated integration. It is sent only in the Authorization
+header; cookies are omitted and no credential is stored or logged. A rejected
+authenticated request is never retried anonymously. The creation response does
+not state ownership, so the UI does not infer ownership from it.
+
+**QR scope decision remains pending:** the existing `GET /links/:id/qr` endpoint
+requires an authenticated owner and cannot serve anonymous links. The frontend
+preserves that boundary: anonymous results explain the restriction; an
+explicitly supplied in-memory access token enables owned-link QR generation.
+Responses must be SVG and no larger than the backend's 64 KiB limit. Blob URLs
+are used only for an image and an SVG download, never injected as markup, and
+revoked when replaced or unmounted. Download feedback says the download was
+requested, not that the browser necessarily saved it. A browser fixture tests
+this protected path without adding authentication pages or test-token injection
+to the production application. Anonymous QR generation is not implemented.
+
+The content describes implemented backend capabilities with their current
+access restrictions. The privacy explanation reflects keyed IP pseudonymization,
+referrer-origin storage and bounded user-agent storage; it does not promise
+anonymous tracking, compliance certifications, unlimited usage or malware
+scanning. Public short links are not a confidentiality mechanism. Anonymous
+links are not automatically claimed after sign-up. FAQ answers about expiration,
+disabling, analytics and QR access match the inspected backend services.
+
+URL examples are labeled illustrations using reserved example domains. A
+one-time, one-second movement sequence preserves full text contrast at every
+frame; `prefers-reduced-motion` disables it. Text is stable and is not announced
+repeatedly through a live region. FAQ uses native details/summary controls.
+The shared Card title wrapper is a div to avoid an extra banner landmark; its
+named section and h2 contract are unchanged. Existing comments are preserved.
+
+### Static HTML and deployment
+
+`npm run build` type-checks, builds browser assets, then runs
+`scripts/prerender.mjs`. Vite's existing SSR build support compiles
+`src/entry-server.tsx` into ignored `.prerender/`; React renders the same homepage
+and shared layout into `dist/index.html`. The page's H1, explanation, features,
+privacy text and FAQ answers are present before JavaScript runs. The form is
+disabled in static markup with a no-JavaScript explanation, preventing a native
+GET submission from putting destinations in the URL. React hydrates the home
+route and enables the form. Theme hydration initially matches the server's dark
+markup and then adopts the saved preference. No running SSR server is required.
+
+Serve `dist/index.html` at `/`, assets normally, and use `dist/200.html` for SPA
+route fallbacks. The fallback is an empty, non-indexable shell; this avoids
+serving homepage metadata and content for unimplemented routes. Vite preview
+uses its usual index fallback, so the browser still clears homepage metadata
+when navigating to a placeholder. Configure the fallback explicitly on your
+production host. Do not serve `.prerender/` or `tests/` publicly.
+
+Metadata includes title, description, robots, canonical support, Open Graph,
+Twitter summary and descriptive logo image text. Structured data is only a
+`WebSite` matching the actual content, without invented reviews, ratings,
+organization details or feature claims. `RouteMetadata` removes home-only tags
+on client navigation and restores them on returning home. Metadata generation
+uses escaped configuration and fixed application text, never submitted URLs.
+
+See React's [renderToString documentation](https://react.dev/reference/react-dom/server/renderToString)
+and Vite's [SSR/prerender documentation](https://vite.dev/guide/ssr) for the
+underlying build-time rendering APIs. No production dependency was added.
+
+### T9.3 verification scope
+
+Component tests mock fetch while exercising the real frontend client: empty and
+invalid submissions, pending requests, success, safe failures, rate limits,
+invalid response codes, copying/fallback, authenticated headers, QR failures,
+download attributes and Blob cleanup. Browser tests mock the inspected backend
+contracts and exercise real clipboard/download behavior. They also cover both
+themes at 320/768/1440px, keyboard focus, reduced motion, axe rules, production
+HTML without JavaScript, configured metadata and saved-theme hydration.
+The protected QR browser flow uses `tests/browser/fixtures/shorten.html` with a
+synthetic credential; it is not an anonymous homepage flow or a real login.
+A live backend smoke test requires a running API/database/Redis stack and was
+unavailable during this implementation. Chromium is the configured browser;
+Firefox/WebKit, physical devices and manual screen-reader checks are not covered.

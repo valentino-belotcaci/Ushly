@@ -9,6 +9,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      '.prerender/**',
       'node_modules/**',
       'playwright-report/**',
       'test-results/**',
@@ -18,7 +19,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['**/*.{js,ts,tsx}'],
+    files: ['**/*.{js,mjs,ts,tsx}'],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
   {
@@ -33,6 +34,10 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
     },
+  },
+  {
+    files: ['src/entry-server.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
   prettier,
 );
