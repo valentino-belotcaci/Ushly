@@ -147,6 +147,11 @@
 .shorten-result__actions .button {
   flex: none;
 }
+.shorten-action-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
 .shorten-result .shorten-result__url {
   color: var(--brand-ink);
   font-weight: 700;
@@ -164,13 +169,56 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.qr-result {
+.qr-popover {
+  position: fixed;
+  z-index: 30;
+  visibility: hidden;
+  display: grid;
+  grid-template-columns: 144px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
+}
+.qr-popover__preview {
+  display: grid;
+  place-items: center;
+  min-height: 144px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: white;
+  color: #20242b;
+}
+.qr-popover__preview img {
+  display: block;
+  width: 144px;
+  height: 144px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.qr-popover__content {
   display: grid;
   justify-items: start;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-2);
 }
-.qr-result img {
-  background: white;
+.qr-popover__content h2 {
+  padding-right: var(--space-8);
+}
+.qr-popover__close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 44px;
+  padding: 0;
+  font-size: 1.5rem;
 }
 .home-features {
   display: grid;
@@ -363,7 +411,9 @@
   cursor: pointer;
   font-weight: 600;
   padding-block: var(--space-3);
-  transition: color 150ms ease, transform 150ms ease;
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
 }
 .home-faq summary::-webkit-details-marker {
   display: none;
@@ -438,6 +488,14 @@
   }
   .shorten-result__actions {
     justify-content: flex-start;
+  }
+}
+@media (max-width: 480px) {
+  .qr-popover {
+    grid-template-columns: 1fr;
+  }
+  .qr-popover__preview {
+    width: 144px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
