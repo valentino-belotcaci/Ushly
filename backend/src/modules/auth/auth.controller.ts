@@ -23,7 +23,7 @@ export function loginController(env: EnvironmentConfig) {
     request: FastifyRequest<{ Body: RegisterBody }>,
     reply: FastifyReply,
   ) {
-    const user = await loginUser(request.server.prisma, request.body);
+    const { googleLinkEligible, ...user } = await loginUser(request.server.prisma, request.body);
 
     //creates a new access token with the user id from the session
     const accessToken = await reply.jwtSign({ sub: user.id });
@@ -41,6 +41,6 @@ export function loginController(env: EnvironmentConfig) {
     //no store is used to prevent caching of the response containing an access token, which is sensitive information
     return reply
       .header('Cache-Control', 'no-store')
-      .send({ accessToken, user });
+      .send({ accessToken, user, googleLinkAvailable: Boolean(env.google) && googleLinkEligible });
   };
 }

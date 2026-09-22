@@ -9,6 +9,7 @@ import {
   type LinkConfirmation,
 } from './google.state.js';
 import { sessionCookie } from './refresh.controller.js';
+import { sendGooglePopupResult } from './google.popup.js';
 
 export function googleControllers(
   app: FastifyInstance,
@@ -111,7 +112,7 @@ export function googleControllers(
       expires: session.expiresAt,
     });
     // The browser obtains its Ushly JWT through POST /auth/refresh, just as after reload.
-    return reply.send({ ok: true });
+    return sendGooglePopupResult(reply, env.corsAllowedOrigins, { status: 'success' });
   }
   return {
     login: (request: FastifyRequest, reply: FastifyReply) =>

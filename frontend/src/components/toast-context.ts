@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { Tone } from './Badge';
 export const ToastContext = createContext<
-  ((message: string, tone?: Tone) => void) | null
+  ((message: string, tone?: Tone, durationMs?: number) => void) | null
 >(null);
 export function useToast() {
   const context = useContext(ToastContext);

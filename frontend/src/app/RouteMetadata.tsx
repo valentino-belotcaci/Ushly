@@ -24,7 +24,9 @@ export function RouteMetadata() {
           ? publicPageMetadata(pagePath, siteOrigin)
           : isAuthPath(pagePath)
             ? authMetadata(pagePath)
-            : '<title>Ushly · Page unavailable</title><meta name="robots" content="noindex, follow">';
+            : pagePath === '/dashboard' || pagePath.startsWith('/dashboard/')
+              ? '<title>Dashboard · Ushly</title><meta name="robots" content="noindex, nofollow">'
+              : '<title>Ushly · Page unavailable</title><meta name="robots" content="noindex, follow">';
     end.before(template.content);
   }, [pathname]);
   return null;

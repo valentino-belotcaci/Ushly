@@ -80,9 +80,12 @@ const authRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
         response: {
           200: {
             type: 'object',
-            required: ['accessToken'],
+            required: ['accessToken', 'googleLinkAvailable'],
             additionalProperties: false,
-            properties: { accessToken: { type: 'string' } },//the response will be a json object with the access token
+            properties: {
+              accessToken: { type: 'string' },
+              googleLinkAvailable: { type: 'boolean' },
+            },
           },
         },
       },

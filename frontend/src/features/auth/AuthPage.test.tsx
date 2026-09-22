@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { apiSession, ApiClientError } from '../../api/session';
 import { ThemeProvider } from '../../theme/ThemeProvider';
+import { ToastProvider } from '../../components/ToastProvider';
 import { AuthPage } from './AuthPage';
 
 beforeEach(() => {
@@ -21,9 +22,17 @@ beforeEach(() => {
 function renderPage(mode: 'login' | 'register') {
   render(
     <ThemeProvider>
-      <MemoryRouter>
-        <AuthPage mode={mode} />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter
+          initialEntries={[mode === 'login' ? '/login' : '/register']}
+        >
+          <Routes>
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/register" element={<AuthPage mode="register" />} />
+            <Route path="/dashboard" element={<h1>Dashboard workspace</h1>} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </ThemeProvider>,
   );
 }
@@ -34,6 +43,14 @@ it('validates confirmation locally and registers with only email and password', 
     id: 'user-1',
     email: 'reader@example.test',
     createdAt: '2026-09-22T10:00:00.000Z',
+  });
+  const login = vi.spyOn(apiSession, 'login').mockResolvedValue({
+    status: 'authenticated',
+    user: {
+      id: 'user-1',
+      email: 'reader@example.test',
+      createdAt: '2026-09-22T10:00:00.000Z',
+    },
   });
   renderPage('register');
   expect(
@@ -68,11 +85,13 @@ it('validates confirmation locally and registers with only email and password', 
     email: 'reader@example.test',
     password: 'safe-password',
   });
-  expect(await screen.findByText('Account created.')).toBeVisible();
-  expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute(
-    'href',
-    '/login',
-  );
+  expect(login).toHaveBeenCalledWith({
+    email: 'reader@example.test',
+    password: 'safe-password',
+  });
+  expect(
+    await screen.findByRole('heading', { name: 'Dashboard workspace' }),
+  ).toBeVisible();
 });
 
 it('prevents duplicate registration while the request is pending', async () => {
@@ -88,6 +107,14 @@ it('prevents duplicate registration while the request is pending', async () => {
         finish = resolve;
       }),
   );
+  vi.spyOn(apiSession, 'login').mockResolvedValue({
+    status: 'authenticated',
+    user: {
+      id: 'user-1',
+      email: 'reader@example.test',
+      createdAt: '2026-09-22T10:00:00.000Z',
+    },
+  });
   renderPage('register');
   await user.type(
     screen.getByRole('textbox', { name: 'Email' }),
@@ -106,7 +133,9 @@ it('prevents duplicate registration while the request is pending', async () => {
     email: 'reader@example.test',
     createdAt: '2026-09-22T10:00:00.000Z',
   });
-  expect(await screen.findByText('Account created.')).toBeVisible();
+  expect(
+    await screen.findByRole('heading', { name: 'Dashboard workspace' }),
+  ).toBeVisible();
 });
 
 it('shows safe authentication and account-linking guidance on login', async () => {

@@ -46,7 +46,8 @@ test('login returns minimal short-lived token, safe user, and authenticates a pr
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers['cache-control'], 'no-store');
   const body = response.json();
-  assert.deepEqual(Object.keys(body).sort(), ['accessToken', 'user']);
+  assert.deepEqual(Object.keys(body).sort(), ['accessToken', 'googleLinkAvailable', 'user']);
+  assert.equal(body.googleLinkAvailable, false);
   assert.deepEqual(body.user, created);
   const claims = app.jwt.verify<{ sub: string; iat: number; exp: number }>(
     body.accessToken,

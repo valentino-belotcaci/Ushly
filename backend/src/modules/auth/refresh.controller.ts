@@ -34,7 +34,7 @@ export function refreshControllers(env: EnvironmentConfig) {
           expires: session.expiresAt,
         });
         //sends the new access token to the client, refresh token stays in httpOnly cookie and is not accessible from javascript
-        return reply.send({ accessToken });
+        return reply.send({ accessToken, googleLinkAvailable: Boolean(env.google) && session.googleLinkEligible });
       } catch (error) {
         clear(reply);
         throw error;

@@ -1,11 +1,19 @@
-import { useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
-import { Link } from 'react-router';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react';
+import { Link, useNavigate } from 'react-router';
 import { apiOrigin } from '../../config/public';
 import { apiSession, ApiClientError, useSession } from '../../api/session';
 import { BrandLogo } from '../../components/BrandLogo';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { useToast } from '../../components/toast-context';
+import { watchGooglePopup, type GooglePopupResult } from './googlePopup';
 import './auth.css';
 
 type Mode = 'login' | 'register';
@@ -42,6 +50,8 @@ export function AuthPage({ mode }: { mode: Mode }) {
     serverReady,
   );
   const session = useSession();
+  const notify = useToast();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -53,11 +63,13 @@ export function AuthPage({ mode }: { mode: Mode }) {
   const [conflict, setConflict] = useState(false);
   const [busy, setBusy] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
-  const [registered, setRegistered] = useState(false);
   const pending = useRef(false);
   const emailInput = useRef<HTMLInputElement>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
   const confirmInput = useRef<HTMLInputElement>(null);
+  const stopGoogleWatch = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => stopGoogleWatch.current?.(), []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,12 +91,16 @@ export function AuthPage({ mode }: { mode: Mode }) {
     try {
       if (mode === 'register') {
         await apiSession.register({ email: email.trim(), password });
-        setRegistered(true);
+        await apiSession.login({ email: email.trim(), password });
         setPassword('');
         setConfirm('');
+        notify('Your account is ready.', 'success', 3000);
+        navigate('/dashboard', { replace: true });
       } else {
         await apiSession.login({ email: email.trim(), password });
         setPassword('');
+        notify('You’re signed in. Your session is ready.', 'success', 3000);
+        navigate('/dashboard', { replace: true });
       }
     } catch (failure) {
       if (
@@ -111,7 +127,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
       return;
     }
     const popup = window.open(
-      `${apiOrigin}/auth/google`,
+      '',
       'ushly-google-auth',
       'popup,width=560,height=720',
     );
@@ -119,22 +135,43 @@ export function AuthPage({ mode }: { mode: Mode }) {
       setError('Allow the Google sign-in window, then try again.');
       return;
     }
-    popup.opener = null;
     setError('');
     setConflict(false);
     setGooglePending(true);
+    stopGoogleWatch.current = watchGooglePopup(popup, apiOrigin, (result) => {
+      stopGoogleWatch.current = null;
+      void finishGoogle(result);
+    });
+    popup.location.assign(`${apiOrigin}/auth/google`);
     popup.focus();
   }
 
-  async function finishGoogle() {
-    if (pending.current) return;
+  async function finishGoogle(result: GooglePopupResult) {
+    setGooglePending(false);
+    if (result.status === 'closed' || result.status === 'timeout') {
+      setError(
+        result.status === 'closed'
+          ? 'Google sign-in was closed before it finished. Please try again.'
+          : 'Google sign-in timed out. Please try again.',
+      );
+      return;
+    }
+    if (result.status === 'error') {
+      if (result.code === 'oauth_conflict') setConflict(true);
+      else setError('Google sign-in could not be completed. Please try again.');
+      return;
+    }
     pending.current = true;
     setBusy(true);
     setError('');
     try {
-      const restored = await apiSession.restore();
-      if (restored.status !== 'authenticated') setConflict(true);
-      else setGooglePending(false);
+      const restored = await apiSession.refreshAfterOAuth();
+      if (restored.status !== 'authenticated')
+        setError('Google sign-in could not be completed. Please try again.');
+      else {
+        notify('You’re signed in. Your session is ready.', 'success', 3000);
+        navigate('/dashboard', { replace: true });
+      }
     } catch (failure) {
       setError(
         failure instanceof ApiClientError
@@ -169,19 +206,13 @@ export function AuthPage({ mode }: { mode: Mode }) {
               : 'Access your account to continue managing your links.'}
           </p>
           {session.status === 'authenticated' ? (
-            <div className="auth-success" role="status">
-              <strong>You’re signed in.</strong>
-              <p>Your session is ready.</p>
-              <Link className="button button--primary" to="/">
-                Return to Ushly
-              </Link>
-            </div>
-          ) : registered ? (
-            <div className="auth-success" role="status">
-              <strong>Account created.</strong>
-              <p>Log in with your new email and password to continue.</p>
-              <Link className="button button--primary" to="/login">
-                Log in
+            <div className="auth-success">
+              <div role="status">
+                <strong>You’re signed in.</strong>
+                <p>Your session is ready.</p>
+              </div>
+              <Link className="button button--primary" to="/dashboard">
+                Open dashboard
               </Link>
             </div>
           ) : (
@@ -200,15 +231,18 @@ export function AuthPage({ mode }: { mode: Mode }) {
               {googlePending && (
                 <div className="auth-google-status" role="status">
                   <p>
-                    Complete sign-in in the Google window. When it finishes,
-                    return here to continue.
+                    Complete sign-in in the Google window. This page will update
+                    automatically.
                   </p>
                   <Button
                     variant="secondary"
-                    onClick={() => void finishGoogle()}
-                    disabled={busy}
+                    onClick={() => {
+                      stopGoogleWatch.current?.();
+                      stopGoogleWatch.current = null;
+                      void finishGoogle({ status: 'closed' });
+                    }}
                   >
-                    I’ve finished with Google
+                    Cancel Google sign-in
                   </Button>
                 </div>
               )}

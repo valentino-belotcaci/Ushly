@@ -4,7 +4,11 @@ import { apiOrigin } from '../config/public';
 export type AuthUser = { id: string; email: string; createdAt: string };
 export type SessionState =
   | { status: 'checking'; user: null }
-  | { status: 'authenticated'; user: AuthUser | null }
+  | {
+      status: 'authenticated';
+      user: AuthUser | null;
+      googleLinkAvailable?: boolean;
+    }
   | { status: 'anonymous'; user: null };
 
 export type ApiErrorKind =
@@ -66,7 +70,17 @@ function tokenFrom(value: unknown): string {
   return value.accessToken;
 }
 
-function loginFrom(value: unknown): { accessToken: string; user: AuthUser } {
+function googleLinkAvailabilityFrom(value: unknown): boolean | undefined {
+  if (!isRecord(value) || !('googleLinkAvailable' in value)) return undefined;
+  if (typeof value.googleLinkAvailable !== 'boolean') throw invalidResponse();
+  return value.googleLinkAvailable;
+}
+
+function loginFrom(value: unknown): {
+  accessToken: string;
+  user: AuthUser;
+  googleLinkAvailable?: boolean;
+} {
   const accessToken = tokenFrom(value);
   if (!isRecord(value) || !isRecord(value.user)) throw invalidResponse();
   const user = value.user;
@@ -79,9 +93,11 @@ function loginFrom(value: unknown): { accessToken: string; user: AuthUser } {
     Number.isNaN(Date.parse(user.createdAt))
   )
     throw invalidResponse();
+  const googleLinkAvailable = googleLinkAvailabilityFrom(value);
   return {
     accessToken,
     user: { id: user.id, email: user.email, createdAt: user.createdAt },
+    ...(googleLinkAvailable === undefined ? {} : { googleLinkAvailable }),
   };
 }
 
@@ -118,6 +134,7 @@ async function errorFrom(response: Response): Promise<ApiClientError> {
     403: 'You do not have permission to do that.',
     404: 'The requested item was not found.',
     409: 'This request conflicts with an existing item.',
+    422: 'Check the submitted values and try again.',
     429: 'Too many requests. Please wait before trying again.',
     503: 'Ushly is temporarily unavailable. Please try again later.',
   };
@@ -205,12 +222,15 @@ export class ApiSession {
     try {
       const response = await this.send('/auth/refresh', { method: 'POST' });
       if (!response.ok) throw await errorFrom(response);
-      const token = tokenFrom(await jsonFrom(response));
+      const data = await jsonFrom(response);
+      const token = tokenFrom(data);
+      const googleLinkAvailable = googleLinkAvailabilityFrom(data);
       if (generation !== this.generation) throw sessionChanged();
       this.accessToken = token;
       this.setState({
         status: 'authenticated',
         user: this.state.status === 'authenticated' ? this.state.user : null,
+        ...(googleLinkAvailable === undefined ? {} : { googleLinkAvailable }),
       });
       return token;
     } catch (error) {
@@ -247,6 +267,11 @@ export class ApiSession {
     return this.state;
   }
 
+  async refreshAfterOAuth(): Promise<SessionState> {
+    await this.refresh();
+    return this.state;
+  }
+
   async login(credentials: Credentials): Promise<SessionState> {
     if (this.refreshPromise) {
       try {
@@ -265,7 +290,13 @@ export class ApiSession {
     const session = loginFrom(await jsonFrom(response));
     this.generation += 1;
     this.accessToken = session.accessToken;
-    this.setState({ status: 'authenticated', user: session.user });
+    this.setState({
+      status: 'authenticated',
+      user: session.user,
+      ...(session.googleLinkAvailable === undefined
+        ? {}
+        : { googleLinkAvailable: session.googleLinkAvailable }),
+    });
     return this.state;
   }
 
@@ -326,6 +357,27 @@ export class ApiSession {
     } catch {
       throw invalidResponse();
     }
+  }
+
+  async requestProtectedBlob(path: string): Promise<Blob> {
+    const generation = this.generation;
+    const firstToken = this.accessToken ?? (await this.refresh());
+    let response = await this.send(path, { method: 'GET' }, firstToken);
+    if (generation !== this.generation) throw sessionChanged();
+    if (response.status === 401) {
+      const nextToken =
+        this.accessToken && this.accessToken !== firstToken
+          ? this.accessToken
+          : await this.refresh();
+      response = await this.send(path, { method: 'GET' }, nextToken);
+      if (generation !== this.generation) throw sessionChanged();
+      if (response.status === 401) {
+        this.generation += 1;
+        this.clear();
+      }
+    }
+    if (!response.ok) throw await errorFrom(response);
+    return response.blob();
   }
 
   async logout(): Promise<void> {

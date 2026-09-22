@@ -384,8 +384,9 @@ promise. A protected request retries once after a successful refresh; a second
 error without displaying backend diagnostics. Explicit logout clears local
 state and asks the backend to revoke the refresh cookie.
 
-Refresh returns only an access token, so after reload `useSession()` reports
-an authenticated session with `user: null`. The user profile is available in
+Refresh returns an access token and a read-only `googleLinkAvailable` flag, so
+after reload `useSession()` reports an authenticated session with `user: null`.
+The user profile is available in
 memory immediately after login. A later account UI must not infer a user
 profile from the JWT. Google OAuth's callback also sets the refresh cookie;
 returning to the frontend uses the same startup refresh flow. T9.6 adds the
@@ -404,20 +405,35 @@ theme, brand, form controls, and the supplied WebP backgrounds in
 `public/images/`. Form submission stays disabled until JavaScript hydrates,
 so a browser without JavaScript cannot send a password through a native GET
 submission. Registration sends only `{ email, password }`; confirm password is
-checked locally and is never included in the request. Registration does not
-create a session in the backend, so the success state directs users to log in.
+checked locally and is never included in the request. Because registration does
+not create a session in the backend, the page signs in with the same validated
+credentials before navigating to the dashboard.
 
 Google login opens the existing `GET /auth/google` flow in a popup. The backend
-callback currently responds with JSON rather than redirecting to the frontend,
-so users return to the auth page and select “I’ve finished with Google” to
-refresh their session. If no session is available, the page explains how to
-log in with an existing method and use the password-confirmed Link Google
-action in the authenticated header. This guidance also covers an OAuth email
-conflict; the frontend cannot read cross-origin popup callback details. Link
+callback sends only a success status or safe error code to configured frontend
+origins with `postMessage`, then closes the popup. The auth page verifies the
+API origin and popup window before refreshing its session. If an OAuth email
+conflict occurs, the page explains how to log in with an existing method and
+use the password-confirmed Link Google action in the authenticated header. Link
 Google sends only `{ password }` to `POST /auth/google/link` with the in-memory
 bearer token and opens only a validated Google authorization URL. The backend
-remains responsible for checking the password, ownership, and identity mapping.
+remains responsible for checking the password, ownership, and identity mapping;
+the header confirms successful linking after the callback.
 
-The authenticated header provides Link Google and Log out actions. Logout
-calls the existing backend endpoint and clears local session state. The account
-forms do not introduce a dashboard or store credentials in browser storage.
+The authenticated account controls provide Link Google and Log out actions.
+Logout calls the existing backend endpoint and clears local session state.
+
+## Authenticated dashboard (T9.7)
+
+`/dashboard` and its Links, Analytics, QR Codes, and Settings routes are guarded
+by the in-memory session state. Session restoration shows a bounded loading
+state; anonymous sessions are redirected to `/login`. The dashboard uses its
+own responsive sidebar and does not render the public header or footer.
+
+The dashboard client calls only the existing owner-scoped link routes. Links
+supports creation, pagination, destination/title/expiration editing,
+activation, deactivation, and deletion. Analytics selects one owned link and
+uses its statistics endpoint. QR Codes retrieves the owner-authorized SVG and
+downloads that response without putting a bearer token in a URL. A protected
+request still retries once through the T9.5 refresh flow, and persistent 401s
+clear the local session while the backend remains the ownership boundary.

@@ -3,6 +3,7 @@ import type { EnvironmentConfig } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import { googleControllers } from './google.controller.js';
 import { oauthFailure } from './google.state.js';
+import { sendGooglePopupResult } from './google.popup.js';
 
 const googleRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
   app,
@@ -36,6 +37,12 @@ const googleRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
       { oauthOutcome: safe.code },
       'Google authentication failed',
     );
+    if (request.method === 'GET' && request.raw.url?.split('?')[0] === '/auth/google/callback') {
+      return sendGooglePopupResult(reply.code(safe.statusCode), env.corsAllowedOrigins, {
+        status: 'error',
+        code: safe.code === 'oauth_conflict' ? 'oauth_conflict' : 'oauth_failed',
+      });
+    }
     return reply
       .header('Cache-Control', 'no-store')
       .header('Referrer-Policy', 'no-referrer')

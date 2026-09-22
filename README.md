@@ -493,7 +493,7 @@ email trimming/lowercasing and format/length checks, a 4 KiB body limit, and a
 1–128-character password input limit. Login verifies existing passwords rather
 than imposing the registration minimum again. No password normalization occurs.
 
-Success returns HTTP 200 with `{ accessToken, user: { id, email, createdAt } }`
+Success returns HTTP 200 with `{ accessToken, user: { id, email, createdAt }, googleLinkAvailable }`
 and `Cache-Control: no-store`. The service looks up the normalized email through
 the repository and verifies Argon2 via the existing utility. The controller signs
 the token using Fastify JWT. Unknown email, wrong password, and accounts without
@@ -540,7 +540,7 @@ and captured log checks. Integration writes remain limited to `ushly_test`.
 ### Refresh sessions (T3.4)
 
 Successful login sets the configured refresh cookie. `POST /auth/refresh` reads
-that cookie, rotates it, and returns only `{ accessToken }`. `POST /auth/logout`
+that cookie, rotates it, and returns `{ accessToken, googleLinkAvailable }`. `POST /auth/logout`
 revokes the session and clears the cookie, returning 204 even if it is absent or
 already revoked. Both endpoints use `Cache-Control: no-store`.
 
@@ -628,7 +628,7 @@ associations. Back up the database before shared-environment migration.
 | --- | --- |
 | `GET /auth/google` | Starts login and redirects to Google's fixed authorization endpoint. Accepts no query parameters. |
 | `POST /auth/google/link` | Requires an Ushly bearer access token and JSON `{ "password": "<current local password>" }`. Re-verifies the local password and returns `{ "authorizationUrl": "..." }` for explicit browser navigation. Accepts no user ID or redirect override. |
-| `GET /auth/google/callback` | Consumes the browser-bound attempt, exchanges the code, verifies Google identity, resolves/links the user, and issues the existing HttpOnly refresh cookie. Returns `{ "ok": true }` without tokens or a frontend redirect. |
+| `GET /auth/google/callback` | Consumes the browser-bound attempt, exchanges the code, verifies Google identity, resolves/links the user, and issues the existing HttpOnly refresh cookie. Returns a no-store popup completion page that sends only a status or safe error code to configured frontend origins, then closes. |
 | `POST /auth/refresh` | Existing endpoint: rotates the refresh cookie and returns the Ushly JWT in JSON. |
 
 The linking authorization URL contains public OAuth parameters, state, nonce,

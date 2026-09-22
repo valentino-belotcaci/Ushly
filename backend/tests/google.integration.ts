@@ -227,7 +227,11 @@ test('Google creates passwordless account, issues rotating Ushly session, and re
   const attempt = await f.start();
   const response = await f.callback(attempt);
   assert.equal(response.statusCode, 200, response.body);
-  assert.deepEqual(response.json(), { ok: true });
+  assert.match(response.headers['content-type'] ?? '', /text\/html/);
+  assert.match(response.body, /ushly-google-oauth/);
+  assert.match(response.body, /"status":"success"/);
+  assert.match(response.body, /window\.close\(\)/);
+  assert.match(response.headers['content-security-policy'] ?? '', /script-src 'sha256-/);
   assert.equal(response.headers['cache-control'], 'no-store');
   assert.equal(response.headers['referrer-policy'], 'no-referrer');
   assert.equal(response.headers.location, undefined);
@@ -365,7 +369,9 @@ test('local email collision never links; explicit password-confirmed linking pre
   const before = await f.app.prisma.user.findUniqueOrThrow({
     where: { id: local.id },
   });
-  assert.equal((await f.callback(await f.start())).statusCode, 409);
+  const conflict = await f.callback(await f.start());
+  assert.equal(conflict.statusCode, 409);
+  assert.match(conflict.body, /"code":"oauth_conflict"/);
   assert.equal(await f.app.prisma.userIdentity.count(), 0);
   assert.equal(await f.app.prisma.refreshToken.count(), 0);
   const response = await f.callback(await f.start({ id: local.id }));

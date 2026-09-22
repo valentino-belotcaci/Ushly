@@ -5,6 +5,12 @@ import { ApplicationLayout } from '../layout/ApplicationLayout';
 import { PageLayout } from '../layout/PageLayout';
 import { HomePage } from '../features/home/HomePage';
 import { AuthPage } from '../features/auth/AuthPage';
+import { DashboardGuard } from '../features/dashboard/DashboardLayout';
+import { OverviewPage } from '../features/dashboard/OverviewPage';
+import { LinksPage } from '../features/dashboard/LinksPage';
+import { AnalyticsPage } from '../features/dashboard/AnalyticsPage';
+import { QrCodesPage } from '../features/dashboard/QrCodesPage';
+import { SettingsPage } from '../features/dashboard/SettingsPage';
 import { PublicPage } from '../features/public-pages/PublicPage';
 import {
   publicPages,
@@ -39,6 +45,13 @@ export function App() {
       <Routes>
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
+        <Route path="/dashboard" element={<DashboardGuard />}>
+          <Route index element={<OverviewPage />} />
+          <Route path="links" element={<LinksPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="qr-codes" element={<QrCodesPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
         <Route element={<ApplicationLayout />}>
           <Route path="/" element={<HomePage />} />
           {Object.keys(publicPages)

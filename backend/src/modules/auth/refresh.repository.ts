@@ -77,7 +77,19 @@ export async function changeSession(
       data: { revokedAt: now, replacedByTokenId: next.id },
     });
 
-    //returns what the server needs to create new access token and cookie
-    return { userId: token.userId, expiresAt: token.expiresAt };
+    const user = await tx.user.findUnique({
+      where: { id: token.userId },
+      select: {
+        provider: true,
+        passwordHash: true,
+        disabledAt: true,
+        identities: { where: { provider: 'google' }, select: { id: true }, take: 1 },
+      },
+    });
+    // The flag describes account state only; the existing session rotation stays authoritative.
+    const googleLinkEligible = user?.provider === 'local' &&
+      user.passwordHash !== null && user.disabledAt === null &&
+      user.identities.length === 0;
+    return { userId: token.userId, expiresAt: token.expiresAt, googleLinkEligible };
   });
 }
