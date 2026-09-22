@@ -10,15 +10,22 @@ export function HomePage() {
   return (
     <PageContainer className="homepage">
       <section className="home-hero" aria-labelledby="home-title">
-        <p className="home-eyebrow">A simpler way to share</p>
-        <h1 id="home-title">{homeTitle}</h1>
-        <UrlExamples />
-        <p className="home-intro">
-          Ushly turns long web addresses into short, shareable links. Create a
-          link without an account, then copy it wherever you need it.
-        </p>
+        <div className="home-hero__copy">
+          <p className="home-eyebrow">A simpler way to share</p>
+          <h1 id="home-title">{homeTitle}</h1>
+          <UrlExamples />
+          <p className="home-intro">
+            Create free short URLs, generate QR codes, and understand how people interact with your links. Ushly provides privacy-conscious click analytics, link management, expiration controls, and secure sharing for individuals and small businesses.
+          </p>
+          <Link
+            className="button button--primary home-hero__cta"
+            to="/register"
+          >
+            Create free account
+          </Link>
+        </div>
+        <ShortenForm />
       </section>
-      <ShortenForm />
       <section
         className="home-features"
         aria-label="Implemented Ushly features"
@@ -38,9 +45,10 @@ export function HomePage() {
           analytics, not anonymous tracking.
         </p>
         <p>
-          Management, QR generation and analytics require the authenticated
-          owner. A short URL is public: anyone who has it can follow it. Avoid
-          shortening confidential URLs or links that contain access credentials.
+          Link management and analytics require the authenticated owner.
+          Homepage QR generation happens locally in your browser. A short URL is
+          public: anyone who has it can follow it. Avoid shortening confidential
+          URLs or links that contain access credentials.
         </p>
       </section>
       <section className="home-faq" aria-labelledby="faq-title">

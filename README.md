@@ -12,7 +12,8 @@ TypeScript. From `frontend/`, run `npm ci`, then `npm run dev`. Visit
 build prerenders the public homepage with anonymous URL shortening, responsive
 layout and theme switching. Configure the public API/site origins from
 `frontend/.env.example`. Other pages and authentication remain placeholders;
-the existing QR endpoint requires an authenticated link owner.
+anonymous visitors can generate/download QR images locally. The existing
+backend QR endpoint remains restricted to authenticated link owners.
 
 Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and
 `npm run format:check`. For browser checks, run `npx playwright install chromium`

@@ -1,14 +1,14 @@
 export const homeTitle = 'Free URL Shortener with QR Codes and Analytics';
 export const homeDescription =
-  'Shorten long URLs for free with Ushly. Copy a shareable link, and learn about QR codes, owner-only click analytics and link expiration.';
+  'Shorten long URLs for free with Ushly. Copy a shareable link, generate a QR code without an account, and learn about owner-only analytics and link expiration.';
 export const features = [
   {
     title: 'Short links, less clutter',
     text: 'Turn an HTTP or HTTPS destination into a compact link. You can create and copy a link without an account.',
   },
   {
-    title: 'QR codes for owned links',
-    text: 'The authenticated API generates downloadable SVG QR codes for links you own. QR codes use the short link, not the original destination.',
+    title: 'QR codes, ready to share',
+    text: 'Generate and download an SVG QR code in your browser, without an account. It contains the same public short URL you can copy.',
   },
   {
     title: 'Understand your clicks',
@@ -28,7 +28,7 @@ export const faqs = [
   {
     question: 'Can I create and download a QR code?',
     answer:
-      'The existing QR endpoint generates SVG images for authenticated owners. Anonymous links cannot use that endpoint. The account interface is coming in a later update.',
+      'Yes. Shorten a URL, select Generate QR code, then download its SVG image. Generation happens in your browser and needs no account. Scanning the code follows the short link, so expiration and disabling still apply.',
   },
   {
     question: 'What analytics are available?',
@@ -48,6 +48,6 @@ export const faqs = [
   {
     question: 'What is the difference between anonymous and authenticated use?',
     answer:
-      'Anonymous visitors can create and copy links. Authenticated API requests associate new links with their owner for management, QR codes and analytics. Anonymous links are not automatically claimed when you later sign up. Account pages are not available yet.',
+      'Anonymous visitors can create and copy links and generate their QR codes locally. Authenticated API requests associate new links with their owner for management and analytics. Anonymous links are not automatically claimed when you later sign up. Account pages are not available yet.',
   },
 ];

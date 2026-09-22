@@ -270,16 +270,29 @@ header; cookies are omitted and no credential is stored or logged. A rejected
 authenticated request is never retried anonymously. The creation response does
 not state ownership, so the UI does not infer ownership from it.
 
-**QR scope decision remains pending:** the existing `GET /links/:id/qr` endpoint
-requires an authenticated owner and cannot serve anonymous links. The frontend
-preserves that boundary: anonymous results explain the restriction; an
-explicitly supplied in-memory access token enables owned-link QR generation.
-Responses must be SVG and no larger than the backend's 64 KiB limit. Blob URLs
-are used only for an image and an SVG download, never injected as markup, and
-revoked when replaced or unmounted. Download feedback says the download was
-requested, not that the browser necessarily saved it. A browser fixture tests
-this protected path without adding authentication pages or test-token injection
-to the production application. Anonymous QR generation is not implemented.
+Anonymous visitors can generate and download QR codes after shortening.
+`src/features/home/qr.ts` dynamically imports `qrcode@1.5.4` only when requested.
+It encodes exactly the displayed/copied public short URL; no QR endpoint,
+redirect, destination fetch, third-party service or credential is involved.
+The initial encoder JavaScript chunk is the only on-demand asset request.
+Input is capped at 2,048 UTF-8 bytes and must match the configured API origin,
+an alphanumeric short-code path, and no credentials, query or fragment.
+Output is capped at 64 KiB. SVG uses black on white, 512px, a four-module quiet
+zone and error correction M, independently of the page theme.
+
+The preview and download share a Blob URL, never injected SVG markup. Repeated
+clicks do not queue generation. Failures show a safe retry message. Creating a
+new link revokes the old URL, and pending results after replacement/unmount
+are discarded before allocating a URL. Existing URLs are revoked on unmount.
+Download feedback says the download was requested, not necessarily saved.
+Scanning still uses normal redirect expiration/deactivation checks; generating
+an image does not verify continued availability or record a click.
+
+`GET /links/:id/qr` remains an authenticated owner-only backend resource with
+unchanged authorization. The homepage does not call it. Anonymous links stay
+anonymous; creating their QR images does not confer ownership. No public API,
+session flow, database model, or rate limit changed. Existing creation limits
+remain server-enforced; local QR work adds no server generation load.
 
 The content describes implemented backend capabilities with their current
 access restrictions. The privacy explanation reflects keyed IP pseudonymization,
@@ -324,7 +337,9 @@ uses escaped configuration and fixed application text, never submitted URLs.
 
 See React's [renderToString documentation](https://react.dev/reference/react-dom/server/renderToString)
 and Vite's [SSR/prerender documentation](https://vite.dev/guide/ssr) for the
-underlying build-time rendering APIs. No production dependency was added.
+underlying build-time rendering APIs. The approved `qrcode@1.5.4` dependency
+is for on-demand browser QR encoding. `@types/qrcode` and the independent
+`jsqr@1.4.0` decoder are development-only dependencies.
 
 ### T9.3 verification scope
 
@@ -335,8 +350,14 @@ download attributes and Blob cleanup. Browser tests mock the inspected backend
 contracts and exercise real clipboard/download behavior. They also cover both
 themes at 320/768/1440px, keyboard focus, reduced motion, axe rules, production
 HTML without JavaScript, configured metadata and saved-theme hydration.
-The protected QR browser flow uses `tests/browser/fixtures/shorten.html` with a
-synthetic credential; it is not an anonymous homepage flow or a real login.
+The anonymous QR browser flow exercises the real production encoder, downloads
+the SVG, rasterizes it and decodes the actual artifact using the independent
+jsQR test decoder. Tests assert exact short-URL equality, no QR API/redirect
+request, on-demand encoder loading, mobile/desktop accessibility in both themes,
+and safe failure/retry. Unit tests cover byte limits and stale-generation/Blob
+cleanup. Backend route regressions use the real JWT/route guards with mocked
+persistent lookup and verify unauthenticated, invalid-token, foreign-link and
+anonymous-link rejection, plus owner success. They require no live database.
 A live backend smoke test requires a running API/database/Redis stack and was
 unavailable during this implementation. Chromium is the configured browser;
 Firefox/WebKit, physical devices and manual screen-reader checks are not covered.
