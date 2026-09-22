@@ -8,13 +8,22 @@ import { isPublicPagePath, publicPages } from './features/public-pages/content';
 import { publicPageMetadata } from './features/public-pages/metadata';
 import { siteOrigin } from './config/public';
 import { authMetadata, isAuthPath } from './features/auth/metadata';
+import { isLegalPagePath, legalPages } from './features/legal/content';
+import { legalPageMetadata } from './features/legal/metadata';
 
-export const publicPagePaths =
-  Object.keys(publicPages).filter(isPublicPagePath);
+export const publicPagePaths = [
+  ...Object.keys(publicPages).filter(isPublicPagePath),
+  ...Object.keys(legalPages).filter(isLegalPagePath),
+];
 export const authPagePaths = ['/login', '/register'] as const;
 
 export function renderPage(path: string) {
-  if (path !== '/' && !isPublicPagePath(path) && !isAuthPath(path))
+  if (
+    path !== '/' &&
+    !isPublicPagePath(path) &&
+    !isLegalPagePath(path) &&
+    !isAuthPath(path)
+  )
     throw new Error('Unknown public page');
   return {
     head:
@@ -22,7 +31,9 @@ export function renderPage(path: string) {
         ? homepageMetadata(siteOrigin)
         : isPublicPagePath(path)
           ? publicPageMetadata(path, siteOrigin)
-          : authMetadata(path),
+          : isLegalPagePath(path)
+            ? legalPageMetadata(path, siteOrigin)
+            : authMetadata(path),
     html: renderToString(
       <ThemeProvider>
         <ToastProvider>

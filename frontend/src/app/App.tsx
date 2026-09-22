@@ -18,6 +18,9 @@ import {
 } from '../features/public-pages/content';
 import { RouteMetadata } from './RouteMetadata';
 import { footerGroups } from '../layout/navigation';
+import { LegalPage } from '../features/legal/LegalPage';
+import { isLegalPagePath, legalPages } from '../features/legal/content';
+import { CookieConsent } from '../features/consent/CookieConsent';
 
 // Vite removes this branch and its preview chunk from production builds.
 const ComponentPreview = import.meta.env.DEV
@@ -63,6 +66,15 @@ export function App() {
                 element={<PublicPage path={path} />}
               />
             ))}
+          {Object.keys(legalPages)
+            .filter(isLegalPagePath)
+            .map((path) => (
+              <Route
+                key={path}
+                path={path}
+                element={<LegalPage path={path} />}
+              />
+            ))}
           {footerGroups
             .flatMap((group) => group.links)
             .filter(
@@ -70,7 +82,8 @@ export function App() {
                 link.to !== '/' &&
                 link.to !== '/login' &&
                 link.to !== '/register' &&
-                !isPublicPagePath(link.to),
+                !isPublicPagePath(link.to) &&
+                !isLegalPagePath(link.to),
             )
             .map((link) => (
               <Route
@@ -99,6 +112,7 @@ export function App() {
           />
         )}
       </Routes>
+      <CookieConsent />
     </>
   );
 }

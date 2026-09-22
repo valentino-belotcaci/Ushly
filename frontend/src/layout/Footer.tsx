@@ -17,6 +17,21 @@ export function Footer() {
                     <Link to={link.to}>{link.label}</Link>
                   </li>
                 ))}
+                {group.label === 'Legal' && (
+                  <li>
+                    <button
+                      className="footer-cookie-settings"
+                      type="button"
+                      onClick={() =>
+                        window.dispatchEvent(
+                          new Event('ushly:open-cookie-settings'),
+                        )
+                      }
+                    >
+                      Cookie settings
+                    </button>
+                  </li>
+                )}
               </ul>
             </nav>
           ))}

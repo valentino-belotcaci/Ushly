@@ -5,6 +5,8 @@ import { homepageMetadata } from '../features/home/metadata';
 import { isPublicPagePath } from '../features/public-pages/content';
 import { publicPageMetadata } from '../features/public-pages/metadata';
 import { authMetadata, isAuthPath } from '../features/auth/metadata';
+import { isLegalPagePath } from '../features/legal/content';
+import { legalPageMetadata } from '../features/legal/metadata';
 
 export function RouteMetadata() {
   const { pathname } = useLocation();
@@ -22,11 +24,13 @@ export function RouteMetadata() {
         ? homepageMetadata(siteOrigin)
         : isPublicPagePath(pagePath)
           ? publicPageMetadata(pagePath, siteOrigin)
-          : isAuthPath(pagePath)
-            ? authMetadata(pagePath)
-            : pagePath === '/dashboard' || pagePath.startsWith('/dashboard/')
-              ? '<title>Dashboard · Ushly</title><meta name="robots" content="noindex, nofollow">'
-              : '<title>Ushly · Page unavailable</title><meta name="robots" content="noindex, follow">';
+          : isLegalPagePath(pagePath)
+            ? legalPageMetadata(pagePath, siteOrigin)
+            : isAuthPath(pagePath)
+              ? authMetadata(pagePath)
+              : pagePath === '/dashboard' || pagePath.startsWith('/dashboard/')
+                ? '<title>Dashboard · Ushly</title><meta name="robots" content="noindex, nofollow">'
+                : '<title>Ushly · Page unavailable</title><meta name="robots" content="noindex, follow">';
     end.before(template.content);
   }, [pathname]);
   return null;

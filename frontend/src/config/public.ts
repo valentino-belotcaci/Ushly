@@ -25,3 +25,18 @@ export const siteOrigin = publicOrigin(
   import.meta.env.VITE_SITE_ORIGIN,
   'VITE_SITE_ORIGIN',
 );
+
+function publicLabel(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim().slice(0, 160)
+    : fallback;
+}
+
+export const legalName = publicLabel(
+  import.meta.env.VITE_LEGAL_NAME,
+  '[Legal name to be confirmed]',
+);
+export const legalContactEmail = publicLabel(
+  import.meta.env.VITE_LEGAL_CONTACT_EMAIL,
+  '[Contact email to be confirmed]',
+);

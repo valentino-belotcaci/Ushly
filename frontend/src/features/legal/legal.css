@@ -1,0 +1,174 @@
+.legal-page {
+  display: grid;
+  gap: var(--space-10);
+  padding-block: var(--space-12);
+}
+.legal-page__hero {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 100c;
+}
+.legal-page__eyebrow {
+  color: var(--brand-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.legal-page__hero h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.15;
+}
+.legal-page__hero > p:last-of-type {
+  color: var(--text-muted);
+  font-size: 1.0625rem;
+}
+.legal-page__hero aside {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+}
+.legal-page__layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.28fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-8);
+}
+.legal-page__layout > nav {
+  position: sticky;
+  top: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.legal-page__layout > nav > strong {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.legal-page__layout nav ol {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.legal-page__layout nav li {
+  position: relative;
+  margin: 10px;
+  border-radius: 5px;
+}
+.legal-page__layout nav li::before {
+  content: '';
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--brand);
+  opacity: 0;
+}
+.legal-page__layout nav li.is-active {
+  background: color-mix(in srgb, var(--brand) 10%, var(--surface-raised));
+}
+.legal-page__layout nav li.is-active::before {
+  opacity: 1;
+}
+.legal-page__layout nav li a {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: inherit;
+  text-decoration: none;
+}
+.legal-page__layout nav li a > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-control);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.legal-page__layout nav li.is-active a,
+.legal-page__layout nav li.is-active a > span:first-child {
+  color: var(--brand-ink);
+}
+.legal-page__layout nav li.is-active a > span:first-child {
+  border-color: var(--brand);
+}
+.legal-page__layout nav li:hover {
+  background: var(--surface-raised);
+}
+.legal-page__layout nav a,
+.legal-page__related a {
+  color: var(--text-muted);
+  text-underline-offset: 3px;
+  transition: color 150ms ease;
+}
+.legal-page__layout nav a:hover,
+.legal-page__layout nav a:focus-visible,
+.legal-page__related a:hover,
+.legal-page__related a:focus-visible {
+  color: var(--brand-ink);
+}
+.legal-page__layout nav a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.legal-page__content {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.legal-page__content > section,
+.legal-page__related {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  scroll-margin-top: var(--space-6);
+}
+.legal-page__content h2 {
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
+}
+.legal-page__content p {
+  max-width: 78ch;
+  color: var(--text-muted);
+}
+.legal-page__related > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+@media (max-width: 760px) {
+  .legal-page {
+    padding-block: var(--space-8);
+  }
+  .legal-page__layout {
+    grid-template-columns: 1fr;
+  }
+  .legal-page__layout > nav {
+    position: static;
+  }
+}
+@media (max-width: 600px) {
+  .legal-page__content > section,
+  .legal-page__related {
+    padding: var(--space-5);
+  }
+}

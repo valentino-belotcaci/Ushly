@@ -74,6 +74,26 @@
   text-decoration: none;
   font-size: 0.875rem;
 }
+.footer-cookie-settings {
+  min-height: 44px;
+  padding: 0 0 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.footer-cookie-settings:hover,
+.footer-cookie-settings:focus-visible {
+  color: var(--brand-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.footer-cookie-settings:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
 .primary-links a:hover,
 .site-footer li a:hover {
   color: var(--text);
@@ -128,7 +148,9 @@
   max-width: calc(100% - 4px);
   padding-inline-start: 16px;
   overflow-wrap: anywhere;
-  transition: color 150ms ease, transform 150ms ease;
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
 }
 .site-footer li a::before {
   content: '';

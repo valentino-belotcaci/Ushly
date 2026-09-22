@@ -20,8 +20,8 @@ npm run dev
 
 Open the URL Vite prints, then `/dev/components` for the component library.
 This route and its preview code are removed from production builds. The `/`
-route is the public homepage; the four product pages and two authentication
-pages have their own routes. Contact and legal destinations remain placeholders.
+route is the public homepage; the product, legal, and authentication pages have
+their own routes. Contact remains a placeholder.
 Unknown routes have a basic fallback in the shared shell. Configure the API
 origin as described under T9.3 below.
 
@@ -144,7 +144,7 @@ twice. The existing PNGs supply the favicon, apple-touch icon and 192/512px app
 icons. All original artwork is preserved byte-for-byte. Manifests provide
 app metadata only; there is no service worker or offline feature.
 
-The homepage and four public product pages are indexable and
+The homepage, four public product pages, and three legal pages are indexable and
 prerendered in production. Placeholder routes remain non-indexable. Configure
 `VITE_SITE_ORIGIN` to the actual public origin before deployment so every
 public page receives its canonical URL and absolute social image URL.
@@ -211,9 +211,11 @@ it deliberately does not nest another main landmark. Use these for later pages.
 placeholder routes. Product destinations are `/url-shortener`, `/qr-codes`,
 `/analytics`, and `/features`; Resources use `/contact`; Legal uses
 `/privacy`, `/cookies`, `/terms`; Account uses `/login` and `/register`.
-The homepage at `/` contains the shortening form. Contact and legal routes
-still reserve destinations only; there are no real legal policies. The development component
-preview stays outside the application shell to keep its own landmarks intact.
+The homepage at `/` contains the shortening form. Contact still reserves a
+destination. The legal pages are project templates whose operator identity and
+contact details must be configured and legally reviewed before production. The
+development component preview stays outside the application shell to keep its
+own landmarks intact.
 
 Below 64rem, primary navigation becomes a disclosure with a native button and
 `aria-expanded`/`aria-controls`. Hidden links are removed from keyboard navigation
@@ -251,6 +253,9 @@ Copy `.env.example` to `.env.local` and set these public build-time values:
   credentials, query or fragment. Canonical, Open Graph URL and social image URLs
   are derived from it. When unset, those absolute tags are omitted rather than
   guessing a production domain. Set it before publishing and rebuild.
+- `VITE_LEGAL_NAME`: the verified legal name of the production service operator.
+- `VITE_LEGAL_CONTACT_EMAIL`: the verified address for privacy and deletion
+  requests. Until configured, the legal templates show an explicit placeholder.
 
 `VITE_*` values are embedded in browser assets. Never put secrets in them.
 The API origin is also the short-link origin because the current QR endpoint
