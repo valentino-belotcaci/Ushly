@@ -195,7 +195,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 <span className="auth-google__mark" aria-hidden="true">
                   G
                 </span>
-                Continue with Google
+                <span className="auth-google__label">Continue with Google</span>
               </Button>
               {googlePending && (
                 <div className="auth-google-status" role="status">
