@@ -69,16 +69,18 @@ test('anonymous keyboard shortening, copy, and persisted theme preference', asyn
   await page.keyboard.press('Enter');
   await expect(page.getByRole('main')).toBeFocused();
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Create free account' }).first()).toBeFocused();
+  await page.keyboard.press('Tab');
   const input = page.getByRole('textbox', { name: 'Destination URL' });
   await expect(input).toBeFocused();
   await expect(input).toHaveCSS('outline-width', '3px');
   await input.fill('https://example.com/guide');
   await page.keyboard.press('Enter');
-  await expect(page.getByLabel('Your short URL')).toHaveValue(
+  await expect(page.locator('.shorten-result__url')).toHaveText(
     'http://127.0.0.1:4173/aB3x7Qz',
   );
   await page.getByRole('button', { name: 'Copy' }).click();
-  await expect(page.getByText('Short link copied.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
     'http://127.0.0.1:4173/aB3x7Qz',
   );
@@ -150,9 +152,9 @@ for (const width of [320, 1440]) {
         .getByLabel('Destination URL')
         .fill('https://example.com/private-destination?secret=not-for-qr');
       await page.getByRole('button', { name: 'Shorten link' }).click();
-      const shortUrl = await page.getByLabel('Your short URL').inputValue();
+      const shortUrl = await page.locator('.shorten-result__url').innerText();
       await page.getByRole('button', { name: 'Copy' }).click();
-      await expect(page.getByText('Short link copied.')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
       await expect(page.locator('.home-hero')).toHaveCSS(
         'grid-template-columns',
         width === 320 ? /^\d+(\.\d+)?px$/ : /^\d+(\.\d+)?px \d+(\.\d+)?px$/,
@@ -167,7 +169,7 @@ for (const width of [320, 1440]) {
         page.getByRole('img', { name: 'QR code for your shortened URL' }),
       ).toBeVisible();
       await expect(
-        page.getByRole('dialog', { name: 'Your QR code' }),
+        page.getByRole('dialog', { name: 'Download your QR code' }),
       ).toBeVisible();
       expect(scripts.some((url) => /\/browser-[^/]+\.js$/.test(url))).toBe(
         true,
@@ -258,8 +260,8 @@ test('reduced motion disables illustrative animation and FAQ works with the keyb
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  for (const example of await page.locator('.url-example').all())
-    await expect(example).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('.url-example-typed')).toBeHidden();
+  await expect(page.locator('.url-example-static')).toBeVisible();
   const question = page
     .locator('summary')
     .filter({ hasText: 'How does URL shortening work?' });
@@ -317,9 +319,12 @@ test('production hydration preserves saved light mode and updates metadata acros
     .click();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     'content',
-    'noindex, follow',
+    'index, follow',
   );
-  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://ushly.example/features',
+  );
   await page
     .getByRole('banner')
     .getByRole('link', { name: 'Ushly home' })

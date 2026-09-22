@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+const publicHeadings: Record<string, string> = {
+  '/url-shortener': 'Shorten long URLs, share them simply',
+  '/qr-codes': 'QR codes for the short links you create',
+  '/analytics': 'Understand clicks on links you own',
+  '/features': 'Features for sharing and managing links',
+};
+
 for (const width of [320, 768, 1440]) {
   for (const theme of ['dark', 'light']) {
     test(`application layout: ${width}px ${theme}`, async ({ page }) => {
@@ -107,7 +114,9 @@ test('mobile disclosure keyboard order, Escape, navigation and breakpoint change
   await expect(navigation).toBeHidden();
   await page.keyboard.press('Space');
   await navigation.getByRole('link', { name: 'QR Codes' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('QR Codes');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'QR codes for the short links you create',
+  );
   await expect(page.getByRole('main')).toBeFocused();
   await expect(navigation).toBeHidden();
   await menu.click();
@@ -148,7 +157,7 @@ test('theme icon, tooltip, keyboard switching and persistence', async ({
   await expect(page.getByRole('tooltip')).toBeHidden();
 });
 
-test('footer links reach placeholders and browser history keeps mobile menu closed', async ({
+test('footer links reach public pages or planned placeholders and browser history keeps mobile menu closed', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
@@ -168,7 +177,7 @@ test('footer links reach placeholders and browser history keeps mobile menu clos
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       destination.href === '/'
         ? 'Free URL Shortener with QR Codes and Analytics'
-        : (destination.label ?? ''),
+        : (publicHeadings[destination.href ?? ''] ?? destination.label ?? ''),
     );
   }
   await page.getByRole('button', { name: 'Menu', exact: true }).click();

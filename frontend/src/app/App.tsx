@@ -4,6 +4,11 @@ import { LoadingState } from '../components/LoadingState';
 import { ApplicationLayout } from '../layout/ApplicationLayout';
 import { PageLayout } from '../layout/PageLayout';
 import { HomePage } from '../features/home/HomePage';
+import { PublicPage } from '../features/public-pages/PublicPage';
+import {
+  publicPages,
+  isPublicPagePath,
+} from '../features/public-pages/content';
 import { RouteMetadata } from './RouteMetadata';
 import { footerGroups } from '../layout/navigation';
 
@@ -33,9 +38,18 @@ export function App() {
       <Routes>
         <Route element={<ApplicationLayout />}>
           <Route path="/" element={<HomePage />} />
+          {Object.keys(publicPages)
+            .filter(isPublicPagePath)
+            .map((path) => (
+              <Route
+                key={path}
+                path={path}
+                element={<PublicPage path={path} />}
+              />
+            ))}
           {footerGroups
             .flatMap((group) => group.links)
-            .filter((link) => link.to !== '/')
+            .filter((link) => link.to !== '/' && !isPublicPagePath(link.to))
             .map((link) => (
               <Route
                 key={link.to}

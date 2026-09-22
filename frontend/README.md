@@ -143,8 +143,10 @@ twice. The existing PNGs supply the favicon, apple-touch icon and 192/512px app
 icons. All original artwork is preserved byte-for-byte. Manifests provide
 app metadata only; there is no service worker or offline feature.
 
-The homepage is indexable and prerendered in production. Placeholder routes
-remain non-indexable. Configure the actual public origin before deployment.
+The homepage and four public product pages are indexable and
+prerendered in production. Placeholder routes remain non-indexable. Configure
+`VITE_SITE_ORIGIN` to the actual public origin before deployment so every
+public page receives its canonical URL and absolute social image URL.
 
 ## Component contracts
 
@@ -205,11 +207,11 @@ padding (16px on small screens). `PageLayout` adds page spacing and an `h1`;
 it deliberately does not nest another main landmark. Use these for later pages.
 
 `navigation.ts` holds labels and routes shared by the header, footer and
-placeholder routes. Product destinations are `/`, `/qr-codes`, `/analytics`,
-and `/features`; Resources use `/help`, `/faq`, `/about`, `/contact`; Legal uses
+placeholder routes. Product destinations are `/url-shortener`, `/qr-codes`,
+`/analytics`, and `/features`; Resources use `/contact`; Legal uses
 `/privacy`, `/cookies`, `/terms`; Account uses `/login` and `/register`.
-T9.3 replaces `/` with the homepage and shortening form. Other routes still
-reserve destinations only: there are no authentication forms or real legal policies. The development component
+The homepage at `/` contains the shortening form. Contact, legal, and account
+routes still reserve destinations only: there are no authentication forms or real legal policies. The development component
 preview stays outside the application shell to keep its own landmarks intact.
 
 Below 64rem, primary navigation becomes a disclosure with a native button and
@@ -313,26 +315,27 @@ named section and h2 contract are unchanged. Existing comments are preserved.
 
 `npm run build` type-checks, builds browser assets, then runs
 `scripts/prerender.mjs`. Vite's existing SSR build support compiles
-`src/entry-server.tsx` into ignored `.prerender/`; React renders the same homepage
-and shared layout into `dist/index.html`. The page's H1, explanation, features,
-privacy text and FAQ answers are present before JavaScript runs. The form is
+`src/entry-server.tsx` into ignored `.prerender/`; React renders the homepage
+and shared layout into `dist/index.html`, and the four public pages into their
+own `dist/<route>/index.html` files. Their headings, content, and metadata are
+present before JavaScript runs. The homepage form is
 disabled in static markup with a no-JavaScript explanation, preventing a native
-GET submission from putting destinations in the URL. React hydrates the home
-route and enables the form. Theme hydration initially matches the server's dark
+GET submission from putting destinations in the URL. React hydrates prerendered
+routes and enables the homepage form. Theme hydration initially matches the server's dark
 markup and then adopts the saved preference. No running SSR server is required.
 
-Serve `dist/index.html` at `/`, assets normally, and use `dist/200.html` for SPA
-route fallbacks. The fallback is an empty, non-indexable shell; this avoids
-serving homepage metadata and content for unimplemented routes. Vite preview
-uses its usual index fallback, so the browser still clears homepage metadata
-when navigating to a placeholder. Configure the fallback explicitly on your
-production host. Do not serve `.prerender/` or `tests/` publicly.
+Serve `dist/index.html` at `/`, each `dist/<route>/index.html` at its public
+route, assets normally, and `dist/200.html` for other SPA route fallbacks. The
+fallback is an empty, non-indexable shell. Configure these static routes and
+fallback explicitly on your production host. Do not serve `.prerender/` or
+`tests/` publicly.
 
 Metadata includes title, description, robots, canonical support, Open Graph,
 Twitter summary and descriptive logo image text. Structured data is only a
 `WebSite` matching the actual content, without invented reviews, ratings,
 organization details or feature claims. `RouteMetadata` removes home-only tags
-on client navigation and restores them on returning home. Metadata generation
+on client navigation and replaces them with the destination page's metadata.
+Metadata generation
 uses escaped configuration and fixed application text, never submitted URLs.
 
 See React's [renderToString documentation](https://react.dev/reference/react-dom/server/renderToString)

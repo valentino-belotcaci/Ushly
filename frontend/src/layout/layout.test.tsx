@@ -35,15 +35,12 @@ it('renders branded landmarks and all footer destinations', () => {
   const footer = within(screen.getByRole('contentinfo'));
   const expected = {
     Product: {
-      'URL Shortener': '/',
+      'URL Shortener': '/url-shortener',
       'QR Codes': '/qr-codes',
       Analytics: '/analytics',
       Features: '/features',
     },
     Resources: {
-      Help: '/help',
-      FAQ: '/faq',
-      About: '/about',
       Contact: '/contact',
     },
     Legal: {
@@ -64,7 +61,7 @@ it('renders branded landmarks and all footer destinations', () => {
   }
   expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
 });
-it('supports disclosure activation, Escape restoration and placeholder navigation', async () => {
+it('supports disclosure activation, Escape restoration and public navigation', async () => {
   const user = userEvent.setup();
   renderApp();
   const toggle = screen.getByRole('button', { name: 'Menu' });
@@ -83,7 +80,10 @@ it('supports disclosure activation, Escape restoration and placeholder navigatio
   await user.keyboard(' ');
   await user.click(navigation.getByRole('link', { name: 'QR Codes' }));
   expect(
-    screen.getByRole('heading', { level: 1, name: 'QR Codes' }),
+    screen.getByRole('heading', {
+      level: 1,
+      name: 'QR codes for the short links you create',
+    }),
   ).toBeInTheDocument();
   expect(screen.getByRole('main')).toHaveFocus();
   expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute(

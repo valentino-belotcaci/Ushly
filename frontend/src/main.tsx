@@ -21,7 +21,7 @@ const application = (
   </StrictMode>
 );
 
-if (root.dataset.prerendered && window.location.pathname === '/') {
+if (root.dataset.prerendered) {
   hydrateRoot(root, application);
 } else {
   createRoot(root).render(application);

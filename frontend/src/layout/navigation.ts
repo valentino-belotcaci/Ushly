@@ -1,6 +1,5 @@
-// These destinations reserve routes only; their product features come in later tasks.
 export const primaryLinks = [
-  { label: 'URL Shortener', to: '/' },
+  { label: 'URL Shortener', to: '/url-shortener' },
   { label: 'QR Codes', to: '/qr-codes' },
   { label: 'Analytics', to: '/analytics' },
   { label: 'Features', to: '/features' },
@@ -13,12 +12,7 @@ export const footerGroups = [
   { label: 'Product', links: primaryLinks },
   {
     label: 'Resources',
-    links: [
-      { label: 'Help', to: '/help' },
-      { label: 'FAQ', to: '/faq' },
-      { label: 'About', to: '/about' },
-      { label: 'Contact', to: '/contact' },
-    ],
+    links: [{ label: 'Contact', to: '/contact' }],
   },
   {
     label: 'Legal',

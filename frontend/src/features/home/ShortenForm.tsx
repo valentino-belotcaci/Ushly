@@ -108,14 +108,17 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
 
     positionPopover();
     qrCloseButton.current?.focus();
-    const observer = new ResizeObserver(positionPopover);
-    observer.observe(popover);
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(positionPopover);
+    observer?.observe(popover);
     window.addEventListener('resize', positionPopover);
     window.addEventListener('scroll', positionPopover, true);
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       window.removeEventListener('resize', positionPopover);
       window.removeEventListener('scroll', positionPopover, true);
       document.removeEventListener('pointerdown', onPointerDown);

@@ -75,7 +75,7 @@ it.each(['', 'not-a-url', 'javascript:alert(1)', 'ftp://example.com/file'])(
 it('shows empty/loading/success, posts the real contract and copies without storing credentials', async () => {
   const { user } = setup();
   expect(
-    screen.getByText('Your shortened URL will appear here.'),
+    screen.getByText('Your shortened URL will appear below.'),
   ).toBeInTheDocument();
   let finish: (response: Response) => void = () => {};
   fetchMock.mockImplementationOnce(
@@ -89,9 +89,9 @@ it('shows empty/loading/success, posts the real contract and copies without stor
   expect(screen.getByRole('form')).toHaveAttribute('aria-busy', 'true');
   expect(fetchMock).toHaveBeenCalledTimes(1);
   await act(async () => finish(linkResponse()));
-  expect(await screen.findByLabelText('Your short URL')).toHaveValue(
-    'https://api.example/aB3x7Qz',
-  );
+  expect(
+    await screen.findByText('https://api.example/aB3x7Qz'),
+  ).toBeInTheDocument();
   const [url, init] = fetchMock.mock.calls[0] ?? [];
   expect(url).toBe('https://api.example/links');
   expect(init?.body).toBe(
@@ -104,7 +104,7 @@ it('shows empty/loading/success, posts the real contract and copies without stor
     .mockResolvedValue();
   await user.click(screen.getByRole('button', { name: 'Copy' }));
   expect(clipboard).toHaveBeenCalledWith('https://api.example/aB3x7Qz');
-  expect(screen.getByText('Short link copied.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'QR' })).toBeEnabled();
   expect(localStorage.length).toBe(0);
 });
@@ -141,7 +141,9 @@ it('handles network failures and malformed short codes safely', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'invalid response',
   );
-  expect(screen.queryByLabelText('Your short URL')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('https://api.example/aB3x7Qz'),
+  ).not.toBeInTheDocument();
 });
 it('provides a manual-copy fallback', async () => {
   const { user } = setup();
@@ -151,31 +153,24 @@ it('provides a manual-copy fallback', async () => {
     new Error('denied'),
   );
   await user.click(screen.getByRole('button', { name: 'Copy' }));
-  expect(screen.getByText(/Select the short link/)).toBeInTheDocument();
-  expect(screen.getByLabelText('Your short URL')).toHaveAttribute('readonly');
+  expect(
+    screen.getByRole('button', { name: 'Copy unavailable' }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('https://api.example/aB3x7Qz')).toBeInTheDocument();
 });
-it('shares the public short URL and falls back to copying when sharing is unavailable', async () => {
+it('shows only the available result actions', async () => {
   const { user } = setup();
   fetchMock.mockResolvedValueOnce(linkResponse());
   await submit(user);
-  const share = vi.fn().mockResolvedValue(undefined);
-  vi.stubGlobal('navigator', {
-    ...navigator,
-    share,
-    clipboard: navigator.clipboard,
-  });
-  await user.click(screen.getByRole('button', { name: 'Share' }));
-  expect(share).toHaveBeenCalledWith({ url: 'https://api.example/aB3x7Qz' });
-  vi.stubGlobal('navigator', {
-    ...navigator,
-    share: undefined,
-    clipboard: navigator.clipboard,
-  });
-  const clipboard = vi
-    .spyOn(navigator.clipboard, 'writeText')
-    .mockResolvedValue();
-  await user.click(screen.getByRole('button', { name: 'Share' }));
-  expect(clipboard).toHaveBeenCalledWith('https://api.example/aB3x7Qz');
+  expect(screen.getByRole('link', { name: 'Visit URL' })).toHaveAttribute(
+    'href',
+    'https://api.example/aB3x7Qz',
+  );
+  expect(screen.getByRole('button', { name: 'QR' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Copy' })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: 'Share' }),
+  ).not.toBeInTheDocument();
 });
 it('generates an anonymous QR once, downloads it and revokes the object URL', async () => {
   const { user, unmount } = setup();
@@ -190,10 +185,9 @@ it('generates an anonymous QR once, downloads it and revokes the object URL', as
   );
   const button = screen.getByRole('button', { name: 'QR' });
   fireEvent.click(button);
-  fireEvent.click(button);
   expect(qrMock).toHaveBeenCalledExactlyOnceWith('https://api.example/aB3x7Qz');
   expect(
-    screen.getByRole('dialog', { name: 'Your QR code' }),
+    screen.getByRole('dialog', { name: 'Download your QR code' }),
   ).toBeInTheDocument();
   await act(async () => finish(qrBlob));
   const download = await screen.findByRole('link', {
@@ -205,7 +199,7 @@ it('generates an anonymous QR once, downloads it and revokes the object URL', as
   download.addEventListener('click', (event) => event.preventDefault());
   fireEvent.click(download);
   expect(screen.getByText(/QR download requested/)).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Close dialog' }));
+  await user.click(screen.getByRole('button', { name: 'Close QR code' }));
   await user.click(screen.getByRole('button', { name: 'QR' }));
   expect(qrMock).toHaveBeenCalledTimes(1);
   expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -241,7 +235,7 @@ it('revokes an old preview when shortening again', async () => {
   await submit(user);
   await user.click(screen.getByRole('button', { name: 'QR' }));
   await screen.findByRole('img');
-  await user.click(screen.getByRole('button', { name: 'Close dialog' }));
+  await user.click(screen.getByRole('button', { name: 'Close QR code' }));
   await user.click(screen.getByRole('button', { name: 'Shorten link' }));
   expect(URL.revokeObjectURL).toHaveBeenCalledExactlyOnceWith(
     'blob:qr-fixture',
@@ -264,7 +258,7 @@ it.each(['unmount', 'replacement'])(
     await user.click(screen.getByRole('button', { name: 'QR' }));
     if (action === 'unmount') unmount();
     else {
-      await user.click(screen.getByRole('button', { name: 'Close dialog' }));
+      await user.click(screen.getByRole('button', { name: 'Close QR code' }));
       await user.click(screen.getByRole('button', { name: 'Shorten link' }));
     }
     await act(async () => finish(qrBlob));
@@ -294,7 +288,7 @@ it('uses the exact static H1 and accurately qualifies current product capabiliti
   );
   expect(screen.getByLabelText('Destination URL')).toBeRequired();
   expect(
-    screen.getByRole('link', { name: 'Create free account' }),
+    screen.getAllByRole('link', { name: 'Create free account' })[0],
   ).toHaveAttribute('href', '/register');
   expect(screen.getAllByRole('form')).toHaveLength(1);
 });

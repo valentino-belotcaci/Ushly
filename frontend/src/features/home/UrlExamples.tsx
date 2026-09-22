@@ -16,6 +16,7 @@ export function UrlExamples() {
   const [phase, setPhase] = useState<'typing' | 'pause' | 'clearing'>('typing');
 
   useEffect(() => {
+    if (!window.matchMedia) return;
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReducedMotion(query.matches);
     update();
