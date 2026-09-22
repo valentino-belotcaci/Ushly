@@ -209,7 +209,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
               ? 'Creating your short link…'
               : result
                 ? 'Your short link is ready.'
-                : 'Your shortened URL will appear here.'}
+                : 'Your shortened URL will appear below.'}
           </div>
           <div className="shorten-analytics">
             <svg

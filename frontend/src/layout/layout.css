@@ -102,9 +102,59 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-8);
 }
+.footer-groups nav {
+  min-width: 0;
+}
 .footer-groups h2 {
   font-size: 0.875rem;
-  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.footer-groups h2::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 3px;
+  margin-block: var(--space-2) var(--space-3);
+  border-radius: 2px;
+  background: var(--brand);
+}
+.footer-groups ul {
+  display: grid;
+  gap: var(--space-1);
+}
+.site-footer li a {
+  position: relative;
+  max-width: calc(100% - 4px);
+  padding-inline-start: 16px;
+  overflow-wrap: anywhere;
+  transition: color 150ms ease, transform 150ms ease;
+}
+.site-footer li a::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  width: 11px;
+  height: 2px;
+  background: var(--brand);
+  transform: translateY(-50%) scaleX(0);
+  transform-origin: left center;
+  transition: transform 150ms ease;
+}
+.site-footer li a:hover,
+.site-footer li a:focus-visible {
+  color: var(--brand-ink);
+  text-decoration: none;
+  transform: translateX(4px);
+}
+.site-footer li a:hover::before,
+.site-footer li a:focus-visible::before {
+  transform: translateY(-50%) scaleX(1);
+}
+.site-footer li a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
 }
 .footer-brand {
   display: flex;
@@ -116,6 +166,11 @@
   margin-top: var(--space-8);
   padding-top: var(--space-6);
   font-size: 0.8125rem;
+}
+.footer-brand__identity {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
 }
 @media (max-width: 63.999rem) {
   .header-inner {
@@ -164,11 +219,22 @@
     padding-inline: 10px;
   }
   .footer-groups {
-    gap: var(--space-6);
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+  .footer-brand {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 @media (max-width: 359px) {
   .footer-groups {
     grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-footer li a:hover,
+  .site-footer li a:focus-visible {
+    transform: none;
   }
 }

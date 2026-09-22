@@ -22,10 +22,15 @@ export function Footer() {
           ))}
         </div>
         <div className="footer-brand">
-          <Link className="brand-link" to="/" aria-label="Ushly home">
-            <BrandLogo />
-          </Link>
-          <span className="muted">© {new Date().getFullYear()} Ushly</span>
+          <div className="footer-brand__identity">
+            <Link className="brand-link" to="/" aria-label="Ushly home">
+              <BrandLogo />
+            </Link>
+            <p className="muted">
+              Short links, QR codes, and owner-only analytics.
+            </p>
+          </div>
+          <span className="muted">© 2026 Ushly. All rights reserved.</span>
         </div>
       </PageContainer>
     </footer>

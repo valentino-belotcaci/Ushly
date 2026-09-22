@@ -3,22 +3,46 @@ export const homeDescription =
   'Shorten long URLs for free with Ushly. Copy a shareable link, generate a QR code without an account, and learn about owner-only analytics and link expiration.';
 export const features = [
   {
-    title: 'Short links, less clutter',
-    text: 'Turn an HTTP or HTTPS destination into a compact link. You can create and copy a link without an account.',
+    kind: 'shorten',
+    title: 'Free URL shortening',
+    text: 'Turn an HTTP or HTTPS destination into a compact link you can share.',
+    benefits: [
+      'No account needed to create a link',
+      'Copy the result in one step',
+      'Public short links redirect to your destination',
+    ],
   },
   {
-    title: 'QR codes, ready to share',
-    text: 'Generate and download an SVG QR code in your browser, without an account. It contains the same public short URL you can copy.',
+    kind: 'qr',
+    title: 'QR code generation',
+    text: 'Create a QR code from your public short URL directly in your browser.',
+    benefits: [
+      'Available after shortening',
+      'Download as SVG',
+      'No account needed on the homepage',
+    ],
   },
   {
-    title: 'Understand your clicks',
-    text: 'The owner-only API reports click totals, time series, referrer origins and user-agent breakdowns. The analytics interface is not available yet.',
+    kind: 'analytics',
+    title: 'Privacy-conscious click analytics',
+    text: 'The owner-only API provides click statistics while storing a keyed hash of visitor IP addresses.',
+    benefits: [
+      'Click totals and time series',
+      'Referrer and user-agent breakdowns',
+      'No clear IP addresses in click records',
+    ],
   },
   {
-    title: 'Control a link’s lifetime',
-    text: 'The API supports expiration dates and lets authenticated owners disable their links. Expired and disabled links stop redirecting.',
+    kind: 'lifetime',
+    title: 'Link expiration and status control',
+    text: 'Authenticated owners can set an expiration date or deactivate and reactivate a link through the API.',
+    benefits: [
+      'Optional future expiration date',
+      'Deactivate or reactivate owned links',
+      'Expired and disabled links stop redirecting',
+    ],
   },
-];
+] as const;
 export const faqs = [
   {
     question: 'How does URL shortening work?',
@@ -28,7 +52,7 @@ export const faqs = [
   {
     question: 'Can I create and download a QR code?',
     answer:
-      'Yes. Shorten a URL, select Generate QR code, then download its SVG image. Generation happens in your browser and needs no account. Scanning the code follows the short link, so expiration and disabling still apply.',
+      'Yes. Shorten a URL, select QR, then download its SVG image. Generation happens in your browser and needs no account. Scanning the code follows the short link, so expiration and disabling still apply.',
   },
   {
     question: 'What analytics are available?',
@@ -49,5 +73,15 @@ export const faqs = [
     question: 'What is the difference between anonymous and authenticated use?',
     answer:
       'Anonymous visitors can create and copy links and generate their QR codes locally. Authenticated API requests associate new links with their owner for management and analytics. Anonymous links are not automatically claimed when you later sign up. Account pages are not available yet.',
+  },
+  {
+    question: 'Are short links private or safe for confidential URLs?',
+    answer:
+      'No. Anyone with a short URL can follow it. Avoid shortening confidential destinations or URLs containing access credentials. Ushly accepts only HTTP and HTTPS destinations.',
+  },
+  {
+    question: 'How are click records handled?',
+    answer:
+      'Click records store a keyed, one-way hash of the visitor’s IP address rather than the clear IP. They also include a click time, referrer origin and limited user-agent string. This is pseudonymous analytics, not anonymous tracking.',
   },
 ];
