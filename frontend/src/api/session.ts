@@ -85,6 +85,20 @@ function loginFrom(value: unknown): { accessToken: string; user: AuthUser } {
   };
 }
 
+function userFrom(value: unknown): AuthUser {
+  if (!isRecord(value)) throw invalidResponse();
+  if (
+    typeof value.id !== 'string' ||
+    value.id.length === 0 ||
+    typeof value.email !== 'string' ||
+    value.email.length === 0 ||
+    typeof value.createdAt !== 'string' ||
+    Number.isNaN(Date.parse(value.createdAt))
+  )
+    throw invalidResponse();
+  return { id: value.id, email: value.email, createdAt: value.createdAt };
+}
+
 async function errorFrom(response: Response): Promise<ApiClientError> {
   let code = 'http_error';
   try {
@@ -253,6 +267,35 @@ export class ApiSession {
     this.accessToken = session.accessToken;
     this.setState({ status: 'authenticated', user: session.user });
     return this.state;
+  }
+
+  async register(credentials: Credentials): Promise<AuthUser> {
+    const response = await this.send('/auth/register', {
+      method: 'POST',
+      body: credentials,
+    });
+    if (!response.ok) throw await errorFrom(response);
+    return userFrom(await jsonFrom(response));
+  }
+
+  async beginGoogleLink(password: string): Promise<string> {
+    return this.requestProtected(
+      '/auth/google/link',
+      { method: 'POST', body: { password } },
+      (value) => {
+        if (!isRecord(value) || typeof value.authorizationUrl !== 'string')
+          throw invalidResponse();
+        let url: URL;
+        try {
+          url = new URL(value.authorizationUrl);
+        } catch {
+          throw invalidResponse();
+        }
+        if (url.origin !== 'https://accounts.google.com')
+          throw invalidResponse();
+        return url.href;
+      },
+    );
   }
 
   async requestProtected<T>(

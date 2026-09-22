@@ -35,6 +35,22 @@ function header(call: Call | undefined, name: string): string | null {
 }
 
 describe('API session lifecycle', () => {
+  it('registers without starting a session or sending confirmation fields', async () => {
+    const { session, calls } = setup(() =>
+      Response.json(user, { status: 201 }),
+    );
+    await expect(
+      session.register({ email: user.email, password: 'safe-password' }),
+    ).resolves.toEqual(user);
+    expect(calls[0]?.url).toBe(`${origin}/auth/register`);
+    expect(calls[0]?.init.credentials).toBe('include');
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({
+      email: user.email,
+      password: 'safe-password',
+    });
+    expect(session.getSnapshot().status).toBe('checking');
+  });
+
   it('logs in with the backend contract and keeps its token out of the public state', async () => {
     const { session, calls } = setup(() =>
       Response.json({ accessToken: 'access-1', user }),
@@ -166,6 +182,26 @@ describe('API session lifecycle', () => {
     expect(calls[1]?.url).toBe(`${origin}/auth/logout`);
     expect(calls[1]?.init.credentials).toBe('include');
     expect(header(calls[1], 'Authorization')).toBeNull();
+  });
+
+  it('starts Google linking only with a bearer token and password verification', async () => {
+    const { session, calls } = setup((call) =>
+      call.url.endsWith('/auth/login')
+        ? Response.json({ accessToken: 'access-1', user })
+        : Response.json({
+            authorizationUrl:
+              'https://accounts.google.com/o/oauth2/v2/auth?state=opaque',
+          }),
+    );
+    await session.login({ email: user.email, password: 'password' });
+    await expect(
+      session.beginGoogleLink('verified-password'),
+    ).resolves.toContain('https://accounts.google.com/');
+    expect(calls[1]?.url).toBe(`${origin}/auth/google/link`);
+    expect(header(calls[1], 'Authorization')).toBe('Bearer access-1');
+    expect(JSON.parse(String(calls[1]?.init.body))).toEqual({
+      password: 'verified-password',
+    });
   });
 
   it('uses safe typed errors for API and network failures', async () => {

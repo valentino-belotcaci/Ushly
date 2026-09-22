@@ -7,18 +7,22 @@ import { homepageMetadata } from './features/home/metadata';
 import { isPublicPagePath, publicPages } from './features/public-pages/content';
 import { publicPageMetadata } from './features/public-pages/metadata';
 import { siteOrigin } from './config/public';
+import { authMetadata, isAuthPath } from './features/auth/metadata';
 
 export const publicPagePaths =
   Object.keys(publicPages).filter(isPublicPagePath);
+export const authPagePaths = ['/login', '/register'] as const;
 
 export function renderPage(path: string) {
-  if (path !== '/' && !isPublicPagePath(path))
+  if (path !== '/' && !isPublicPagePath(path) && !isAuthPath(path))
     throw new Error('Unknown public page');
   return {
     head:
       path === '/'
         ? homepageMetadata(siteOrigin)
-        : publicPageMetadata(path, siteOrigin),
+        : isPublicPagePath(path)
+          ? publicPageMetadata(path, siteOrigin)
+          : authMetadata(path),
     html: renderToString(
       <ThemeProvider>
         <ToastProvider>

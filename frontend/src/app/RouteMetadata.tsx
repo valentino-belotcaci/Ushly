@@ -4,6 +4,7 @@ import { siteOrigin } from '../config/public';
 import { homepageMetadata } from '../features/home/metadata';
 import { isPublicPagePath } from '../features/public-pages/content';
 import { publicPageMetadata } from '../features/public-pages/metadata';
+import { authMetadata, isAuthPath } from '../features/auth/metadata';
 
 export function RouteMetadata() {
   const { pathname } = useLocation();
@@ -21,7 +22,9 @@ export function RouteMetadata() {
         ? homepageMetadata(siteOrigin)
         : isPublicPagePath(pagePath)
           ? publicPageMetadata(pagePath, siteOrigin)
-          : '<title>Ushly · Page unavailable</title><meta name="robots" content="noindex, follow">';
+          : isAuthPath(pagePath)
+            ? authMetadata(pagePath)
+            : '<title>Ushly · Page unavailable</title><meta name="robots" content="noindex, follow">';
     end.before(template.content);
   }, [pathname]);
   return null;

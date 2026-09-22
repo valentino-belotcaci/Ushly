@@ -111,11 +111,20 @@ it('switches theme by keyboard with an updated accessible label and dismissible 
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   expect(toggle).toHaveFocus();
 });
-it('keeps account and unknown destinations honest placeholders', () => {
+it('renders login and registration forms while unknown destinations remain unavailable', () => {
   const first = renderApp('/login');
-  expect(screen.getByRole('heading', { name: 'Log in' })).toBeInTheDocument();
-  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { name: 'Log in to Ushly' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument();
+  expect(screen.queryByLabelText('Confirm password')).not.toBeInTheDocument();
   first.unmount();
+  const second = renderApp('/register');
+  expect(
+    screen.getByRole('heading', { name: 'Create an account' }),
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText('Confirm password')).toBeInTheDocument();
+  second.unmount();
   renderApp('/missing');
   expect(
     screen.getByRole('heading', { name: 'Page unavailable' }),

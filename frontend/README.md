@@ -3,8 +3,9 @@
 T9.1 provides React, routing, themes, and shared interface components. T9.2 adds
 the responsive application shell, header, footer, and placeholder navigation.
 T9.3 adds the public homepage and a native-fetch link client. T9.5 adds the
-in-memory API session lifecycle. Authentication forms, management interfaces,
-and analytics dashboards remain unimplemented.
+in-memory API session lifecycle. T9.6 adds login and registration pages plus
+header account actions. Management interfaces and analytics dashboards remain
+unimplemented.
 
 ## Setup and commands
 
@@ -19,10 +20,10 @@ npm run dev
 
 Open the URL Vite prints, then `/dev/components` for the component library.
 This route and its preview code are removed from production builds. The `/`
-route is the public homepage; the other navigation destinations remain explicitly
-unavailable placeholders. Unknown routes have a basic fallback in the same shell.
-`BrowserRouter` requires a deployment fallback to `index.html` for client-side
-routes. Configure the API origin as described under T9.3 below.
+route is the public homepage; the four product pages and two authentication
+pages have their own routes. Contact and legal destinations remain placeholders.
+Unknown routes have a basic fallback in the shared shell. Configure the API
+origin as described under T9.3 below.
 
 | Command                | Purpose                                                              |
 | ---------------------- | -------------------------------------------------------------------- |
@@ -210,8 +211,8 @@ it deliberately does not nest another main landmark. Use these for later pages.
 placeholder routes. Product destinations are `/url-shortener`, `/qr-codes`,
 `/analytics`, and `/features`; Resources use `/contact`; Legal uses
 `/privacy`, `/cookies`, `/terms`; Account uses `/login` and `/register`.
-The homepage at `/` contains the shortening form. Contact, legal, and account
-routes still reserve destinations only: there are no authentication forms or real legal policies. The development component
+The homepage at `/` contains the shortening form. Contact and legal routes
+still reserve destinations only; there are no real legal policies. The development component
 preview stays outside the application shell to keep its own landmarks intact.
 
 Below 64rem, primary navigation becomes a disclosure with a native button and
@@ -387,11 +388,36 @@ Refresh returns only an access token, so after reload `useSession()` reports
 an authenticated session with `user: null`. The user profile is available in
 memory immediately after login. A later account UI must not infer a user
 profile from the JWT. Google OAuth's callback also sets the refresh cookie;
-returning to the frontend uses the same startup refresh flow. No OAuth UI is
-included here.
+returning to the frontend uses the same startup refresh flow. T9.6 adds the
+Google action in the auth pages.
 
 Deploy the frontend origin in backend `CORS_ALLOWED_ORIGINS`. Cross-site cookie
 deployments require the backend's `COOKIE_SAME_SITE=none` and secure HTTPS
 cookie settings; same-site deployments can retain the existing stricter
 setting. The browser cannot override the backend's HttpOnly, SameSite, Secure,
 or cookie-path rules.
+
+## Authentication pages (T9.6)
+
+`/login` and `/register` are responsive, noindex pages that reuse the shared
+theme, brand, form controls, and the supplied WebP backgrounds in
+`public/images/`. Form submission stays disabled until JavaScript hydrates,
+so a browser without JavaScript cannot send a password through a native GET
+submission. Registration sends only `{ email, password }`; confirm password is
+checked locally and is never included in the request. Registration does not
+create a session in the backend, so the success state directs users to log in.
+
+Google login opens the existing `GET /auth/google` flow in a popup. The backend
+callback currently responds with JSON rather than redirecting to the frontend,
+so users return to the auth page and select “I’ve finished with Google” to
+refresh their session. If no session is available, the page explains how to
+log in with an existing method and use the password-confirmed Link Google
+action in the authenticated header. This guidance also covers an OAuth email
+conflict; the frontend cannot read cross-origin popup callback details. Link
+Google sends only `{ password }` to `POST /auth/google/link` with the in-memory
+bearer token and opens only a validated Google authorization URL. The backend
+remains responsible for checking the password, ownership, and identity mapping.
+
+The authenticated header provides Link Google and Log out actions. Logout
+calls the existing backend endpoint and clears local session state. The account
+forms do not introduce a dashboard or store credentials in browser storage.

@@ -4,6 +4,7 @@ import { LoadingState } from '../components/LoadingState';
 import { ApplicationLayout } from '../layout/ApplicationLayout';
 import { PageLayout } from '../layout/PageLayout';
 import { HomePage } from '../features/home/HomePage';
+import { AuthPage } from '../features/auth/AuthPage';
 import { PublicPage } from '../features/public-pages/PublicPage';
 import {
   publicPages,
@@ -36,6 +37,8 @@ export function App() {
     <>
       <RouteMetadata />
       <Routes>
+        <Route path="/login" element={<AuthPage mode="login" />} />
+        <Route path="/register" element={<AuthPage mode="register" />} />
         <Route element={<ApplicationLayout />}>
           <Route path="/" element={<HomePage />} />
           {Object.keys(publicPages)
@@ -49,7 +52,13 @@ export function App() {
             ))}
           {footerGroups
             .flatMap((group) => group.links)
-            .filter((link) => link.to !== '/' && !isPublicPagePath(link.to))
+            .filter(
+              (link) =>
+                link.to !== '/' &&
+                link.to !== '/login' &&
+                link.to !== '/register' &&
+                !isPublicPagePath(link.to),
+            )
             .map((link) => (
               <Route
                 key={link.to}

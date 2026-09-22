@@ -3,7 +3,7 @@ import { build } from 'vite';
 
 // Reuse the actual public page trees. No duplicate marketing HTML or running SSR server.
 await build({ build: { ssr: 'src/entry-server.tsx', outDir: '.prerender' } });
-const { renderPage, publicPagePaths } =
+const { renderPage, publicPagePaths, authPagePaths } =
   await import('../.prerender/entry-server.js');
 const template = await readFile('dist/index.html', 'utf8');
 
@@ -21,7 +21,7 @@ function pageHtml(path) {
 }
 
 await writeFile('dist/index.html', pageHtml('/'));
-for (const path of publicPagePaths) {
+for (const path of [...publicPagePaths, ...authPagePaths]) {
   const directory = `dist${path}`;
   await mkdir(directory, { recursive: true });
   await writeFile(`${directory}/index.html`, pageHtml(path));

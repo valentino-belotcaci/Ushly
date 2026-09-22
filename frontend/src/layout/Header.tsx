@@ -5,12 +5,15 @@ import { Button } from '../components/Button';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { PageContainer } from './PageContainer';
 import { accountLinks, primaryLinks } from './navigation';
+import { useSession } from '../api/session';
+import { AccountActions } from '../features/auth/AccountActions';
 
 export function Header() {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const navigation = useRef<HTMLElement>(null);
   const location = useLocation();
+  const session = useSession();
 
   useEffect(() => {
     // Clear mobile disclosure state across breakpoint changes, including browser zoom.
@@ -98,19 +101,23 @@ export function Header() {
             ))}
           </ul>
           <div className="account-links">
-            {accountLinks.map((link, index) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                aria-current={
-                  location.pathname === link.to ? 'page' : undefined
-                }
-                onClick={closeMenu}
-                className={`button button--${index === 0 ? 'quiet' : 'primary'}`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {session.status === 'authenticated' ? (
+              <AccountActions onAction={closeMenu} />
+            ) : (
+              accountLinks.map((link, index) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  aria-current={
+                    location.pathname === link.to ? 'page' : undefined
+                  }
+                  onClick={closeMenu}
+                  className={`button button--${index === 0 ? 'quiet' : 'primary'}`}
+                >
+                  {link.label}
+                </Link>
+              ))
+            )}
           </div>
         </nav>
       </PageContainer>
