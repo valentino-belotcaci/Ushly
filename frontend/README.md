@@ -2,9 +2,9 @@
 
 T9.1 provides React, routing, themes, and shared interface components. T9.2 adds
 the responsive application shell, header, footer, and placeholder navigation.
-T9.3 adds the public homepage and a native-fetch link client. Authentication
-pages, session lifecycle, management interfaces and analytics pages remain
-unimplemented.
+T9.3 adds the public homepage and a native-fetch link client. T9.5 adds the
+in-memory API session lifecycle. Authentication forms, management interfaces,
+and analytics dashboards remain unimplemented.
 
 ## Setup and commands
 
@@ -364,3 +364,34 @@ anonymous-link rejection, plus owner success. They require no live database.
 A live backend smoke test requires a running API/database/Redis stack and was
 unavailable during this implementation. Chromium is the configured browser;
 Firefox/WebKit, physical devices and manual screen-reader checks are not covered.
+
+## API session lifecycle (T9.5)
+
+`src/api/session.ts` provides the typed native-fetch session client for later
+authenticated pages. The browser calls `POST /auth/refresh` on startup to
+restore an access token from the backend's rotating HttpOnly cookie. Login uses
+`POST /auth/login` with exactly `{ email, password }`; logout uses
+`POST /auth/logout`. These requests use `credentials: 'include'`, `no-store`,
+and a 15-second timeout. The backend controls cookie attributes and CORS; the
+frontend sends no custom CSRF field because the backend defines none.
+
+The access token exists only in the client instance and is sent to protected
+endpoints as a bearer header. It is never stored in browser storage, put into
+a URL, or exposed through `useSession()`. Concurrent refresh calls share one
+promise. A protected request retries once after a successful refresh; a second
+401 clears the local session. A temporary network failure yields a typed safe
+error without displaying backend diagnostics. Explicit logout clears local
+state and asks the backend to revoke the refresh cookie.
+
+Refresh returns only an access token, so after reload `useSession()` reports
+an authenticated session with `user: null`. The user profile is available in
+memory immediately after login. A later account UI must not infer a user
+profile from the JWT. Google OAuth's callback also sets the refresh cookie;
+returning to the frontend uses the same startup refresh flow. No OAuth UI is
+included here.
+
+Deploy the frontend origin in backend `CORS_ALLOWED_ORIGINS`. Cross-site cookie
+deployments require the backend's `COOKIE_SAME_SITE=none` and secure HTTPS
+cookie settings; same-site deployments can retain the existing stricter
+setting. The browser cannot override the backend's HttpOnly, SameSite, Secure,
+or cookie-path rules.

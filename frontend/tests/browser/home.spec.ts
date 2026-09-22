@@ -69,7 +69,9 @@ test('anonymous keyboard shortening, copy, and persisted theme preference', asyn
   await page.keyboard.press('Enter');
   await expect(page.getByRole('main')).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Create free account' }).first()).toBeFocused();
+  await expect(
+    page.getByRole('link', { name: 'Create free account' }).first(),
+  ).toBeFocused();
   await page.keyboard.press('Tab');
   const input = page.getByRole('textbox', { name: 'Destination URL' });
   await expect(input).toBeFocused();
@@ -209,7 +211,10 @@ for (const width of [320, 1440]) {
       expect(jsQR(new Uint8ClampedArray(pixels), 512, 512)?.data).toBe(
         shortUrl,
       );
-      expect(apiRequests).toEqual(['http://127.0.0.1:4173/links']);
+      expect(apiRequests).toEqual([
+        'http://127.0.0.1:4173/auth/refresh',
+        'http://127.0.0.1:4173/links',
+      ]);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
