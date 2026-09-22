@@ -28,10 +28,21 @@ test('the authenticated mobile dashboard uses its responsive sidebar', async ({
     return route.fulfill({
       status: 200,
       json: {
-        items: [],
+        items: [
+          {
+            id: 'link-1',
+            shortCode: 'abc123',
+            destinationUrl:
+              'https://example.com/a/long/destination/that/must/not/overflow',
+            title: 'Mobile link',
+            expiresAt: null,
+            status: 'active',
+            createdAt: '2026-09-22T10:00:00.000Z',
+          },
+        ],
         page: Number(url.searchParams.get('page') ?? 1),
         pageSize: Number(url.searchParams.get('pageSize') ?? 20),
-        total: 0,
+        total: 1,
       },
     });
   });
@@ -49,6 +60,10 @@ test('the authenticated mobile dashboard uses its responsive sidebar', async ({
   await expect(
     page.getByRole('heading', { name: 'Links', exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole('table', { name: 'Short links owned by your account' }),
+  ).toBeVisible();
+  await expect(page.getByText('Mobile link')).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Dashboard navigation' }),
   ).toBeHidden();

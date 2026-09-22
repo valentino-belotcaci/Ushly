@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export type DashboardIconName =
   | 'overview'
   | 'links'
@@ -10,7 +12,8 @@ export type DashboardIconName =
   | 'edit'
   | 'power'
   | 'trash'
-  | 'download';
+  | 'download'
+  | 'copy';
 
 export function DashboardIcon({ name }: { name: DashboardIconName }) {
   const paths: Record<DashboardIconName, ReactNode> = {
@@ -81,6 +84,12 @@ export function DashboardIcon({ name }: { name: DashboardIconName }) {
         <path d="M5 21h14" />
       </>
     ),
+    copy: (
+      <>
+        <rect x="8" y="8" width="12" height="12" rx="2" />
+        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+      </>
+    ),
   };
   return (
     <svg
@@ -97,4 +106,3 @@ export function DashboardIcon({ name }: { name: DashboardIconName }) {
     </svg>
   );
 }
-import type { ReactNode } from 'react';

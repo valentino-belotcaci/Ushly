@@ -437,3 +437,17 @@ uses its statistics endpoint. QR Codes retrieves the owner-authorized SVG and
 downloads that response without putting a bearer token in a URL. A protected
 request still retries once through the T9.5 refresh flow, and persistent 401s
 clear the local session while the backend remains the ownership boundary.
+
+## Link management and QR interface (T9.8)
+
+`/dashboard/links` uses the existing owner-scoped link contracts for creation,
+bounded pagination, editing, activation, deactivation, deletion, and QR access.
+The responsive semantic table becomes stacked rows on narrow screens without
+filtering only the current page; the backend currently exposes pagination but
+no search query. Destructive actions use confirmation dialogs, and URL and
+future-expiration checks provide immediate feedback before server validation.
+
+Copy feedback is temporary and accessible. QR previews are requested with the
+in-memory bearer token, rendered from a short-lived Blob URL, and downloaded as
+SVG. The Blob URL is revoked when the dialog closes or the component unmounts;
+access tokens are never placed in the image or download URL.
