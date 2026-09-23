@@ -31,6 +31,25 @@ services:
       retries: 10
       start_period: 2s
 
+  postgres-loadtest:
+    image: postgres:16
+    profiles: ["loadtest"]
+    environment:
+      POSTGRES_USER: ${LOADTEST_POSTGRES_USER:-ushly}
+      POSTGRES_PASSWORD: ${LOADTEST_POSTGRES_PASSWORD:-change_me_in_env_file}
+      POSTGRES_DB: ${LOADTEST_POSTGRES_DB:-ushly_loadtest}
+    ports:
+      - "${LOADTEST_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_loadtest_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LOADTEST_POSTGRES_USER:-ushly} -d ${LOADTEST_POSTGRES_DB:-ushly_loadtest}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
 volumes:
   postgres_data:
+  postgres_loadtest_data:
   redis_data:

@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
-const BASE_URL = __ENV.BASE_URL || 'http://127.0.0.1:3000';
+const BASE_URL = __ENV.BASE_URL || 'http://127.0.0.1:3001';
 const HIT_CODE = __ENV.HIT_CODE || 'loadhit0001';
 const MISS_PREFIX = __ENV.MISS_PREFIX || 'loadmiss';
 const MISS_COUNT = Number(__ENV.MISS_COUNT || 10000);

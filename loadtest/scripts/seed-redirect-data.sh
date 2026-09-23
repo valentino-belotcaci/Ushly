@@ -6,6 +6,8 @@ set -euo pipefail
 : "${HIT_CODE:=loadhit0001}"
 : "${MISS_PREFIX:=loadmiss}"
 
+source "$(dirname "$0")/assert-loadtest-database.sh"
+
 [[ "$HIT_CODE" =~ ^[A-Za-z0-9]+$ ]] || {
   echo 'HIT_CODE must contain only ASCII letters and digits.' >&2
   exit 1

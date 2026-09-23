@@ -178,12 +178,25 @@ export const deleteOwnedLink = (id: string) =>
     { method: 'DELETE' },
     () => undefined,
   );
-export const getOwnedStatistics = (id: string) =>
-  apiSession.requestProtected(
-    `/links/${encodeURIComponent(id)}/statistics`,
+export const getOwnedStatistics = (
+  id: string,
+  query?: {
+    from?: string;
+    to?: string;
+    granularity?: LinkStatistics['granularity'];
+  },
+) => {
+  const search = new URLSearchParams();
+  if (query?.from) search.set('from', query.from);
+  if (query?.to) search.set('to', query.to);
+  if (query?.granularity) search.set('granularity', query.granularity);
+  const suffix = search.size ? `?${search.toString()}` : '';
+  return apiSession.requestProtected(
+    `/links/${encodeURIComponent(id)}/statistics${suffix}`,
     { method: 'GET' },
     statisticsFrom,
   );
+};
 export async function getOwnedQr(id: string): Promise<Blob> {
   const blob = await apiSession.requestProtectedBlob(
     `/links/${encodeURIComponent(id)}/qr`,

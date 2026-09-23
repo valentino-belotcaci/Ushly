@@ -21,6 +21,11 @@ import { footerGroups } from '../layout/navigation';
 import { LegalPage } from '../features/legal/LegalPage';
 import { isLegalPagePath, legalPages } from '../features/legal/content';
 import { CookieConsent } from '../features/consent/CookieConsent';
+import {
+  AdminLinksPage,
+  AdminOverviewPage,
+  AdminUsersPage,
+} from '../features/admin/AdminPages';
 
 // Vite removes this branch and its preview chunk from production builds.
 const ComponentPreview = import.meta.env.DEV
@@ -54,6 +59,9 @@ export function App() {
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="qr-codes" element={<QrCodesPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="admin" element={<AdminOverviewPage />} />
+          <Route path="admin/users" element={<AdminUsersPage />} />
+          <Route path="admin/links" element={<AdminLinksPage />} />
         </Route>
         <Route element={<ApplicationLayout />}>
           <Route path="/" element={<HomePage />} />

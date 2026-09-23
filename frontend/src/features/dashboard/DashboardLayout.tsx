@@ -14,6 +14,7 @@ import { LoadingState } from '../../components/LoadingState';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { useToast } from '../../components/toast-context';
 import { DashboardIcon, type DashboardIconName } from './icons';
+import { checkAdminAccess } from '../admin/api';
 import './dashboard.css';
 
 const navigation: {
@@ -49,6 +50,7 @@ function DashboardLayout() {
   const notify = useToast();
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [adminAccess, setAdminAccess] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -60,6 +62,19 @@ function DashboardLayout() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [open]);
+  useEffect(() => {
+    let active = true;
+    void checkAdminAccess()
+      .then(() => {
+        if (active) setAdminAccess(true);
+      })
+      .catch(() => {
+        if (active) setAdminAccess(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function logout() {
     if (loggingOut) return;
@@ -137,6 +152,14 @@ function DashboardLayout() {
                 </NavLink>
               </li>
             ))}
+            {adminAccess && (
+              <li>
+                <NavLink to="/dashboard/admin" onClick={() => setOpen(false)}>
+                  <DashboardIcon name="settings" />
+                  <span>Admin</span>
+                </NavLink>
+              </li>
+            )}
           </ul>
         </nav>
         <div className="dashboard-account">
