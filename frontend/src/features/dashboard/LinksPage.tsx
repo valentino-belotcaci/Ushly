@@ -71,13 +71,93 @@ function displayDate(iso: string | null): string {
 type Confirmation =
   { kind: 'delete'; link: OwnedLink } | { kind: 'deactivate'; link: OwnedLink };
 
+type CreateLinkInput = {
+  url: string;
+  title?: string;
+  expiresAt?: string;
+};
+
+function CreateLinkForm({
+  disabled,
+  loading,
+  onSubmit,
+}: {
+  disabled: boolean;
+  loading: boolean;
+  onSubmit: (input: CreateLinkInput) => Promise<boolean>;
+}) {
+  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const [expirationError, setExpirationError] = useState('');
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (disabled) return;
+    const nextUrlError = validateUrl(url.trim());
+    const nextExpirationError = validateExpiration(expiresAt);
+    setUrlError(nextUrlError);
+    setExpirationError(nextExpirationError);
+    if (nextUrlError || nextExpirationError) return;
+    const created = await onSubmit({
+      url: url.trim(),
+      ...(title.trim() ? { title: title.trim() } : {}),
+      ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
+    });
+    if (!created) return;
+    setUrl('');
+    setTitle('');
+    setExpiresAt('');
+  }
+
+  return (
+    <form className="dashboard-create-form" onSubmit={submit} noValidate>
+      <Input
+        label="Destination URL"
+        type="url"
+        autoComplete="url"
+        required
+        maxLength={2048}
+        placeholder="https://example.com/long-url"
+        value={url}
+        {...(urlError ? { error: urlError } : {})}
+        onChange={(event) => {
+          setUrl(event.target.value);
+          if (urlError) setUrlError('');
+        }}
+        disabled={disabled}
+      />
+      <Input
+        label="Title (optional)"
+        maxLength={200}
+        placeholder="Campaign link"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        disabled={disabled}
+      />
+      <Input
+        label="Expires at (optional)"
+        type="datetime-local"
+        value={expiresAt}
+        {...(expirationError ? { error: expirationError } : {})}
+        onChange={(event) => {
+          setExpiresAt(event.target.value);
+          if (expirationError) setExpirationError('');
+        }}
+        disabled={disabled}
+      />
+      <Button type="submit" loading={loading} disabled={disabled}>
+        Shorten link
+      </Button>
+    </form>
+  );
+}
+
 export function LinksPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof pageSizes)[number]>(20);
   const { data, loading, error, reload } = useOwnedLinks(page, pageSize);
-  const [url, setUrl] = useState('');
-  const [title, setTitle] = useState('');
-  const [expiresAt, setExpiresAt] = useState('');
   const [urlError, setUrlError] = useState('');
   const [expirationError, setExpirationError] = useState('');
   const [busy, setBusy] = useState('');
@@ -116,30 +196,19 @@ export function LinksPage() {
     setQrLink(null);
   }
 
-  async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const nextUrlError = validateUrl(url.trim());
-    const nextExpirationError = validateExpiration(expiresAt);
-    setUrlError(nextUrlError);
-    setExpirationError(nextExpirationError);
-    if (nextUrlError || nextExpirationError) return;
+  async function create(input: CreateLinkInput): Promise<boolean> {
+    if (busy) return false;
     setBusy('create');
     setPageError('');
     try {
-      await createOwnedLink({
-        url: url.trim(),
-        ...(title.trim() ? { title: title.trim() } : {}),
-        ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
-      });
-      setUrl('');
-      setTitle('');
-      setExpiresAt('');
+      await createOwnedLink(input);
       if (page === 1) await reload();
       else setPage(1);
       notify('Link created successfully.', 'success', 3000);
+      return true;
     } catch (failure) {
       setPageError(safeMessage(failure));
+      return false;
     } finally {
       setBusy('');
     }
@@ -278,45 +347,11 @@ export function LinksPage() {
           <h2 id="create-link-title">Create a short link</h2>
           <p>Only HTTP and HTTPS destinations are supported.</p>
         </header>
-        <form className="dashboard-create-form" onSubmit={create} noValidate>
-          <Input
-            label="Destination URL"
-            type="url"
-            autoComplete="url"
-            required
-            maxLength={2048}
-            placeholder="https://example.com/long-url"
-            value={url}
-            {...(urlError ? { error: urlError } : {})}
-            onChange={(event) => {
-              setUrl(event.target.value);
-              if (urlError) setUrlError('');
-            }}
-            disabled={Boolean(busy)}
-          />
-          <Input
-            label="Title (optional)"
-            maxLength={200}
-            placeholder="Campaign link"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            disabled={Boolean(busy)}
-          />
-          <Input
-            label="Expires at (optional)"
-            type="datetime-local"
-            value={expiresAt}
-            {...(expirationError ? { error: expirationError } : {})}
-            onChange={(event) => {
-              setExpiresAt(event.target.value);
-              if (expirationError) setExpirationError('');
-            }}
-            disabled={Boolean(busy)}
-          />
-          <Button type="submit" loading={busy === 'create'}>
-            Shorten link
-          </Button>
-        </form>
+        <CreateLinkForm
+          disabled={Boolean(busy)}
+          loading={busy === 'create'}
+          onSubmit={create}
+        />
       </section>
       {pageError && !editing && (
         <p className="dashboard-inline-error" role="alert">
