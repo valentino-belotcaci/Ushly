@@ -22,6 +22,12 @@ test('admin APIs enforce access, paginate, filter, disable safely, and audit act
       destinationUrl: 'https://example.test/admin-api-link',
     },
   });
+  await app.prisma.link.create({
+    data: {
+      shortCode: 'anonymous-admin-api-link',
+      destinationUrl: 'https://example.test/anonymous-admin-api-link',
+    },
+  });
 
   assert.equal((await app.inject('/admin/users')).statusCode, 401);
   assert.equal((await app.inject({ url: '/admin/users', headers: { authorization: `Bearer ${normalToken}` } })).statusCode, 403);
@@ -30,8 +36,12 @@ test('admin APIs enforce access, paginate, filter, disable safely, and audit act
   const listedLinks = await app.inject({ url: '/admin/links?page=1&pageSize=20&search=api-user', headers: { authorization: `Bearer ${token}` } });
   assert.equal(listedLinks.statusCode, 200);
   assert.equal(listedLinks.json().items.length, 1);
-  assert.equal(listedLinks.json().items[0].user.email, 'api-user@example.test');
-  assert.equal(listedLinks.json().items[0].user.passwordHash, undefined);
+  assert.equal(listedLinks.json().items[0].ownerEmail, 'api-user@example.test');
+  assert.equal(listedLinks.json().items[0].user, undefined);
+  const anonymousLinks = await app.inject({ url: '/admin/links?page=1&pageSize=20&search=anonymous-admin-api-link', headers: { authorization: `Bearer ${token}` } });
+  assert.equal(anonymousLinks.statusCode, 200);
+  assert.equal(anonymousLinks.json().items[0].ownerEmail, null);
+  assert.equal(anonymousLinks.json().items[0].userId, null);
 
   const disabled = await app.inject({ method: 'POST', url: `/admin/users/${user.id}/disable`, headers: { authorization: `Bearer ${token}` } });
   assert.equal(disabled.statusCode, 200); assert.ok((await app.prisma.user.findUniqueOrThrow({ where: { id: user.id } })).disabledAt);

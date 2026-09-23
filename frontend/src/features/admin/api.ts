@@ -78,9 +78,8 @@ function linkFrom(value: unknown): AdminLink {
     status,
     expiresAt,
     createdAt,
-    user,
+    ownerEmail,
   } = value;
-  const ownerEmail = user === null ? null : record(user) ? user.email : undefined;
   if (
     typeof id !== 'string' ||
     (userId !== null && typeof userId !== 'string') ||
