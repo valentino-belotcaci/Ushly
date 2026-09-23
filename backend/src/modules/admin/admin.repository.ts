@@ -18,6 +18,7 @@ const linkSelect = {
   status: true,
   expiresAt: true,
   createdAt: true,
+  user: { select: { email: true } },
 } as const;
 
 export type AdminUserListQuery = {
@@ -77,6 +78,11 @@ export async function listAdminLinks(
           OR: [
             { shortCode: { contains: query.search } },
             { destinationUrl: { contains: query.search } },
+            {
+              user: {
+                email: { contains: query.search, mode: 'insensitive' },
+              },
+            },
           ],
         }
       : {}),

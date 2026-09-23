@@ -22,6 +22,14 @@ import {
 import './admin.css';
 
 const PAGE_SIZE = 20;
+function useDebouncedValue<T>(value: T, delay = 400) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [delay, value]);
+  return debouncedValue;
+}
 function message(error: unknown) {
   return error instanceof ApiClientError
     ? error.message
@@ -277,6 +285,7 @@ export function AdminUsersPage() {
   const [target, setTarget] = useState<AdminUser | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const debouncedSearch = useDebouncedValue(search.trim());
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -284,7 +293,7 @@ export function AdminUsersPage() {
       const result = await listAdminUsers({
         page,
         pageSize: PAGE_SIZE,
-        ...(search.trim() ? { search: search.trim() } : {}),
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
         ...(role ? { role } : {}),
         ...(disabled === '' ? {} : { disabled: disabled === 'true' }),
       });
@@ -297,7 +306,7 @@ export function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [disabled, page, role, search]);
+  }, [debouncedSearch, disabled, page, role]);
   useEffect(() => {
     const pending = Promise.resolve().then(load);
     void pending;
@@ -342,20 +351,18 @@ export function AdminUsersPage() {
         title="Users"
         text="Filter accounts and control whether they can authenticate."
       />
-      <form
-        className="card admin-filter"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setPage(1);
-          void load();
-        }}
-      >
-        <label>
-          Search email
+      <section className="card admin-filter admin-filter--users" aria-label="User filters">
+        <label className="admin-filter__primary">
+          Search by email
           <input
             className="input"
+            type="search"
+            placeholder="name@example.com"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label>
@@ -392,8 +399,7 @@ export function AdminUsersPage() {
             <option value="true">Disabled</option>
           </select>
         </label>
-        <Button type="submit">Apply filters</Button>
-      </form>
+      </section>
       {status && (
         <p className="dashboard-success" role="status">
           {status}
@@ -510,6 +516,8 @@ export function AdminLinksPage() {
   const [target, setTarget] = useState<AdminLink | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const debouncedSearch = useDebouncedValue(search.trim());
+  const debouncedUserId = useDebouncedValue(userId.trim());
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -517,9 +525,9 @@ export function AdminLinksPage() {
       const result = await listAdminLinks({
         page,
         pageSize: PAGE_SIZE,
-        ...(search.trim() ? { search: search.trim() } : {}),
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
         ...(filterStatus ? { status: filterStatus } : {}),
-        ...(userId.trim() ? { userId: userId.trim() } : {}),
+        ...(debouncedUserId ? { userId: debouncedUserId } : {}),
       });
       setItems(result.items);
       setTotal(result.total);
@@ -530,7 +538,7 @@ export function AdminLinksPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, page, search, userId]);
+  }, [debouncedSearch, debouncedUserId, filterStatus, page]);
   useEffect(() => {
     const pending = Promise.resolve().then(load);
     void pending;
@@ -575,20 +583,18 @@ export function AdminLinksPage() {
         title="Links"
         text="Filter links across the service and control redirect availability."
       />
-      <form
-        className="card admin-filter"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setPage(1);
-          void load();
-        }}
-      >
-        <label>
-          Search URL or code
+      <section className="card admin-filter admin-filter--links" aria-label="Link filters">
+        <label className="admin-filter__primary">
+          Search links or owner email
           <input
             className="input"
+            type="search"
+            placeholder="URL, short code, or owner email"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label>
@@ -619,11 +625,13 @@ export function AdminLinksPage() {
           <input
             className="input"
             value={userId}
-            onChange={(event) => setUserId(event.target.value)}
+            onChange={(event) => {
+              setUserId(event.target.value);
+              setPage(1);
+            }}
           />
         </label>
-        <Button type="submit">Apply filters</Button>
-      </form>
+      </section>
       {status && (
         <p className="dashboard-success" role="status">
           {status}
@@ -700,9 +708,14 @@ function AdminLinksTable({
                 <small title={link.destinationUrl}>{link.destinationUrl}</small>
               </td>
               <td>
-                <span title={link.userId ?? 'Anonymous'}>
-                  {link.userId ?? 'Anonymous'}
+                <span className="admin-owner-email">
+                  {link.ownerEmail ?? 'Anonymous'}
                 </span>
+                {link.userId && (
+                  <small className="admin-owner-id" title={link.userId}>
+                    ID: {link.userId}
+                  </small>
+                )}
               </td>
               <td>
                 <Badge

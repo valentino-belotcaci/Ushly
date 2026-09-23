@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { ApiClientError } from '../../api/session';
-import { AdminUsersPage } from './AdminPages';
-import { listAdminUsers } from './api';
+import { AdminLinksPage, AdminUsersPage } from './AdminPages';
+import { listAdminLinks, listAdminUsers } from './api';
 
 vi.mock('./api', () => ({
   listAdminUsers: vi.fn(),
@@ -63,4 +63,35 @@ it('renders backend-provided users and supported disable controls', async () => 
   );
   expect(await screen.findByText('owner@example.test')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Disable' })).toBeInTheDocument();
+});
+
+it('shows link owner email as the primary owner detail', async () => {
+  vi.mocked(listAdminLinks).mockResolvedValue({
+    items: [
+      {
+        id: 'link-1',
+        userId: 'user-1',
+        ownerEmail: 'owner@example.test',
+        shortCode: 'owner-link',
+        destinationUrl: 'https://example.test/destination',
+        title: null,
+        status: 'active',
+        expiresAt: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ],
+    total: 1,
+    page: 1,
+    pageSize: 20,
+  });
+  render(
+    <MemoryRouter>
+      <AdminLinksPage />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText('owner@example.test')).toBeInTheDocument();
+  expect(screen.getByText('ID: user-1')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Apply filters' }),
+  ).not.toBeInTheDocument();
 });

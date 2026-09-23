@@ -12,6 +12,7 @@ export type AdminUser = {
 export type AdminLink = {
   id: string;
   userId: string | null;
+  ownerEmail: string | null;
   shortCode: string;
   destinationUrl: string;
   title: string | null;
@@ -77,10 +78,13 @@ function linkFrom(value: unknown): AdminLink {
     status,
     expiresAt,
     createdAt,
+    user,
   } = value;
+  const ownerEmail = user === null ? null : record(user) ? user.email : undefined;
   if (
     typeof id !== 'string' ||
     (userId !== null && typeof userId !== 'string') ||
+    (ownerEmail !== null && typeof ownerEmail !== 'string') ||
     typeof shortCode !== 'string' ||
     typeof destinationUrl !== 'string' ||
     (title !== null && typeof title !== 'string') ||
@@ -92,6 +96,7 @@ function linkFrom(value: unknown): AdminLink {
   return {
     id,
     userId,
+    ownerEmail,
     shortCode,
     destinationUrl,
     title,

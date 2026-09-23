@@ -15,11 +15,23 @@ test('admin APIs enforce access, paginate, filter, disable safely, and audit act
   await app.prisma.user.update({ where: { id: admin.id }, data: { role: 'ADMIN' } });
   const token = await app.jwt.sign({ sub: admin.id });
   const normalToken = await app.jwt.sign({ sub: user.id });
+  await app.prisma.link.create({
+    data: {
+      userId: user.id,
+      shortCode: 'admin-api-link',
+      destinationUrl: 'https://example.test/admin-api-link',
+    },
+  });
 
   assert.equal((await app.inject('/admin/users')).statusCode, 401);
   assert.equal((await app.inject({ url: '/admin/users', headers: { authorization: `Bearer ${normalToken}` } })).statusCode, 403);
   const listed = await app.inject({ url: '/admin/users?page=1&pageSize=1&search=api-user' , headers: { authorization: `Bearer ${token}` } });
   assert.equal(listed.statusCode, 200); assert.equal(listed.json().items.length, 1); assert.equal(listed.json().items[0].passwordHash, undefined);
+  const listedLinks = await app.inject({ url: '/admin/links?page=1&pageSize=20&search=api-user', headers: { authorization: `Bearer ${token}` } });
+  assert.equal(listedLinks.statusCode, 200);
+  assert.equal(listedLinks.json().items.length, 1);
+  assert.equal(listedLinks.json().items[0].user.email, 'api-user@example.test');
+  assert.equal(listedLinks.json().items[0].user.passwordHash, undefined);
 
   const disabled = await app.inject({ method: 'POST', url: `/admin/users/${user.id}/disable`, headers: { authorization: `Bearer ${token}` } });
   assert.equal(disabled.statusCode, 200); assert.ok((await app.prisma.user.findUniqueOrThrow({ where: { id: user.id } })).disabledAt);

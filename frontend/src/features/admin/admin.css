@@ -25,10 +25,13 @@
 }
 .admin-filter {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(240px, 2fr) repeat(2, minmax(150px, 1fr));
   align-items: end;
   gap: var(--space-4);
-  padding: var(--space-5);
+  padding: var(--space-6);
+}
+.admin-filter--links {
+  grid-template-columns: minmax(260px, 2fr) minmax(150px, 1fr) minmax(190px, 1fr);
 }
 .admin-filter label {
   display: grid;
@@ -61,6 +64,22 @@
   white-space: nowrap;
 }
 .admin-table td:first-child small {
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+.admin-owner-email,
+.admin-owner-id {
+  display: block;
+  min-width: 0;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-owner-email {
+  font-weight: 700;
+}
+.admin-owner-id {
   margin-top: 4px;
   color: var(--text-muted);
 }
