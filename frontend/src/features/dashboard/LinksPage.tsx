@@ -68,6 +68,29 @@ function displayDate(iso: string | null): string {
   }).format(new Date(iso));
 }
 
+function displayedStatus(link: OwnedLink): 'Active' | 'Disabled' | 'Expired' {
+  if (link.expiresAt && Date.parse(link.expiresAt) <= Date.now()) return 'Expired';
+  if (link.status === 'disabled') return 'Disabled';
+  return 'Active';
+}
+
+function LinkStatusBadge({ link }: { link: OwnedLink }) {
+  const status = displayedStatus(link);
+  return (
+    <Badge
+      tone={
+        status === 'Active'
+          ? 'success'
+          : status === 'Expired'
+            ? 'warning'
+            : 'neutral'
+      }
+    >
+      {status}
+    </Badge>
+  );
+}
+
 type Confirmation =
   { kind: 'delete'; link: OwnedLink } | { kind: 'deactivate'; link: OwnedLink };
 
@@ -437,17 +460,7 @@ export function LinksPage() {
                     </div>
                   </td>
                   <td data-label="Status">
-                    <Badge
-                      tone={
-                        link.status === 'active'
-                          ? 'success'
-                          : link.status === 'expired'
-                            ? 'warning'
-                            : 'neutral'
-                      }
-                    >
-                      {link.status}
-                    </Badge>
+                    <LinkStatusBadge link={link} />
                   </td>
                   <td data-label="Expiration">
                     <span className="dashboard-expiration">
@@ -507,8 +520,8 @@ export function LinksPage() {
                         <DashboardIcon name="edit" />
                         <span className="dashboard-action-label">Edit</span>
                       </Button>
-                      {link.status !== 'expired' &&
-                        (link.status === 'active' ? (
+                      {displayedStatus(link) !== 'Expired' &&
+                        (displayedStatus(link) === 'Active' ? (
                           <Button
                             variant="secondary"
                             loading={busy === link.id}

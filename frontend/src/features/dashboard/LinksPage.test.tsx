@@ -95,6 +95,34 @@ it('validates destinations before creating an owned link', async () => {
   expect(mocks.createOwnedLink).not.toHaveBeenCalled();
 });
 
+it('displays an active link with a past UTC expiration as expired', () => {
+  mocks.useOwnedLinks.mockReturnValue({
+    data: {
+      items: [{ ...link, expiresAt: '2020-01-01T00:00:00.000Z' }],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    },
+    loading: false,
+    error: '',
+    reload: mocks.reload,
+  });
+  renderPage();
+  expect(screen.getByText('Expired')).toBeVisible();
+  expect(screen.queryByText('Active')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Disable link' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Edit link' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Delete link' })).toBeVisible();
+});
+
+it('restores active status and its disable action for a future expiration', () => {
+  renderPage();
+  expect(screen.getByText('Active')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Disable link' })).toBeVisible();
+});
+
 it('copies, previews owner QR, and confirms deletion', async () => {
   const user = userEvent.setup();
   vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(mocks.copy);
