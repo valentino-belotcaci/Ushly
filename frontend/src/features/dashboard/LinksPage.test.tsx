@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../components/ToastProvider';
@@ -113,25 +113,73 @@ it('displays an active link with a past UTC expiration as expired', () => {
   expect(
     screen.queryByRole('button', { name: 'Disable link' }),
   ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('link', { name: 'Visit short URL' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Copy short URL' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Preview and download QR code' }),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Edit link' })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Delete link' })).toBeVisible();
 });
 
-it('restores active status and its disable action for a future expiration', () => {
+it('restores active status and all normal actions for a future expiration', () => {
   renderPage();
   expect(screen.getByText('Active')).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Visit short URL' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Copy short URL' })).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Preview and download QR code' }),
+  ).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Edit link' })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Disable link' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Delete link' })).toBeVisible();
+});
+
+it('shows only edit, enable, and delete for a disabled link', () => {
+  mocks.useOwnedLinks.mockReturnValue({
+    data: {
+      items: [{ ...link, status: 'disabled' }],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    },
+    loading: false,
+    error: '',
+    reload: mocks.reload,
+  });
+  renderPage();
+  expect(screen.getByText('Disabled')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Edit link' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Enable link' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Delete link' })).toBeVisible();
+  expect(
+    screen.queryByRole('link', { name: 'Visit short URL' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Copy short URL' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Preview and download QR code' }),
+  ).not.toBeInTheDocument();
 });
 
 it('copies, previews owner QR, and confirms deletion', async () => {
   const user = userEvent.setup();
   vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(mocks.copy);
   renderPage();
-  await user.click(screen.getByRole('button', { name: 'Copy' }));
+  await user.click(screen.getByRole('button', { name: 'Copy short URL' }));
   expect(mocks.copy).toHaveBeenCalledWith('https://u.test/abc123');
-  expect(await screen.findByRole('button', { name: 'Copied' })).toBeVisible();
+  expect(
+    await screen.findByRole('button', { name: 'Short URL copied' }),
+  ).toBeVisible();
 
-  await user.click(screen.getByRole('button', { name: 'QR' }));
+  await user.click(
+    screen.getByRole('button', { name: 'Preview and download QR code' }),
+  );
   expect(mocks.getOwnedQr).toHaveBeenCalledWith('link-1');
   expect(
     await screen.findByRole('heading', { name: 'Download QR code' }),
@@ -145,8 +193,12 @@ it('copies, previews owner QR, and confirms deletion', async () => {
   );
   await user.click(screen.getByRole('button', { name: 'Close dialog' }));
 
-  await user.click(screen.getByRole('button', { name: 'Delete' }));
-  expect(screen.getByRole('heading', { name: 'Delete link?' })).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Delete link' }));
+  expect(screen.getByRole('heading', { name: 'Delete link?' })).toBeVisible();
+  await user.click(
+    within(screen.getByRole('dialog')).getByRole('button', {
+      name: 'Delete link',
+    }),
+  );
   expect(mocks.deleteOwnedLink).toHaveBeenCalledWith('link-1');
 });

@@ -7,7 +7,15 @@ import { Input } from '../../components/Input';
 import { useToast } from '../../components/toast-context';
 import { watchGooglePopup, type GooglePopupResult } from './googlePopup';
 
-export function AccountActions({ onAction, canLinkGoogle }: { onAction: () => void; canLinkGoogle: boolean }) {
+export function AccountActions({
+  onAction,
+  canLinkGoogle,
+  showLogout = true,
+}: {
+  onAction: () => void;
+  canLinkGoogle: boolean;
+  showLogout?: boolean;
+}) {
   const notify = useToast();
   const [linkOpen, setLinkOpen] = useState(false);
   const [password, setPassword] = useState('');
@@ -140,15 +148,15 @@ export function AccountActions({ onAction, canLinkGoogle }: { onAction: () => vo
           setLinkOpen(true);
         }}
       >
-        Link Google
+        Link Google account
       </Button>}
-      <Button
+      {showLogout && <Button
         variant="secondary"
         loading={logoutBusy}
         onClick={() => void logout()}
       >
         Log out
-      </Button>
+      </Button>}
       <Dialog
         open={linkOpen}
         onClose={() => setLinkOpen(false)}

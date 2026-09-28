@@ -313,9 +313,9 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 {conflict && (
                   <p className="auth-error" role="alert">
                     This Google identity may belong to an existing account. Log
-                    in with your existing method, then choose Link Google in the
-                    account header and verify your password. Accounts are never
-                    merged based only on email.
+                    in with your existing method, then open Dashboard Settings,
+                    choose Link Google account, and verify your password.
+                    Accounts are never merged based only on email.
                   </p>
                 )}
                 <Button

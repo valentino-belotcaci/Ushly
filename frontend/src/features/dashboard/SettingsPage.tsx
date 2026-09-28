@@ -16,32 +16,35 @@ export function SettingsPage() {
       </header>
       <section className="card settings-card">
         <div>
-          <h2>Account details</h2>
-          <p>Your identity is managed securely by Ushly.</p>
+          <h2>Authentication methods</h2>
+          <p>Review the methods connected to your Ushly account.</p>
         </div>
         <dl>
           <div>
-            <dt>Email</dt>
+            <dt>Account email</dt>
             <dd>
               {session.user?.email ??
                 'Available after your next password login'}
             </dd>
           </div>
           <div>
-            <dt>Google linking</dt>
+            <dt>Google account</dt>
             <dd>
               {googleLinkAvailable
-                ? 'Available'
-                : 'Already linked or unavailable'}
+                ? 'Not linked'
+                : 'Google account linked'}
             </dd>
           </div>
         </dl>
-        <div className="settings-actions">
-          <AccountActions
-            canLinkGoogle={googleLinkAvailable}
-            onAction={() => {}}
-          />
-        </div>
+        {googleLinkAvailable && (
+          <div className="settings-actions">
+            <AccountActions
+              canLinkGoogle
+              showLogout={false}
+              onAction={() => {}}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

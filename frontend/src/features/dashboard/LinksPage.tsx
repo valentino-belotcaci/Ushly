@@ -469,42 +469,46 @@ export function LinksPage() {
                   </td>
                   <td data-label="Actions">
                     <div className="dashboard-link-actions">
-                      <a
-                        className="button button--quiet"
-                        href={publicShortUrl(link.shortCode)}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="Visit short URL"
-                        title="Visit short URL"
-                      >
-                        <DashboardIcon name="external" />
-                        <span className="dashboard-action-label">Visit</span>
-                      </a>
-                      <Button
-                        variant="quiet"
-                        aria-live="polite"
-                        aria-label={
-                          copiedId === link.id
-                            ? 'Short URL copied'
-                            : 'Copy short URL'
-                        }
-                        title="Copy short URL"
-                        onClick={() => void copy(link)}
-                      >
-                        <DashboardIcon name="copy" />
-                        <span className="dashboard-action-label">
-                          {copiedId === link.id ? 'Copied' : 'Copy'}
-                        </span>
-                      </Button>
-                      <Button
-                        variant="quiet"
-                        aria-label="Preview and download QR code"
-                        title="Preview and download QR code"
-                        onClick={() => void openQr(link)}
-                      >
-                        <DashboardIcon name="qr" />
-                        <span className="dashboard-action-label">QR</span>
-                      </Button>
+                      {displayedStatus(link) === 'Active' && (
+                        <>
+                          <a
+                            className="button button--quiet"
+                            href={publicShortUrl(link.shortCode)}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label="Visit short URL"
+                            title="Visit short URL"
+                          >
+                            <DashboardIcon name="external" />
+                            <span className="dashboard-action-label">Visit</span>
+                          </a>
+                          <Button
+                            variant="quiet"
+                            aria-live="polite"
+                            aria-label={
+                              copiedId === link.id
+                                ? 'Short URL copied'
+                                : 'Copy short URL'
+                            }
+                            title="Copy short URL"
+                            onClick={() => void copy(link)}
+                          >
+                            <DashboardIcon name="copy" />
+                            <span className="dashboard-action-label">
+                              {copiedId === link.id ? 'Copied' : 'Copy'}
+                            </span>
+                          </Button>
+                          <Button
+                            variant="quiet"
+                            aria-label="Preview and download QR code"
+                            title="Preview and download QR code"
+                            onClick={() => void openQr(link)}
+                          >
+                            <DashboardIcon name="qr" />
+                            <span className="dashboard-action-label">QR</span>
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="quiet"
                         aria-label="Edit link"

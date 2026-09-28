@@ -102,7 +102,7 @@ export function Header() {
           </ul>
           <div className="account-links">
             {session.status === 'authenticated' ? (
-              <AccountActions onAction={closeMenu} canLinkGoogle={session.googleLinkAvailable === true} />
+              <AccountActions onAction={closeMenu} canLinkGoogle={false} />
             ) : (
               accountLinks.map((link, index) => (
                 <Link
