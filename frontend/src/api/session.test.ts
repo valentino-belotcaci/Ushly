@@ -71,13 +71,13 @@ describe('API session lifecycle', () => {
     });
   });
 
-  it('restores a new client from the refresh cookie without inventing a user profile', async () => {
+  it('restores the safe user profile from the refresh cookie session', async () => {
     const { session, calls } = setup(() =>
-      Response.json({ accessToken: 'restored-access' }),
+      Response.json({ accessToken: 'restored-access', user }),
     );
     expect(await session.restore()).toEqual({
       status: 'authenticated',
-      user: null,
+      user,
     });
     expect(calls).toHaveLength(1);
     expect(calls[0]?.url).toBe(`${origin}/auth/refresh`);

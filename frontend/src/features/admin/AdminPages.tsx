@@ -195,7 +195,7 @@ export function AdminOverviewPage() {
         )}
       </form>
       {loading ? (
-        <DashboardLoading label="Loading global statistics…" />
+        <DashboardLoading label="Loading global statistics…" variant="cards" />
       ) : error ? (
         <DashboardError message={error} />
       ) : data ? (
@@ -362,7 +362,10 @@ export function AdminUsersPage() {
         title="Users"
         text="Filter accounts and control whether they can authenticate."
       />
-      <section className="card admin-filter admin-filter--users" aria-label="User filters">
+      <section
+        className="card admin-filter admin-filter--users"
+        aria-label="User filters"
+      >
         <label className="admin-filter__primary">
           Search by email
           <input
@@ -417,7 +420,7 @@ export function AdminUsersPage() {
         </p>
       )}
       {loading ? (
-        <DashboardLoading label="Loading users…" />
+        <DashboardLoading label="Loading users…" variant="admin" />
       ) : error ? (
         <DashboardError message={error} retry={() => void load()} />
       ) : items.length ? (
@@ -527,7 +530,9 @@ function AdminUsersTable({
 export function AdminLinksPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'' | AdminLink['status']>('');
+  const [filterStatus, setFilterStatus] = useState<'' | AdminLink['status']>(
+    '',
+  );
   const [userId, setUserId] = useState('');
   const [items, setItems] = useState<AdminLink[]>([]);
   const [total, setTotal] = useState(0);
@@ -605,7 +610,10 @@ export function AdminLinksPage() {
         title="Links"
         text="Filter links across the service and control redirect availability."
       />
-      <section className="card admin-filter admin-filter--links" aria-label="Link filters">
+      <section
+        className="card admin-filter admin-filter--links"
+        aria-label="Link filters"
+      >
         <label className="admin-filter__primary">
           Search links or owner email
           <input
@@ -660,7 +668,7 @@ export function AdminLinksPage() {
         </p>
       )}
       {loading ? (
-        <DashboardLoading label="Loading links…" />
+        <DashboardLoading label="Loading links…" variant="admin" />
       ) : error ? (
         <DashboardError message={error} retry={() => void load()} />
       ) : items.length ? (
@@ -730,7 +738,9 @@ function AdminLinksTable({
                   <strong title={link.title ?? link.shortCode}>
                     {link.title ?? link.shortCode}
                   </strong>
-                  <small title={link.destinationUrl}>{link.destinationUrl}</small>
+                  <small title={link.destinationUrl}>
+                    {link.destinationUrl}
+                  </small>
                 </div>
               </td>
               <td data-label="Owner">

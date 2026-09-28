@@ -132,6 +132,13 @@
   justify-content: space-between;
   gap: var(--space-6);
 }
+.shorten-result--loading .loading-skeleton__line,
+.shorten-result--loading .loading-skeleton__button {
+  animation: skeleton-pulse 1.4s ease-in-out infinite alternate;
+}
+.shorten-result--loading .shorten-result__details {
+  width: min(100%, 34rem);
+}
 .shorten-result__details {
   display: grid;
   gap: var(--space-2);

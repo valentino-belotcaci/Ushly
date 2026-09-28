@@ -297,6 +297,24 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
           </div>
         </div>
       </section>
+      {busy && !result && (
+        <section
+          className="card shorten-result shorten-result--loading"
+          aria-hidden="true"
+        >
+          <div className="card__body">
+            <div className="shorten-result__details">
+              <span className="loading-skeleton__line is-medium" />
+              <span className="loading-skeleton__line is-long" />
+            </div>
+            <div className="shorten-result__actions">
+              {Array.from({ length: 3 }, (_, index) => (
+                <span className="loading-skeleton__button" key={index} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       {result && (
         <section className="card shorten-result" aria-label="Shortening result">
           <div className="card__body">

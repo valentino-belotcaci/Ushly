@@ -89,7 +89,16 @@ test('refresh sessions', async (t) => {
       assert.ok(!JSON.stringify(stored).includes(old));
       const rotated = await post('/auth/refresh', old);
       assert.equal(rotated.statusCode, 200);
-      assert.deepEqual(Object.keys(rotated.json()).sort(), ['accessToken', 'googleLinkAvailable']);
+      assert.deepEqual(Object.keys(rotated.json()).sort(), [
+        'accessToken',
+        'googleLinkAvailable',
+        'user',
+      ]);
+      assert.deepEqual(rotated.json().user, {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt.toISOString(),
+      });
       assert.equal(
         app.jwt.verify<{ sub: string }>(rotated.json().accessToken).sub,
         user.id,

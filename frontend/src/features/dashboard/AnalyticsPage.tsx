@@ -108,7 +108,8 @@ export function AnalyticsPage() {
     setRange(draft);
   }
 
-  if (links.loading) return <DashboardLoading label="Loading analytics…" />;
+  if (links.loading)
+    return <DashboardLoading label="Loading analytics…" variant="analytics" />;
   if (links.error)
     return (
       <DashboardError message={links.error} retry={() => void links.reload()} />
@@ -200,7 +201,10 @@ export function AnalyticsPage() {
         )}
       </form>
       {loading ? (
-        <DashboardLoading label="Loading click analytics…" />
+        <DashboardLoading
+          label="Loading click analytics…"
+          variant="analytics"
+        />
       ) : error ? (
         <DashboardError
           message={error}

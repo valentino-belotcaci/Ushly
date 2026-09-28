@@ -80,6 +80,9 @@ export async function changeSession(
     const user = await tx.user.findUnique({
       where: { id: token.userId },
       select: {
+        id: true,
+        email: true,
+        createdAt: true,
         provider: true,
         passwordHash: true,
         disabledAt: true,
@@ -90,6 +93,17 @@ export async function changeSession(
     const googleLinkEligible = user?.provider === 'local' &&
       user.passwordHash !== null && user.disabledAt === null &&
       user.identities.length === 0;
-    return { userId: token.userId, expiresAt: token.expiresAt, googleLinkEligible };
+    return {
+      userId: token.userId,
+      expiresAt: token.expiresAt,
+      googleLinkEligible,
+      user: user
+        ? {
+            id: user.id,
+            email: user.email,
+            createdAt: user.createdAt.toISOString(),
+          }
+        : null,
+    };
   });
 }

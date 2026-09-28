@@ -62,7 +62,8 @@ function localDateTime(iso: string | null): string {
 }
 
 function displayedStatus(link: OwnedLink): 'Active' | 'Disabled' | 'Expired' {
-  if (link.expiresAt && Date.parse(link.expiresAt) <= Date.now()) return 'Expired';
+  if (link.expiresAt && Date.parse(link.expiresAt) <= Date.now())
+    return 'Expired';
   if (link.status === 'disabled') return 'Disabled';
   return 'Active';
 }
@@ -375,7 +376,7 @@ export function LinksPage() {
         </p>
       )}
       {loading ? (
-        <DashboardLoading label="Loading your links…" />
+        <DashboardLoading label="Loading your links…" variant="links" />
       ) : error ? (
         <DashboardError message={error} retry={() => void reload()} />
       ) : !data?.items.length ? (
@@ -445,6 +446,7 @@ export function LinksPage() {
                         {publicShortUrl(link.shortCode)}
                       </a>
                       <span
+                        className="dashboard-destination-url"
                         title={link.destinationUrl}
                         aria-label={link.destinationUrl}
                       >
@@ -482,7 +484,9 @@ export function LinksPage() {
                             title="Visit short URL"
                           >
                             <DashboardIcon name="external" />
-                            <span className="dashboard-action-label">Visit</span>
+                            <span className="dashboard-action-label">
+                              Visit
+                            </span>
                           </a>
                           <Button
                             variant="quiet"
@@ -685,7 +689,7 @@ export function LinksPage() {
           <div className="dashboard-qr-dialog">
             <div className="dashboard-qr-preview">
               {qrBusy ? (
-                <DashboardLoading label="Loading QR code…" />
+                <DashboardLoading label="Loading QR code…" variant="cards" />
               ) : qrError ? (
                 <DashboardError
                   message={qrError}

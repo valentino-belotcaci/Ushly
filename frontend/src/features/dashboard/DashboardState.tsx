@@ -1,15 +1,20 @@
 import type { ReactNode } from 'react';
 import { Button } from '../../components/Button';
-import { LoadingState } from '../../components/LoadingState';
+import {
+  LoadingState,
+  type LoadingStateVariant,
+} from '../../components/LoadingState';
 
 export function DashboardLoading({
   label = 'Loading your workspace…',
+  variant = 'page',
 }: {
   label?: string;
+  variant?: LoadingStateVariant;
 }) {
   return (
-    <div className="dashboard-state card">
-      <LoadingState label={label} />
+    <div className={`dashboard-state dashboard-state--loading-${variant} card`}>
+      <LoadingState label={label} variant={variant} />
     </div>
   );
 }

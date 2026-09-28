@@ -42,7 +42,8 @@ export function QrCodesPage() {
       if (next) URL.revokeObjectURL(next);
     };
   }, [selectedId]);
-  if (links.loading) return <DashboardLoading label="Loading QR codes…" />;
+  if (links.loading)
+    return <DashboardLoading label="Loading QR codes…" variant="list" />;
   if (links.error)
     return (
       <DashboardError message={links.error} retry={() => void links.reload()} />
@@ -99,7 +100,7 @@ export function QrCodesPage() {
           </div>
           <div className="qr-preview">
             {loading ? (
-              <DashboardLoading label="Generating QR code…" />
+              <DashboardLoading label="Generating QR code…" variant="cards" />
             ) : error ? (
               <DashboardError message={error} />
             ) : (

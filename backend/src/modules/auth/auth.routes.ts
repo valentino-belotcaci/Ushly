@@ -80,10 +80,11 @@ const authRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
         response: {
           200: {
             type: 'object',
-            required: ['accessToken', 'googleLinkAvailable'],
+            required: ['accessToken', 'user', 'googleLinkAvailable'],
             additionalProperties: false,
             properties: {
               accessToken: { type: 'string' },
+              user: registerSchema.response[201],
               googleLinkAvailable: { type: 'boolean' },
             },
           },

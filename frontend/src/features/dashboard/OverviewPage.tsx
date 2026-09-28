@@ -11,7 +11,7 @@ import { publicShortUrl } from './api';
 
 export function OverviewPage() {
   const { data, loading, error, reload } = useOwnedLinks(1, 5);
-  if (loading) return <DashboardLoading />;
+  if (loading) return <DashboardLoading variant="overview" />;
   if (error)
     return <DashboardError message={error} retry={() => void reload()} />;
   const links = data?.items ?? [];

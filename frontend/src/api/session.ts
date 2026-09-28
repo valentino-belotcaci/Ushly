@@ -76,6 +76,11 @@ function googleLinkAvailabilityFrom(value: unknown): boolean | undefined {
   return value.googleLinkAvailable;
 }
 
+function optionalUserFrom(value: unknown): AuthUser | undefined {
+  if (!isRecord(value) || !('user' in value)) return undefined;
+  return userFrom(value.user);
+}
+
 function loginFrom(value: unknown): {
   accessToken: string;
   user: AuthUser;
@@ -224,12 +229,15 @@ export class ApiSession {
       if (!response.ok) throw await errorFrom(response);
       const data = await jsonFrom(response);
       const token = tokenFrom(data);
+      const user = optionalUserFrom(data);
       const googleLinkAvailable = googleLinkAvailabilityFrom(data);
       if (generation !== this.generation) throw sessionChanged();
       this.accessToken = token;
       this.setState({
         status: 'authenticated',
-        user: this.state.status === 'authenticated' ? this.state.user : null,
+        user:
+          user ??
+          (this.state.status === 'authenticated' ? this.state.user : null),
         ...(googleLinkAvailable === undefined ? {} : { googleLinkAvailable }),
       });
       return token;
