@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { apiSession } from '../../api/session';
 import { ToastProvider } from '../../components/ToastProvider';
 import { SettingsPage } from './SettingsPage';
+import { MemoryRouter } from 'react-router';
 
 beforeEach(() => vi.restoreAllMocks());
 
@@ -17,9 +18,11 @@ function renderSettings(googleLinkAvailable: boolean) {
     googleLinkAvailable,
   });
   render(
-    <ToastProvider>
-      <SettingsPage />
-    </ToastProvider>,
+    <MemoryRouter>
+      <ToastProvider>
+        <SettingsPage />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 

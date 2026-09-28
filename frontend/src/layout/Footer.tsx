@@ -11,13 +11,13 @@ export function Footer() {
   const productPaths = ['/url-shortener', '/qr-codes', '/analytics', '/features'] as const;
   const groups = [
     { label: t.layout.product, links: productPaths.map((to, index) => ({ label: t.layout.nav[index], to: localizedPath(to, locale, localePrefix) })) },
-    { label: t.layout.resources, links: [{ label: t.layout.contact, to: '/contact' }] },
+    { label: t.layout.resources, links: [{ label: t.layout.contact, to: localizedPath('/contact', locale, localePrefix) }] },
     { label: t.layout.legal, links: [
       { label: t.layout.privacy, to: localePrefix ? localizedPath('/privacy-policy', locale) : '/privacy' },
       { label: t.layout.cookies, to: localePrefix ? localizedPath('/cookie-policy', locale) : '/cookies' },
       { label: t.layout.terms, to: localePrefix ? localizedPath('/terms-of-service', locale) : '/terms' },
     ] },
-    { label: t.layout.account, links: [{ label: t.layout.login, to: '/login' }, { label: t.layout.getStarted, to: '/register' }] },
+    { label: t.layout.account, links: [{ label: t.layout.login, to: localizedPath('/login', locale, localePrefix) }, { label: t.layout.getStarted, to: localizedPath('/register', locale, localePrefix) }] },
   ];
   return (
     <footer className="site-footer">

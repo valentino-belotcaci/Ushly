@@ -117,9 +117,12 @@ export function Header() {
               ].map((link, index) => (
                 <Link
                   key={link.to}
-                  to={link.to}
+                  to={localizedPath(link.to, locale, localePrefix)}
                   aria-current={
-                    location.pathname === link.to ? 'page' : undefined
+                    location.pathname ===
+                    localizedPath(link.to, locale, localePrefix)
+                      ? 'page'
+                      : undefined
                   }
                   onClick={closeMenu}
                   className={`button button--${index === 0 ? 'quiet' : 'primary'}`}

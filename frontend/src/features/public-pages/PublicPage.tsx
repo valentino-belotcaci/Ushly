@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router';
 import { PageContainer } from '../../layout/PageContainer';
-import { publicPages, type PublicPagePath } from './content';
+import type { PublicPagePath } from './routes';
+import type { Translation } from '../../i18n';
 import './public-pages.css';
 import { translations } from '../../i18n';
 import { localizedPath, useLocale } from '../../i18n/locale';
@@ -8,7 +9,7 @@ import { localizedPath, useLocale } from '../../i18n/locale';
 function PageVisual({
   kind,
 }: {
-  kind: (typeof publicPages)[PublicPagePath]['visual'];
+  kind: Translation['public']['pages'][PublicPagePath]['visual'];
 }) {
   return (
     <svg

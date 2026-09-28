@@ -17,7 +17,7 @@ import {
 
 import { generatePublicQr } from './qr';
 import { translations } from '../../i18n';
-import { useLocale } from '../../i18n/locale';
+import { useLocale, useLocalizedRoute } from '../../i18n/locale';
 
 const subscribeToHydration = () => () => {};
 const clientSnapshot = () => true;
@@ -26,6 +26,7 @@ const serverSnapshot = () => false;
 // A future session provider can supply an in-memory access token; this task creates no session flow.
 export function ShortenForm({ accessToken }: { accessToken?: string }) {
   const locale = useLocale();
+  const route = useLocalizedRoute();
   const t = translations(locale).form;
   const interactive = useSyncExternalStore(
     subscribeToHydration,
@@ -303,7 +304,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
               <path d="M4 19V5M4 19h16M8 15l4-4 3 2 5-6" />
             </svg>
             <span>{t.analyticsPrompt}</span>
-            <Link to="/register">{t.createAccount}</Link>
+            <Link to={route('/register')}>{t.createAccount}</Link>
           </div>
         </div>
       </section>

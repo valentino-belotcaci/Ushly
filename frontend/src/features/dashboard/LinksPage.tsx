@@ -24,33 +24,35 @@ import {
 } from './DashboardState';
 import { DashboardIcon } from './icons';
 import { useOwnedLinks } from './useOwnedLinks';
+import { translations, type Translation } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
 const pageSizes = [10, 20, 50] as const;
 
-function safeMessage(failure: unknown): string {
+function safeMessage(failure: unknown, fallback: string): string {
   return failure instanceof ApiClientError
     ? failure.message
-    : 'The link could not be updated. Please try again.';
+    : fallback;
 }
 
-function validateUrl(value: string): string {
-  if (!value) return 'Enter a destination URL.';
-  if (value.length > 2048) return 'The destination URL is too long.';
+function validateUrl(value: string, text: Translation['dashboard']['links']): string {
+  if (!value) return text.urlRequired;
+  if (value.length > 2048) return text.urlLong;
   try {
     const parsed = new URL(value);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
-      return 'Use an HTTP or HTTPS URL.';
+      return text.urlProtocol;
   } catch {
-    return 'Enter a complete URL, including https://.';
+    return text.urlComplete;
   }
   return '';
 }
 
-function validateExpiration(value: string): string {
+function validateExpiration(value: string, text: Translation['dashboard']['links']): string {
   if (!value) return '';
   const timestamp = new Date(value).getTime();
   return Number.isNaN(timestamp) || timestamp <= Date.now()
-    ? 'Choose a future expiration date and time.'
+    ? text.futureExpiration
     : '';
 }
 
@@ -69,6 +71,7 @@ function displayedStatus(link: OwnedLink): 'Active' | 'Disabled' | 'Expired' {
 }
 
 function LinkStatusBadge({ link }: { link: OwnedLink }) {
+  const common = translations(useLocale()).common;
   const status = displayedStatus(link);
   return (
     <Badge
@@ -80,7 +83,11 @@ function LinkStatusBadge({ link }: { link: OwnedLink }) {
             : 'neutral'
       }
     >
-      {status}
+      {status === 'Active'
+        ? common.active
+        : status === 'Expired'
+          ? common.expired
+          : common.disabled}
     </Badge>
   );
 }
@@ -103,6 +110,7 @@ function CreateLinkForm({
   loading: boolean;
   onSubmit: (input: CreateLinkInput) => Promise<boolean>;
 }) {
+  const text = translations(useLocale()).dashboard.links;
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
@@ -112,8 +120,8 @@ function CreateLinkForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (disabled) return;
-    const nextUrlError = validateUrl(url.trim());
-    const nextExpirationError = validateExpiration(expiresAt);
+    const nextUrlError = validateUrl(url.trim(), text);
+    const nextExpirationError = validateExpiration(expiresAt, text);
     setUrlError(nextUrlError);
     setExpirationError(nextExpirationError);
     if (nextUrlError || nextExpirationError) return;
@@ -131,7 +139,7 @@ function CreateLinkForm({
   return (
     <form className="dashboard-create-form" onSubmit={submit} noValidate>
       <Input
-        label="Destination URL"
+        label={text.destination}
         type="url"
         autoComplete="url"
         required
@@ -146,15 +154,15 @@ function CreateLinkForm({
         disabled={disabled}
       />
       <Input
-        label="Title (optional)"
+        label={text.titleOptional}
         maxLength={200}
-        placeholder="Campaign link"
+        placeholder={text.titlePlaceholder}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         disabled={disabled}
       />
       <Input
-        label="Expires at (optional)"
+        label={text.expiresOptional}
         type="datetime-local"
         value={expiresAt}
         {...(expirationError ? { error: expirationError } : {})}
@@ -165,13 +173,15 @@ function CreateLinkForm({
         disabled={disabled}
       />
       <Button type="submit" loading={loading} disabled={disabled}>
-        Shorten link
+        {text.shorten}
       </Button>
     </form>
   );
 }
 
 export function LinksPage() {
+  const i18n = translations(useLocale());
+  const text = i18n.dashboard.links;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof pageSizes)[number]>(20);
   const { data, loading, error, reload } = useOwnedLinks(page, pageSize);
@@ -221,10 +231,10 @@ export function LinksPage() {
       await createOwnedLink(input);
       if (page === 1) await reload();
       else setPage(1);
-      notify('Link created successfully.', 'success', 3000);
+      notify(text.created, 'success', 3000);
       return true;
     } catch (failure) {
-      setPageError(safeMessage(failure));
+      setPageError(safeMessage(failure, text.updateError));
       return false;
     } finally {
       setBusy('');
@@ -245,7 +255,7 @@ export function LinksPage() {
       notify(success, 'success', 3000);
       return true;
     } catch (failure) {
-      setPageError(safeMessage(failure));
+      setPageError(safeMessage(failure, text.updateError));
       return false;
     } finally {
       setBusy('');
@@ -255,10 +265,10 @@ export function LinksPage() {
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editing) return;
-    const nextUrlError = validateUrl(editing.destinationUrl.trim());
+    const nextUrlError = validateUrl(editing.destinationUrl.trim(), text);
     const expirationChanged = editing.expiresAt !== originalExpiration;
     const nextExpirationError = expirationChanged
-      ? validateExpiration(localDateTime(editing.expiresAt))
+      ? validateExpiration(localDateTime(editing.expiresAt), text)
       : '';
     setUrlError(nextUrlError);
     setExpirationError(nextExpirationError);
@@ -271,7 +281,7 @@ export function LinksPage() {
           title: editing.title?.trim() || null,
           ...(expirationChanged ? { expiresAt: editing.expiresAt } : {}),
         }),
-      'Link updated successfully.',
+      text.updated,
     );
     if (saved) setEditing(null);
   }
@@ -287,7 +297,7 @@ export function LinksPage() {
       }, 2000);
     } catch {
       notify(
-        'Copy is unavailable. Select the short URL and copy it manually.',
+        text.copyUnavailable,
         'warning',
       );
     }
@@ -305,7 +315,8 @@ export function LinksPage() {
       qrObjectUrl.current = source;
       setQrSource(source);
     } catch (failure) {
-      if (attempt === qrAttempt.current) setQrError(safeMessage(failure));
+      if (attempt === qrAttempt.current)
+        setQrError(safeMessage(failure, text.updateError));
     } finally {
       if (attempt === qrAttempt.current) setQrBusy(false);
     }
@@ -319,7 +330,7 @@ export function LinksPage() {
       await mutate(
         link.id,
         () => setOwnedLinkActive(link.id, false),
-        'Link deactivated.',
+        text.deactivated,
       );
       return;
     }
@@ -330,9 +341,9 @@ export function LinksPage() {
       await deleteOwnedLink(link.id);
       if (data?.items.length === 1 && page > 1) setPage(page - 1);
       else await reload();
-      notify('Link deleted.', 'success', 3000);
+      notify(text.deleted, 'success', 3000);
     } catch (failure) {
-      setPageError(safeMessage(failure));
+      setPageError(safeMessage(failure, text.updateError));
     } finally {
       setBusy('');
     }
@@ -349,8 +360,8 @@ export function LinksPage() {
     <div className="dashboard-page dashboard-links-page">
       <header className="dashboard-page-header">
         <div>
-          <p className="dashboard-eyebrow">Manage</p>
-          <h1>Links</h1>
+          <p className="dashboard-eyebrow">{text.eyebrow}</p>
+          <h1>{text.pageTitle}</h1>
           <p>
             Create, share, and control the short links owned by your account.
           </p>
@@ -361,8 +372,8 @@ export function LinksPage() {
         aria-labelledby="create-link-title"
       >
         <header>
-          <h2 id="create-link-title">Create a short link</h2>
-          <p>Only HTTP and HTTPS destinations are supported.</p>
+          <h2 id="create-link-title">{text.createTitle}</h2>
+          <p>{text.createLead}</p>
         </header>
         <CreateLinkForm
           disabled={Boolean(busy)}
@@ -376,13 +387,13 @@ export function LinksPage() {
         </p>
       )}
       {loading ? (
-        <DashboardLoading label="Loading your links…" variant="links" />
+        <DashboardLoading label={text.loading} variant="links" />
       ) : error ? (
         <DashboardError message={error} retry={() => void reload()} />
       ) : !data?.items.length ? (
         <DashboardEmpty
-          title="No owned links"
-          text="Create your first link above. Links created while signed in will appear here."
+          title={text.empty}
+          text={text.emptyText}
         />
       ) : (
         <section
@@ -391,13 +402,13 @@ export function LinksPage() {
         >
           <header className="dashboard-links-toolbar">
             <div>
-              <h2 id="owned-links-title">Your links</h2>
+              <h2 id="owned-links-title">{text.yours}</h2>
               <p>
-                Showing {rangeStart}–{rangeEnd} of {data.total}
+                {text.showing} {rangeStart}–{rangeEnd} {i18n.common.of} {data.total}
               </p>
             </div>
             <label>
-              Rows per page
+              {i18n.common.rowsPerPage}
               <select
                 className="input dashboard-page-size"
                 value={pageSize}
@@ -418,23 +429,23 @@ export function LinksPage() {
             </label>
           </header>
           <Table
-            caption="Short links owned by your account"
+            caption={text.caption}
             className="dashboard-links-table"
           >
             <thead>
               <tr>
-                <th scope="col">Link</th>
-                <th scope="col">Status</th>
-                <th scope="col">Expiration</th>
-                <th scope="col">Actions</th>
+                <th scope="col">{i18n.common.link}</th>
+                <th scope="col">{i18n.common.status}</th>
+                <th scope="col">{i18n.common.expiration}</th>
+                <th scope="col">{i18n.common.actions}</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((link) => (
                 <tr key={link.id}>
-                  <td data-label="Link">
+                  <td data-label={i18n.common.link}>
                     <div className="dashboard-link-details">
-                      <strong>{link.title ?? 'Untitled link'}</strong>
+                      <strong>{link.title ?? i18n.common.untitledLink}</strong>
                       <a
                         className="dashboard-short-url"
                         href={publicShortUrl(link.shortCode)}
@@ -454,10 +465,10 @@ export function LinksPage() {
                       </span>
                     </div>
                   </td>
-                  <td data-label="Status">
+                  <td data-label={i18n.common.status}>
                     <LinkStatusBadge link={link} />
                   </td>
-                  <td data-label="Expiration">
+                  <td data-label={i18n.common.expiration}>
                     <span className="dashboard-expiration">
                       {link.expiresAt ? (
                         <time
@@ -467,11 +478,11 @@ export function LinksPage() {
                           {formatDateTime(link.expiresAt)}
                         </time>
                       ) : (
-                        'Never'
+                        i18n.common.never
                       )}
                     </span>
                   </td>
-                  <td data-label="Actions">
+                  <td data-label={i18n.common.actions}>
                     <div className="dashboard-link-actions">
                       {displayedStatus(link) === 'Active' && (
                         <>
@@ -480,12 +491,11 @@ export function LinksPage() {
                             href={publicShortUrl(link.shortCode)}
                             target="_blank"
                             rel="noreferrer"
-                            aria-label="Visit short URL"
-                            title="Visit short URL"
+                            aria-label={text.visitShort}
+                            title={text.visitShort}
                           >
                             <DashboardIcon name="external" />
-                            <span className="dashboard-action-label">
-                              Visit
+                            <span className="dashboard-action-label">{i18n.common.visit}
                             </span>
                           </a>
                           <Button
@@ -493,21 +503,21 @@ export function LinksPage() {
                             aria-live="polite"
                             aria-label={
                               copiedId === link.id
-                                ? 'Short URL copied'
-                                : 'Copy short URL'
+                                ? text.shortCopied
+                                : text.copyShort
                             }
-                            title="Copy short URL"
+                            title={text.copyShort}
                             onClick={() => void copy(link)}
                           >
                             <DashboardIcon name="copy" />
                             <span className="dashboard-action-label">
-                              {copiedId === link.id ? 'Copied' : 'Copy'}
+                              {copiedId === link.id ? i18n.common.copied : i18n.common.copy}
                             </span>
                           </Button>
                           <Button
                             variant="quiet"
-                            aria-label="Preview and download QR code"
-                            title="Preview and download QR code"
+                            aria-label={text.qrAction}
+                            title={text.qrAction}
                             onClick={() => void openQr(link)}
                           >
                             <DashboardIcon name="qr" />
@@ -517,8 +527,8 @@ export function LinksPage() {
                       )}
                       <Button
                         variant="quiet"
-                        aria-label="Edit link"
-                        title="Edit link"
+                        aria-label={text.editLink}
+                        title={text.editLink}
                         onClick={() => {
                           setUrlError('');
                           setExpirationError('');
@@ -528,55 +538,53 @@ export function LinksPage() {
                         }}
                       >
                         <DashboardIcon name="edit" />
-                        <span className="dashboard-action-label">Edit</span>
+                        <span className="dashboard-action-label">{i18n.common.edit}</span>
                       </Button>
                       {displayedStatus(link) !== 'Expired' &&
                         (displayedStatus(link) === 'Active' ? (
                           <Button
                             variant="secondary"
                             loading={busy === link.id}
-                            aria-label="Disable link"
-                            title="Disable link"
+                            aria-label={text.disableLink}
+                            title={text.disableLink}
                             onClick={() =>
                               setConfirmation({ kind: 'deactivate', link })
                             }
                           >
                             <DashboardIcon name="power" />
-                            <span className="dashboard-action-label">
-                              Disable
+                            <span className="dashboard-action-label">{i18n.common.disable}
                             </span>
                           </Button>
                         ) : (
                           <Button
                             variant="secondary"
                             loading={busy === link.id}
-                            aria-label="Enable link"
-                            title="Enable link"
+                            aria-label={text.enableLink}
+                            title={text.enableLink}
                             onClick={() =>
                               void mutate(
                                 link.id,
                                 () => setOwnedLinkActive(link.id, true),
-                                'Link enabled.',
+                                text.enabled,
                               )
                             }
                           >
                             <DashboardIcon name="power" />
-                            <span className="dashboard-action-label">
-                              Enable
+                            <span className="dashboard-action-label">{i18n.common.enable}
                             </span>
                           </Button>
                         ))}
                       <Button
                         variant="danger"
                         loading={busy === link.id}
-                        aria-label="Delete link"
-                        title="Delete link"
+                        aria-label={text.deleteLink}
+                        title={text.deleteLink}
                         onClick={() =>
                           setConfirmation({ kind: 'delete', link })
                         }
                       >
                         <DashboardIcon name="trash" />
-                        <span className="dashboard-action-label">Delete</span>
+                        <span className="dashboard-action-label">{i18n.common.delete}</span>
                       </Button>
                     </div>
                   </td>
@@ -597,12 +605,12 @@ export function LinksPage() {
         <Dialog
           open
           onClose={() => setEditing(null)}
-          title="Edit link"
-          description="Update this owned link. Expiration must be in the future."
+          title={text.editLink}
+          description={text.editDescription}
         >
           <form className="dashboard-edit-form" onSubmit={saveEdit} noValidate>
             <Input
-              label="Destination URL"
+              label={text.destination}
               type="url"
               autoComplete="url"
               required
@@ -615,7 +623,7 @@ export function LinksPage() {
               }}
             />
             <Input
-              label="Title"
+              label={text.title}
               maxLength={200}
               value={editing.title ?? ''}
               onChange={(event) =>
@@ -623,7 +631,7 @@ export function LinksPage() {
               }
             />
             <Input
-              label="Expires at"
+              label={text.expires}
               type="datetime-local"
               value={localDateTime(editing.expiresAt)}
               {...(expirationError ? { error: expirationError } : {})}
@@ -644,10 +652,10 @@ export function LinksPage() {
             )}
             <div className="row">
               <Button type="submit" loading={busy === editing.id}>
-                Save changes
+                {text.saveChanges}
               </Button>
               <Button variant="secondary" onClick={() => setEditing(null)}>
-                Cancel
+                {i18n.common.cancel}
               </Button>
             </div>
           </form>
@@ -658,12 +666,12 @@ export function LinksPage() {
           open
           onClose={() => setConfirmation(null)}
           title={
-            confirmation.kind === 'delete' ? 'Delete link?' : 'Disable link?'
+            confirmation.kind === 'delete' ? text.deleteQuestion : text.disableQuestion
           }
           description={
             confirmation.kind === 'delete'
-              ? 'This permanently removes the link and its owner access. This action cannot be undone.'
-              : 'The public short URL will stop redirecting until you enable it again.'
+              ? text.deleteDescription
+              : text.disableDescription
           }
         >
           <div className="dashboard-confirm-actions">
@@ -671,10 +679,10 @@ export function LinksPage() {
               variant={confirmation.kind === 'delete' ? 'danger' : 'primary'}
               onClick={() => void confirmAction()}
             >
-              {confirmation.kind === 'delete' ? 'Delete link' : 'Disable link'}
+              {confirmation.kind === 'delete' ? text.deleteLink : text.disableLink}
             </Button>
             <Button variant="secondary" onClick={() => setConfirmation(null)}>
-              Cancel
+              {i18n.common.cancel}
             </Button>
           </div>
         </Dialog>
@@ -683,13 +691,13 @@ export function LinksPage() {
         <Dialog
           open
           onClose={clearQr}
-          title="Download QR code"
-          description={`This QR code contains ${publicShortUrl(qrLink.shortCode)}.`}
+          title={text.downloadQr}
+          description={`${text.qrDescription} ${publicShortUrl(qrLink.shortCode)}.`}
         >
           <div className="dashboard-qr-dialog">
             <div className="dashboard-qr-preview">
               {qrBusy ? (
-                <DashboardLoading label="Loading QR code…" variant="cards" />
+                <DashboardLoading label={text.loadingQr} variant="cards" />
               ) : qrError ? (
                 <DashboardError
                   message={qrError}
@@ -699,13 +707,13 @@ export function LinksPage() {
                 qrSource && (
                   <img
                     src={qrSource}
-                    alt={`QR code for ${publicShortUrl(qrLink.shortCode)}`}
+                    alt={`${text.qrAlt} ${publicShortUrl(qrLink.shortCode)}`}
                   />
                 )
               )}
             </div>
             <div className="dashboard-qr-copy">
-              <strong>{qrLink.title ?? 'Untitled link'}</strong>
+              <strong>{qrLink.title ?? i18n.common.untitledLink}</strong>
               <span>{publicShortUrl(qrLink.shortCode)}</span>
               {qrSource && (
                 <a
@@ -714,7 +722,7 @@ export function LinksPage() {
                   download={`ushly-${qrLink.shortCode}.svg`}
                 >
                   <DashboardIcon name="download" />
-                  Download SVG
+                  {text.downloadSvg}
                 </a>
               )}
             </div>

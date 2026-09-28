@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { AnalyticsPage } from './AnalyticsPage';
 import { getOwnedStatistics } from './api';
 import { useOwnedLinks } from './useOwnedLinks';
+import { MemoryRouter } from 'react-router';
 
 vi.mock('./api', () => ({ getOwnedStatistics: vi.fn() }));
 vi.mock('./useOwnedLinks', () => ({ useOwnedLinks: vi.fn() }));
@@ -48,7 +49,7 @@ beforeEach(() => {
 });
 
 it('renders all owner statistics sections with explicit UTC context', async () => {
-  render(<AnalyticsPage />);
+  render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
   const summary = await screen.findByRole('region', {
     name: 'Analytics summary',
   });
@@ -67,7 +68,7 @@ it('renders all owner statistics sections with explicit UTC context', async () =
 
 it('rejects an invalid range before requesting statistics again', async () => {
   const user = userEvent.setup();
-  render(<AnalyticsPage />);
+  render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
   await screen.findByText('Clicks over time');
   await user.clear(screen.getByLabelText('From (UTC)'));
   await user.type(screen.getByLabelText('From (UTC)'), '2026-05-02T00:00');

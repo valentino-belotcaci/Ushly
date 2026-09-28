@@ -1,4 +1,4 @@
-import { publicPages, type PublicPagePath } from './content';
+import type { PublicPagePath } from './routes';
 import { translations } from '../../i18n/index.ts';
 import type { Locale } from '../../i18n/locale.ts';
 
@@ -16,7 +16,7 @@ export function publicPageMetadata(
   locale: Locale = 'en',
   routePath: string = path,
 ): string {
-  const page = locale === 'en' ? publicPages[path] : translations(locale).public.pages[path];
+  const page = translations(locale).public.pages[path];
   const title = `${page.pageTitle} | Ushly`;
   const routeCanonical = siteOrigin ? `${siteOrigin}${routePath}` : undefined;
   const image = siteOrigin

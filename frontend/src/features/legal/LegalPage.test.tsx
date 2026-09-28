@@ -2,10 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { expect, it } from 'vitest';
 import { LegalPage } from './LegalPage';
-import { legalPages, type LegalPagePath } from './content';
+import { legalPagePaths, type LegalPagePath } from './routes';
+import { en } from '../../i18n/en';
 import { legalPageMetadata } from './metadata';
 
-const paths = Object.keys(legalPages) as LegalPagePath[];
+const paths: readonly LegalPagePath[] = legalPagePaths;
 
 it.each(paths)(
   'renders accurate legal content and related navigation for %s',
@@ -16,7 +17,7 @@ it.each(paths)(
       </MemoryRouter>,
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      legalPages[path].title,
+      en.legal.pages[path].title,
     );
   expect(screen.getByLabelText('Production review notice')).toHaveTextContent(
     /project template/i,
@@ -45,7 +46,7 @@ it('provides distinct metadata and configured canonical URLs', () => {
       document
         .querySelector('meta[property="og:description"]')
         ?.getAttribute('content'),
-    ).toBe(legalPages[path].description);
+    ).toBe(en.legal.pages[path].description);
   }
   expect(titles.size).toBe(paths.length);
 });

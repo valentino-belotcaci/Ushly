@@ -1,4 +1,3 @@
-import { homeDescription, homeTitle } from './content.ts';
 import { translations } from '../../i18n/index.ts';
 import type { Locale } from '../../i18n/locale.ts';
 
@@ -14,7 +13,7 @@ export function homepageMetadata(
   locale: Locale = 'en',
   routePath = '/',
 ): string {
-  const home = locale === 'en' ? { title: homeTitle, description: homeDescription } : translations(locale).home;
+  const home = translations(locale).home;
   const title = `${home.title} | Ushly`;
   const image = siteOrigin
     ? `${siteOrigin}/favicon-512x512-dark.png`

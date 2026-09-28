@@ -22,17 +22,17 @@ beforeEach(() => {
 function renderPage(mode: 'login' | 'register') {
   render(
     <ThemeProvider>
-      <ToastProvider>
-        <MemoryRouter
+      <MemoryRouter
           initialEntries={[mode === 'login' ? '/login' : '/register']}
         >
+          <ToastProvider>
           <Routes>
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/register" element={<AuthPage mode="register" />} />
             <Route path="/dashboard" element={<h1>Dashboard workspace</h1>} />
           </Routes>
+          </ToastProvider>
         </MemoryRouter>
-      </ToastProvider>
     </ThemeProvider>,
   );
 }

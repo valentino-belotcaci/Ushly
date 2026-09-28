@@ -4,9 +4,12 @@ export function isAuthPath(path: string): path is AuthPath {
   return path === '/login' || path === '/register';
 }
 
-export function authMetadata(path: AuthPath): string {
+export function authMetadata(path: AuthPath, locale: Locale = 'en'): string {
   const login = path === '/login';
-  return `<title>${login ? 'Log in' : 'Create an account'} | Ushly</title>
-<meta name="description" content="${login ? 'Log in to your Ushly account to manage your links.' : 'Create a Ushly account to manage links and access click analytics.'}">
+  const text = translations(locale).auth;
+  return `<title>${login ? text.loginTitle : text.registerTitle} | Ushly</title>
+<meta name="description" content="${login ? text.loginIntro : text.registerIntro}">
 <meta name="robots" content="noindex, follow">`;
 }
+import { translations } from '../../i18n';
+import type { Locale } from '../../i18n/locale';

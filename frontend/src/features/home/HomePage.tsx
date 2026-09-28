@@ -4,7 +4,7 @@ import { ShortenForm } from './ShortenForm';
 import { UrlExamples } from './UrlExamples';
 import './home.css';
 import { translations } from '../../i18n';
-import { useLocale } from '../../i18n/locale';
+import { useLocale, useLocalizedRoute } from '../../i18n/locale';
 
 function FeatureIcon({ kind }: { kind: 'shorten' | 'qr' | 'analytics' | 'lifetime' }) {
   return (
@@ -46,6 +46,7 @@ function FeatureIcon({ kind }: { kind: 'shorten' | 'qr' | 'analytics' | 'lifetim
 
 export function HomePage() {
   const locale = useLocale();
+  const route = useLocalizedRoute();
   const t = translations(locale).home;
   return (
     <PageContainer className="homepage">
@@ -57,7 +58,7 @@ export function HomePage() {
           <p className="home-intro">{t.intro}</p>
           <Link
             className="button button--primary home-hero__cta"
-            to="/register"
+            to={route('/register')}
           >
             {t.createAccount}
           </Link>
@@ -118,10 +119,10 @@ export function HomePage() {
           <p className="muted">{t.accountText}</p>
         </div>
         <div className="row">
-          <Link className="button button--primary" to="/register">
+          <Link className="button button--primary" to={route('/register')}>
             {t.signup}
           </Link>
-          <Link className="button button--secondary" to="/login">
+          <Link className="button button--secondary" to={route('/login')}>
             {t.login}
           </Link>
         </div>

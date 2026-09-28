@@ -2,13 +2,14 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { expect, it } from 'vitest';
 import { PublicPage } from './PublicPage';
-import { publicPages, type PublicPagePath } from './content';
+import { publicPagePaths, type PublicPagePath } from './routes';
+import { en } from '../../i18n/en';
 import { publicPageMetadata } from './metadata';
 
-const paths = Object.keys(publicPages) as PublicPagePath[];
+const paths: readonly PublicPagePath[] = publicPagePaths;
 
 it.each(paths)('renders accurate, distinct public content for %s', (path) => {
-  const page = publicPages[path];
+  const page = en.public.pages[path];
   render(
     <MemoryRouter>
       <PublicPage path={path} />
@@ -56,7 +57,7 @@ it('gives each public page unique indexable metadata and a configured canonical 
       document
         .querySelector('meta[property="og:description"]')
         ?.getAttribute('content'),
-    ).toBe(publicPages[path].description);
+    ).toBe(en.public.pages[path].description);
     expect(
       document.querySelector('meta[name="robots"]')?.getAttribute('content'),
     ).toBe('index, follow');

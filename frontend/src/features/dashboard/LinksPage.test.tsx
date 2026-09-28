@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../components/ToastProvider';
 import type { OwnedLink } from './api';
 import { LinksPage } from './LinksPage';
+import { MemoryRouter } from 'react-router';
 
 const mocks = vi.hoisted(() => ({
   createOwnedLink: vi.fn(),
@@ -74,9 +75,11 @@ beforeEach(() => {
 
 function renderPage() {
   render(
-    <ToastProvider>
-      <LinksPage />
-    </ToastProvider>,
+    <MemoryRouter>
+      <ToastProvider>
+        <LinksPage />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 

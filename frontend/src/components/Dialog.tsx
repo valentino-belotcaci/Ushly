@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
-import { uiText } from '../content/en';
 import { Button } from './Button';
+import { translations } from '../i18n';
+import { useLocale } from '../i18n/locale';
 
 export function Dialog({
   open,
@@ -15,6 +16,7 @@ export function Dialog({
   description?: string;
   children: ReactNode;
 }) {
+  const text = translations(useLocale()).common;
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
   useEffect(() => {
@@ -43,7 +45,7 @@ export function Dialog({
         <Button
           variant="quiet"
           onClick={onClose}
-          aria-label={uiText.closeDialog}
+          aria-label={text.closeDialog}
         >
           ×
         </Button>

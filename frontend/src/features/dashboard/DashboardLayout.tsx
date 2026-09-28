@@ -18,29 +18,31 @@ import { DashboardIcon, type DashboardIconName } from './icons';
 import { checkAdminAccess } from '../admin/api';
 import './dashboard.css';
 import { localizedPath, useLocale } from '../../i18n/locale';
+import { translations } from '../../i18n';
 
 const navigation: {
   to: string;
-  label: string;
+  labelIndex: number;
   icon: DashboardIconName;
   end?: boolean;
 }[] = [
-  { to: '/dashboard', label: 'Overview', icon: 'overview', end: true },
-  { to: '/dashboard/links', label: 'Links', icon: 'links' },
-  { to: '/dashboard/analytics', label: 'Analytics', icon: 'analytics' },
-  { to: '/dashboard/qr-codes', label: 'QR Codes', icon: 'qr' },
-  { to: '/dashboard/settings', label: 'Settings', icon: 'settings' },
+  { to: '/dashboard', labelIndex: 0, icon: 'overview', end: true },
+  { to: '/dashboard/links', labelIndex: 1, icon: 'links' },
+  { to: '/dashboard/analytics', labelIndex: 2, icon: 'analytics' },
+  { to: '/dashboard/qr-codes', labelIndex: 3, icon: 'qr' },
+  { to: '/dashboard/settings', labelIndex: 4, icon: 'settings' },
 ];
 
 export function DashboardGuard() {
   const session = useSession();
   const location = useLocation();
   const locale = useLocale();
+  const text = translations(locale).dashboard;
   const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(location.pathname);
   if (session.status === 'checking')
     return (
       <main className="dashboard-auth-state">
-        <LoadingState label="Restoring your session…" />
+        <LoadingState label={text.restoring} />
       </main>
     );
   if (session.status === 'anonymous')
@@ -59,6 +61,8 @@ function DashboardLayout() {
   const navigate = useNavigate();
   const notify = useToast();
   const locale = useLocale();
+  const copy = translations(locale);
+  const text = copy.dashboard;
   const location = useLocation();
   const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(location.pathname);
   const route = (path: string) => localizedPath(path, locale, localePrefix);
@@ -95,11 +99,11 @@ function DashboardLayout() {
     setLoggingOut(true);
     try {
       await apiSession.logout();
-      notify('You have logged out.', 'success', 3000);
+      notify(copy.layout.loggedOut, 'success', 3000);
       navigate(route('/login'), { replace: true });
     } catch {
       notify(
-        'You are signed out here, but the server could not confirm logout. Please try again when connected.',
+        copy.layout.logoutWarning,
         'warning',
       );
       navigate(route('/login'), { replace: true });
@@ -109,10 +113,10 @@ function DashboardLayout() {
   return (
     <div className="dashboard-shell">
       <a className="skip-link" href="#dashboard-content">
-        Skip to dashboard content
+        {text.skip}
       </a>
       <header className="dashboard-mobile-header">
-        <Link to={route('/dashboard')} aria-label="Ushly dashboard">
+        <Link to={route('/dashboard')} aria-label={`Ushly ${text.label}`}>
           <BrandLogo />
         </Link>
         <div className="row">
@@ -125,14 +129,14 @@ function DashboardLayout() {
             onClick={() => setOpen(!open)}
           >
             <DashboardIcon name={open ? 'close' : 'menu'} />
-            {open ? 'Close' : 'Menu'}
+            {open ? text.close : text.menu}
           </Button>
         </div>
       </header>
       {open && (
         <button
           className="dashboard-scrim"
-          aria-label="Close dashboard menu"
+          aria-label={text.closeMenu}
           onClick={() => {
             setOpen(false);
             trigger.current?.focus();
@@ -142,17 +146,17 @@ function DashboardLayout() {
       <aside
         id="dashboard-sidebar"
         className={`dashboard-sidebar ${open ? 'is-open' : ''}`}
-        aria-label="Dashboard"
+        aria-label={text.label}
       >
         <Link
           className="dashboard-brand"
           to={route('/dashboard')}
-          aria-label="Ushly dashboard"
+          aria-label={`Ushly ${text.label}`}
           onClick={() => setOpen(false)}
         >
           <BrandLogo />
         </Link>
-        <nav aria-label="Dashboard navigation">
+        <nav aria-label={text.navigation}>
           <ul>
             {navigation.map((item) => (
               <li key={item.to}>
@@ -162,7 +166,7 @@ function DashboardLayout() {
                   onClick={() => setOpen(false)}
                 >
                   <DashboardIcon name={item.icon} />
-                  <span>{item.label}</span>
+                  <span>{text.nav[item.labelIndex]}</span>
                 </NavLink>
               </li>
             ))}
@@ -173,7 +177,7 @@ function DashboardLayout() {
                   onClick={() => setOpen(false)}
                 >
                   <DashboardIcon name="settings" />
-                  <span>Admin</span>
+                  <span>{text.admin}</span>
                 </NavLink>
               </li>
             )}
@@ -188,8 +192,8 @@ function DashboardLayout() {
               {session.user?.email.slice(0, 1).toUpperCase() ?? 'U'}
             </span>
             <span className="dashboard-account-copy">
-              <strong>Account</strong>
-              <small>{session.user?.email ?? 'Authenticated user'}</small>
+              <strong>{text.account}</strong>
+              <small>{session.user?.email ?? text.authenticatedUser}</small>
             </span>
           </div>
           <div className="dashboard-account-actions">
@@ -200,7 +204,7 @@ function DashboardLayout() {
               onClick={() => void logout()}
             >
               <DashboardIcon name="power" />
-              Log out
+              {copy.layout.logout}
             </Button>
           </div>
         </div>

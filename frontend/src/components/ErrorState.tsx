@@ -1,8 +1,9 @@
 import { Button } from './Button';
-import { uiText } from '../content/en';
+import { translations } from '../i18n';
+import { useLocale } from '../i18n/locale';
 
 export function ErrorState({
-  title = 'Something went wrong',
+  title,
   message,
   onRetry,
 }: {
@@ -10,15 +11,16 @@ export function ErrorState({
   message: string;
   onRetry?: () => void;
 }) {
+  const text = translations(useLocale()).common;
   return (
     <div className="error-state">
       <div role="alert">
-        <h3>{title}</h3>
+        <h3>{title ?? text.unknownError}</h3>
         <p>{message}</p>
       </div>
       {onRetry && (
         <Button variant="secondary" onClick={onRetry}>
-          {uiText.retry}
+          {text.retry}
         </Button>
       )}
     </div>

@@ -2,21 +2,23 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 import { siteOrigin } from '../config/public';
 import { homepageMetadata } from '../features/home/metadata';
-import { isPublicPagePath } from '../features/public-pages/content';
+import { isPublicPagePath } from '../features/public-pages/routes';
 import { publicPageMetadata } from '../features/public-pages/metadata';
 import { authMetadata, isAuthPath } from '../features/auth/metadata';
 import {
   isLegalPagePath,
   isLocalizedLegalPath,
   localizedLegalRoutes,
-} from '../features/legal/content';
+} from '../features/legal/routes';
 import { legalPageMetadata } from '../features/legal/metadata';
 import { localeFromPath, stripLocale } from '../i18n/locale';
+import { translations } from '../i18n';
 
 export function RouteMetadata() {
   const { pathname } = useLocation();
   useEffect(() => {
     const locale = localeFromPath(pathname);
+    const text = translations(locale);
     document.documentElement.lang = locale;
     const localizedPath = pathname === '/' ? pathname : pathname.replace(/\/$/, '');
     const pagePath = stripLocale(localizedPath);
@@ -42,10 +44,10 @@ export function RouteMetadata() {
           : isLegalPagePath(pagePath)
             ? legalPageMetadata(pagePath, siteOrigin, locale, localizedPath)
             : isAuthPath(pagePath)
-              ? authMetadata(pagePath)
+              ? authMetadata(pagePath, locale)
               : pagePath === '/dashboard' || pagePath.startsWith('/dashboard/')
-                ? '<title>Dashboard · Ushly</title><meta name="robots" content="noindex, nofollow">'
-                : '<title>Ushly · Page unavailable</title><meta name="robots" content="noindex, follow">';
+                ? `<title>${text.dashboard.label} · Ushly</title><meta name="robots" content="noindex, nofollow">`
+                : `<title>Ushly · ${text.common.unavailable}</title><meta name="robots" content="noindex, follow">`;
     end.before(template.content);
   }, [pathname]);
   return null;

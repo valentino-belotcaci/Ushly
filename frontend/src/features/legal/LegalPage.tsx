@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { PageContainer } from '../../layout/PageContainer';
 import { legalContactEmail, legalName } from '../../config/public';
-import { legalPages, type LegalPagePath } from './content';
-import { localizedLegalPath } from './content';
-import { legalPagesIt } from './content.it';
+import type { LegalPagePath } from './routes';
+import { localizedLegalPath } from './routes';
 import { localizedPath, useLocale } from '../../i18n/locale';
+import { translations } from '../../i18n';
 import './legal.css';
 
 function configuredText(text: string) {
@@ -17,25 +17,9 @@ function configuredText(text: string) {
 export function LegalPage({ path }: { path: LegalPagePath }) {
   const locale = useLocale();
   const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(useLocation().pathname);
-  const page = locale === 'it' ? legalPagesIt[path] : legalPages[path];
-  const ui =
-    locale === 'it'
-      ? {
-          notice: 'Avviso di revisione prima della pubblicazione',
-          noticeText: 'Modello di progetto: fai revisionare questa pagina e sostituisci i dati configurabili del gestore e di contatto prima della pubblicazione.',
-          contents: 'Contenuti',
-          sections: `${page.title}: sezioni`,
-          related: 'Pagine legali correlate',
-          relatedTitle: 'Informazioni correlate',
-        }
-      : {
-          notice: 'Production review notice',
-          noticeText: 'Project template: review this page and replace its configurable legal identity and contact placeholders before production launch.',
-          contents: 'Contents',
-          sections: `${page.title} sections`,
-          related: 'Related legal pages',
-          relatedTitle: 'Related information',
-        };
+  const legal = translations(locale).legal;
+  const page = legal.pages[path];
+  const ui = legal.ui;
   const [activeSection, setActiveSection] = useState(0);
 
   useEffect(() => {
@@ -70,7 +54,7 @@ export function LegalPage({ path }: { path: LegalPagePath }) {
       </header>
       <hr />
       <div className="legal-page__layout">
-        <nav aria-label={ui.sections}>
+        <nav aria-label={`${page.title} ${ui.sections}`}>
           <strong>{ui.contents}</strong>
           <ol>
             {page.sections.map((section, index) => (
@@ -104,7 +88,7 @@ export function LegalPage({ path }: { path: LegalPagePath }) {
           <div className="legal-page__related" aria-label={ui.related}>
             <h2>{ui.relatedTitle}</h2>
             <div>
-              {Object.entries(locale === 'it' ? legalPagesIt : legalPages)
+              {Object.entries(legal.pages)
                 .filter(([relatedPath]) => relatedPath !== path)
                 .map(([relatedPath, relatedPage]) => (
                   <Link

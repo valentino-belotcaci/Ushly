@@ -13,24 +13,25 @@ import { QrCodesPage } from '../features/dashboard/QrCodesPage';
 import { SettingsPage } from '../features/dashboard/SettingsPage';
 import { PublicPage } from '../features/public-pages/PublicPage';
 import {
-  publicPages,
   isPublicPagePath,
-} from '../features/public-pages/content';
+  publicPagePaths,
+} from '../features/public-pages/routes';
 import { RouteMetadata } from './RouteMetadata';
 import { footerGroups } from '../layout/navigation';
 import { LegalPage } from '../features/legal/LegalPage';
 import {
   isLegalPagePath,
-  legalPages,
+  legalPagePaths,
   localizedLegalRoutes,
-} from '../features/legal/content';
+} from '../features/legal/routes';
 import { CookieConsent } from '../features/consent/CookieConsent';
 import {
   AdminLinksPage,
   AdminOverviewPage,
   AdminUsersPage,
 } from '../features/admin/AdminPages';
-import { locales } from '../i18n/locale';
+import { locales, useLocalizedRoute, useLocale } from '../i18n/locale';
+import { translations } from '../i18n';
 
 // Vite removes this branch and its preview chunk from production builds.
 const ComponentPreview = import.meta.env.DEV
@@ -38,15 +39,25 @@ const ComponentPreview = import.meta.env.DEV
   : null;
 
 function Placeholder({ title }: { title: string }) {
+  const text = translations(useLocale()).common;
   return (
     <PageLayout title={title}>
       <p className="muted">
-        This page is not available yet. Ushly’s public pages and account
-        features are coming in later updates.
+        {text.unavailableText}
       </p>
       {import.meta.env.DEV && (
-        <Link to="/dev/components">Explore the component library</Link>
+        <Link to="/dev/components">{text.componentLibrary}</Link>
       )}
+    </PageLayout>
+  );
+}
+
+function UnavailablePage() {
+  const text = translations(useLocale()).common;
+  const route = useLocalizedRoute();
+  return (
+    <PageLayout title={text.unavailable}>
+      <Link to={route('/')}>{text.returnUshly}</Link>
     </PageLayout>
   );
 }
@@ -70,18 +81,14 @@ export function App() {
         </Route>
         <Route element={<ApplicationLayout />}>
           <Route path="/" element={<HomePage />} />
-          {Object.keys(publicPages)
-            .filter(isPublicPagePath)
-            .map((path) => (
+          {publicPagePaths.map((path) => (
               <Route
                 key={path}
                 path={path}
                 element={<PublicPage path={path} />}
               />
             ))}
-          {Object.keys(legalPages)
-            .filter(isLegalPagePath)
-            .map((path) => (
+          {legalPagePaths.map((path) => (
               <Route
                 key={path}
                 path={path}
@@ -108,9 +115,7 @@ export function App() {
           <Route
             path="*"
             element={
-              <PageLayout title="Page unavailable">
-                <Link to="/">Return to Ushly</Link>
-              </PageLayout>
+              <UnavailablePage />
             }
           />
         </Route>
@@ -130,9 +135,7 @@ export function App() {
             </Route>
             <Route element={<ApplicationLayout />}>
               <Route index element={<HomePage />} />
-              {Object.keys(publicPages)
-                .filter(isPublicPagePath)
-                .map((path) => (
+              {publicPagePaths.map((path) => (
                   <Route
                     key={path}
                     path={path.slice(1)}
@@ -146,6 +149,11 @@ export function App() {
                   element={<LegalPage path={path} />}
                 />
               ))}
+              <Route
+                path="contact"
+                element={<Placeholder title={translations(locale).layout.contact} />}
+              />
+              <Route path="*" element={<UnavailablePage />} />
             </Route>
           </Route>
         ))}

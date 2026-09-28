@@ -13,11 +13,11 @@ if (!root) throw new Error('Missing application root');
 const application = (
   <StrictMode>
     <ThemeProvider>
-      <ToastProvider>
-        <BrowserRouter>
+      <BrowserRouter>
+        <ToastProvider>
           <App />
-        </BrowserRouter>
-      </ToastProvider>
+        </ToastProvider>
+      </BrowserRouter>
     </ThemeProvider>
   </StrictMode>
 );

@@ -1,5 +1,5 @@
-import { legalPages, localizedLegalPath, type LegalPagePath } from './content';
-import { legalPagesIt } from './content.it';
+import { localizedLegalPath, type LegalPagePath } from './routes';
+import { translations } from '../../i18n';
 import type { Locale } from '../../i18n/locale';
 
 function escapeHtml(value: string): string {
@@ -16,7 +16,7 @@ export function legalPageMetadata(
   locale: Locale = 'en',
   routePath: string = path,
 ) {
-  const page = locale === 'it' ? legalPagesIt[path] : legalPages[path];
+  const page = translations(locale).legal.pages[path];
   const title = `${page.pageTitle} | Ushly`;
   const canonical = siteOrigin ? `${siteOrigin}${routePath}` : undefined;
   const localized = localizedLegalPath(path);

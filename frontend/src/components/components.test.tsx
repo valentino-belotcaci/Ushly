@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { useState, type ReactNode } from 'react';
+import { fireEvent, render as testingRender, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
@@ -13,6 +14,16 @@ import { Pagination } from './Pagination';
 import { ToastProvider } from './ToastProvider';
 import { useToast } from './toast-context';
 import { LoadingState } from './LoadingState';
+
+function render(ui: ReactNode) {
+  const result = testingRender(<MemoryRouter>{ui}</MemoryRouter>);
+  return {
+    ...result,
+    rerender(next: ReactNode) {
+      result.rerender(<MemoryRouter>{next}</MemoryRouter>);
+    },
+  };
+}
 import { ErrorState } from './ErrorState';
 
 describe('design-system behavior', () => {

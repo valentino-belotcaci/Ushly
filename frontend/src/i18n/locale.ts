@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router';
+import { useMemo } from 'react';
 
 export const locales = ['en', 'it'] as const;
 export type Locale = (typeof locales)[number];
@@ -36,4 +37,14 @@ export function localizedEquivalentPath(pathname: string): string {
 
 export function useLocale(): Locale {
   return localeFromPath(useLocation().pathname);
+}
+
+export function useLocalizedRoute() {
+  const location = useLocation();
+  const locale = localeFromPath(location.pathname);
+  const prefixed = /^\/(?:en|it)(?:\/|$)/.test(location.pathname);
+  return useMemo(
+    () => (path: string) => localizedPath(path, locale, prefixed),
+    [locale, prefixed],
+  );
 }

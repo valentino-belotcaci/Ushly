@@ -4,26 +4,29 @@ import { App } from './app/App';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { ToastProvider } from './components/ToastProvider';
 import { homepageMetadata } from './features/home/metadata';
-import { isPublicPagePath, publicPages } from './features/public-pages/content';
+import {
+  isPublicPagePath,
+  publicPagePaths as marketingPagePaths,
+} from './features/public-pages/routes';
 import { publicPageMetadata } from './features/public-pages/metadata';
 import { siteOrigin } from './config/public';
 import { authMetadata, isAuthPath } from './features/auth/metadata';
 import {
   isLegalPagePath,
   isLocalizedLegalPath,
-  legalPages,
+  legalPagePaths,
   localizedLegalRoutes,
-} from './features/legal/content';
+} from './features/legal/routes';
 import { legalPageMetadata } from './features/legal/metadata';
 import { localeFromPath, localizedPath, stripLocale } from './i18n/locale';
 
 export const publicPagePaths = [
-  ...Object.keys(publicPages).filter(isPublicPagePath),
-  ...Object.keys(legalPages).filter(isLegalPagePath),
+  ...marketingPagePaths,
+  ...legalPagePaths,
 ];
 export const localizedPublicPagePaths = (['en', 'it'] as const).flatMap((locale) => [
   localizedPath('/', locale),
-  ...Object.keys(publicPages).filter(isPublicPagePath).map((path) => localizedPath(path, locale)),
+  ...marketingPagePaths.map((path) => localizedPath(path, locale)),
   ...Object.keys(localizedLegalRoutes).map((path) => localizedPath(path, locale)),
   localizedPath('/login', locale),
   localizedPath('/register', locale),
@@ -54,17 +57,17 @@ export function renderPage(path: string) {
     );
   else if (isLegalPagePath(basePath))
     head = legalPageMetadata(basePath, siteOrigin, locale, path);
-  else if (isAuthPath(basePath)) head = authMetadata(basePath);
+  else if (isAuthPath(basePath)) head = authMetadata(basePath, locale);
   else throw new Error('Unknown public page');
   return {
     head,
     html: renderToString(
       <ThemeProvider>
-        <ToastProvider>
-          <StaticRouter location={path}>
+        <StaticRouter location={path}>
+          <ToastProvider>
             <App />
-          </StaticRouter>
-        </ToastProvider>
+          </ToastProvider>
+        </StaticRouter>
       </ThemeProvider>,
     ),
   };

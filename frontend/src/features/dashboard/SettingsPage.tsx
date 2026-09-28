@@ -1,7 +1,10 @@
 import { useSession } from '../../api/session';
 import { AccountActions } from '../auth/AccountActions';
+import { translations } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
 export function SettingsPage() {
+  const t = translations(useLocale()).dashboard.settings;
   const session = useSession();
   const googleLinkAvailable =
     session.status === 'authenticated' && session.googleLinkAvailable === true;
@@ -9,30 +12,30 @@ export function SettingsPage() {
     <div className="dashboard-page">
       <header className="dashboard-page-header">
         <div>
-          <p className="dashboard-eyebrow">Account</p>
-          <h1>Settings</h1>
-          <p>Review your account and available sign-in methods.</p>
+          <p className="dashboard-eyebrow">{t.eyebrow}</p>
+          <h1>{t.title}</h1>
+          <p>{t.lead}</p>
         </div>
       </header>
       <section className="card settings-card">
         <div>
-          <h2>Authentication methods</h2>
-          <p>Review the methods connected to your Ushly account.</p>
+          <h2>{t.methods}</h2>
+          <p>{t.methodsLead}</p>
         </div>
         <dl>
           <div>
-            <dt>Account email</dt>
+            <dt>{t.email}</dt>
             <dd>
               {session.user?.email ??
-                'Available after your next password login'}
+                t.emailFallback}
             </dd>
           </div>
           <div>
-            <dt>Google account</dt>
+            <dt>{t.google}</dt>
             <dd>
               {googleLinkAvailable
-                ? 'Not linked'
-                : 'Google account linked'}
+                ? t.notLinked
+                : t.linked}
             </dd>
           </div>
         </dl>

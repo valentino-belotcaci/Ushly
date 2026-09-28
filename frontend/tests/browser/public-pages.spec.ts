@@ -1,17 +1,17 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {
-  isPublicPagePath,
-  publicPages,
-} from '../../src/features/public-pages/content';
+  publicPagePaths,
+} from '../../src/features/public-pages/routes';
+import { en } from '../../src/i18n/en';
 
-for (const path of Object.keys(publicPages).filter(isPublicPagePath)) {
+for (const path of publicPagePaths) {
   for (const width of [320, 768, 1440]) {
     test(`${path} is indexable and usable at ${width}px`, async ({
       page,
       request,
     }) => {
-      const content = publicPages[path];
+      const content = en.public.pages[path];
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`http://127.0.0.1:4174${path}/`);
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(

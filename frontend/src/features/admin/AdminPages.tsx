@@ -21,6 +21,8 @@ import {
   type AdminUser,
 } from './api';
 import './admin.css';
+import { translations } from '../../i18n';
+import { useLocale, useLocalizedRoute } from '../../i18n/locale';
 
 const PAGE_SIZE = 20;
 function useDebouncedValue<T>(value: T, delay = 400) {
@@ -31,10 +33,10 @@ function useDebouncedValue<T>(value: T, delay = 400) {
   }, [delay, value]);
   return debouncedValue;
 }
-function message(error: unknown) {
+function message(error: unknown, fallback: string) {
   return error instanceof ApiClientError
     ? error.message
-    : 'The administrative data could not be loaded.';
+    : fallback;
 }
 function denied(error: unknown) {
   return error instanceof ApiClientError && error.status === 403;
@@ -50,42 +52,48 @@ function iso(value: string) {
 }
 
 function AdminHeader({ title, text }: { title: string; text: string }) {
+  const t = translations(useLocale()).admin;
+  const route = useLocalizedRoute();
   return (
     <>
       <header className="dashboard-page-header">
         <div>
-          <p className="dashboard-eyebrow">Administration</p>
+          <p className="dashboard-eyebrow">{t.eyebrow}</p>
           <h1>{title}</h1>
           <p>{text}</p>
         </div>
       </header>
-      <nav className="admin-tabs" aria-label="Administration">
-        <NavLink end to="/dashboard/admin">
-          Statistics
+      <nav className="admin-tabs" aria-label={t.label}>
+        <NavLink end to={route('/dashboard/admin')}>
+          {t.global}
         </NavLink>
-        <NavLink to="/dashboard/admin/users">Users</NavLink>
-        <NavLink to="/dashboard/admin/links">Links</NavLink>
+        <NavLink to={route('/dashboard/admin/users')}>{t.users}</NavLink>
+        <NavLink to={route('/dashboard/admin/links')}>{t.links}</NavLink>
       </nav>
     </>
   );
 }
 function Unauthorized() {
+  const t = translations(useLocale()).admin;
+  const route = useLocalizedRoute();
   return (
     <div className="dashboard-page">
       <AdminHeader
-        title="Administration"
-        text="Restricted workspace controls."
+        title={t.label}
+        text={t.restricted}
       />
       <section className="card admin-unauthorized" role="alert">
-        <h2>Administrator access required</h2>
-        <p>Your account is not authorized to view these controls.</p>
-        <Link to="/dashboard">Return to overview</Link>
+        <h2>{t.required}</h2>
+        <p>{t.unauthorized}</p>
+        <Link to={route('/dashboard')}>{t.returnOverview}</Link>
       </section>
     </div>
   );
 }
 
 export function AdminOverviewPage() {
+  const copy = translations(useLocale());
+  const t = copy.admin;
   const now = new Date();
   const [from, setFrom] = useState(
     utcInput(new Date(now.getTime() - 30 * 86400000)),
@@ -117,7 +125,7 @@ export function AdminOverviewPage() {
       .catch((failure) => {
         if (!active) return;
         if (denied(failure)) setUnauthorized(true);
-        else setError(message(failure));
+        else setError(message(failure, t.loadError));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -125,7 +133,7 @@ export function AdminOverviewPage() {
     return () => {
       active = false;
     };
-  }, [applied]);
+  }, [applied, t.loadError]);
   function submit(event: FormEvent) {
     event.preventDefault();
     const start = new Date(`${from}:00.000Z`);
@@ -137,11 +145,11 @@ export function AdminOverviewPage() {
       Number.isNaN(end.getTime()) ||
       start >= end
     ) {
-      setRangeError('Choose a UTC start time earlier than the end time.');
+      setRangeError(t.invalidRange);
       return;
     }
     if (end.getTime() - start.getTime() > 90 * 86400000) {
-      setRangeError('The statistics range cannot exceed 90 days.');
+      setRangeError(t.rangeLong);
       return;
     }
     setRangeError('');
@@ -152,25 +160,25 @@ export function AdminOverviewPage() {
     return (
       <div className="dashboard-page">
         <AdminHeader
-          title="Global statistics"
-          text="Review aggregate click activity across the service."
+          title={t.global}
+          text={t.globalLead}
         />
         {error ? (
           <DashboardError message={error} />
         ) : (
-          <DashboardLoading label="Checking administrator access…" />
+          <DashboardLoading label={t.checking} />
         )}
       </div>
     );
   return (
     <div className="dashboard-page">
       <AdminHeader
-        title="Global statistics"
-        text="Review aggregate click activity across the service."
+        title={t.global}
+        text={t.globalLead}
       />
       <form className="card admin-filter" onSubmit={submit}>
         <label>
-          From (UTC)
+          {t.from}
           <input
             className="input"
             type="datetime-local"
@@ -179,7 +187,7 @@ export function AdminOverviewPage() {
           />
         </label>
         <label>
-          To (UTC)
+          {t.to}
           <input
             className="input"
             type="datetime-local"
@@ -187,7 +195,7 @@ export function AdminOverviewPage() {
             onChange={(event) => setTo(event.target.value)}
           />
         </label>
-        <Button type="submit">Apply range</Button>
+        <Button type="submit">{t.apply}</Button>
         {rangeError && (
           <p className="dashboard-inline-error" role="alert">
             {rangeError}
@@ -195,27 +203,27 @@ export function AdminOverviewPage() {
         )}
       </form>
       {loading ? (
-        <DashboardLoading label="Loading global statistics…" variant="cards" />
+        <DashboardLoading label={t.loadingGlobal} variant="cards" />
       ) : error ? (
         <DashboardError message={error} />
       ) : data ? (
         <>
           <p className="analytics-timezone" role="note">
-            All administrative statistics use UTC.
+            {t.allUtc}
           </p>
           <section
             className="dashboard-metrics"
-            aria-label="Global statistics summary"
+            aria-label={t.summary}
           >
             <article className="card metric-card">
               <div>
-                <span>Total clicks</span>
+                <span>{t.totalClicks}</span>
                 <strong>{data.total.toLocaleString()}</strong>
               </div>
             </article>
             <article className="card metric-card">
               <div>
-                <span>First click · UTC</span>
+                <span>{t.firstClick}</span>
                 <strong
                   className="metric-date"
                   title={
@@ -230,7 +238,7 @@ export function AdminOverviewPage() {
             </article>
             <article className="card metric-card">
               <div>
-                <span>Last click · UTC</span>
+                <span>{t.lastClick}</span>
                 <strong
                   className="metric-date"
                   title={
@@ -247,8 +255,8 @@ export function AdminOverviewPage() {
           <section className="card dashboard-panel analytics-section">
             <header>
               <div>
-                <h2>Daily clicks</h2>
-                <p>Global totals · UTC</p>
+                <h2>{t.daily}</h2>
+                <p>{t.globalTotals}</p>
               </div>
             </header>
             {data.timeSeries.length ? (
@@ -271,8 +279,8 @@ export function AdminOverviewPage() {
               </ul>
             ) : (
               <DashboardEmpty
-                title="No clicks in this period"
-                text="Global activity will appear here after redirects are recorded."
+                title={t.noClicks}
+                text={t.noClicksText}
               />
             )}
           </section>
@@ -283,6 +291,8 @@ export function AdminOverviewPage() {
 }
 
 export function AdminUsersPage() {
+  const copy = translations(useLocale());
+  const t = copy.admin;
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<'' | AdminUser['role']>('');
@@ -313,11 +323,11 @@ export function AdminUsersPage() {
       setVerified(true);
     } catch (failure) {
       if (denied(failure)) setUnauthorized(true);
-      else setError(message(failure));
+      else setError(message(failure, t.loadError));
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, disabled, page, role]);
+  }, [debouncedSearch, disabled, page, role, t.loadError]);
   useEffect(() => {
     const pending = Promise.resolve().then(load);
     void pending;
@@ -329,12 +339,12 @@ export function AdminUsersPage() {
       const next = target.disabledAt === null;
       await setAdminUserDisabled(target.id, next);
       setStatus(
-        `User ${next ? 'disabled' : 'enabled'}. The server recorded the administrative action.`,
+        next ? t.userDisabled : t.userEnabled,
       );
       setTarget(null);
       await load();
     } catch (failure) {
-      setError(message(failure));
+      setError(message(failure, t.loadError));
       setTarget(null);
     } finally {
       setBusy(false);
@@ -345,13 +355,13 @@ export function AdminUsersPage() {
     return (
       <div className="dashboard-page">
         <AdminHeader
-          title="Users"
-          text="Filter accounts and control whether they can authenticate."
+          title={t.users}
+          text={t.usersLead}
         />
         {error ? (
           <DashboardError message={error} retry={() => void load()} />
         ) : (
-          <DashboardLoading label="Checking administrator access…" />
+          <DashboardLoading label={t.checking} />
         )}
       </div>
     );
@@ -359,15 +369,15 @@ export function AdminUsersPage() {
   return (
     <div className="dashboard-page">
       <AdminHeader
-        title="Users"
-        text="Filter accounts and control whether they can authenticate."
+        title={t.users}
+        text={t.usersLead}
       />
       <section
         className="card admin-filter admin-filter--users"
-        aria-label="User filters"
+        aria-label={t.userFilters}
       >
         <label className="admin-filter__primary">
-          Search by email
+          {t.searchEmail}
           <input
             className="input"
             type="search"
@@ -380,7 +390,7 @@ export function AdminUsersPage() {
           />
         </label>
         <label>
-          Role
+          {t.role}
           <select
             className="input"
             value={role}
@@ -391,13 +401,13 @@ export function AdminUsersPage() {
               setPage(1);
             }}
           >
-            <option value="">All roles</option>
-            <option value="USER">User</option>
-            <option value="ADMIN">Admin</option>
+            <option value="">{t.allRoles}</option>
+            <option value="USER">{t.user}</option>
+            <option value="ADMIN">{t.administrator}</option>
           </select>
         </label>
         <label>
-          Status
+          {copy.common.status}
           <select
             className="input"
             value={disabled}
@@ -408,9 +418,9 @@ export function AdminUsersPage() {
               setPage(1);
             }}
           >
-            <option value="">All statuses</option>
-            <option value="false">Enabled</option>
-            <option value="true">Disabled</option>
+            <option value="">{t.allStatuses}</option>
+            <option value="false">{copy.common.enabled}</option>
+            <option value="true">{copy.common.disabled}</option>
           </select>
         </label>
       </section>
@@ -420,7 +430,7 @@ export function AdminUsersPage() {
         </p>
       )}
       {loading ? (
-        <DashboardLoading label="Loading users…" variant="admin" />
+        <DashboardLoading label={t.loadingUsers} variant="admin" />
       ) : error ? (
         <DashboardError message={error} retry={() => void load()} />
       ) : items.length ? (
@@ -435,26 +445,26 @@ export function AdminUsersPage() {
         </>
       ) : (
         <DashboardEmpty
-          title="No users found"
-          text="No accounts match the selected filters."
+          title={t.noUsers}
+          text={t.noUsersText}
         />
       )}
       <Dialog
         open={Boolean(target)}
         onClose={() => setTarget(null)}
-        title={`${target?.disabledAt ? 'Enable' : 'Disable'} user`}
-        description="This changes whether the account can authenticate. The backend remains the authorization boundary."
+        title={target?.disabledAt ? t.enableUser : t.disableUser}
+        description={t.userToggleDescription}
       >
         <div className="dashboard-confirm-actions">
           <Button variant="secondary" onClick={() => setTarget(null)}>
-            Cancel
+            {copy.common.cancel}
           </Button>
           <Button
             variant={target?.disabledAt ? 'primary' : 'danger'}
             loading={busy}
             onClick={() => void confirm()}
           >
-            Confirm
+            {copy.common.confirm}
           </Button>
         </div>
       </Dialog>
@@ -469,23 +479,25 @@ function AdminUsersTable({
   items: AdminUser[];
   onToggle: (user: AdminUser) => void;
 }) {
+  const copy = translations(useLocale());
+  const t = copy.admin;
   return (
     <div className="table-scroll admin-table-scroll">
       <table className="table admin-table">
-        <caption>Administrative user results</caption>
+        <caption>{t.userResults}</caption>
         <thead>
           <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Action</th>
+            <th>{t.user}</th>
+            <th>{t.role}</th>
+            <th>{copy.common.status}</th>
+            <th>{copy.common.created}</th>
+            <th>{t.action}</th>
           </tr>
         </thead>
         <tbody>
           {items.map((user) => (
             <tr key={user.id}>
-              <td data-label="User">
+              <td data-label={t.user}>
                 <div className="admin-cell-stack">
                   <strong title={user.email}>{user.email}</strong>
                   <small title={user.name ?? user.provider}>
@@ -493,17 +505,17 @@ function AdminUsersTable({
                   </small>
                 </div>
               </td>
-              <td data-label="Role">
+              <td data-label={t.role}>
                 <Badge tone={user.role === 'ADMIN' ? 'warning' : 'neutral'}>
-                  {user.role}
+                  {user.role === 'ADMIN' ? t.administrator : t.user}
                 </Badge>
               </td>
-              <td data-label="Status">
+              <td data-label={copy.common.status}>
                 <Badge tone={user.disabledAt ? 'danger' : 'success'}>
-                  {user.disabledAt ? 'Disabled' : 'Enabled'}
+                  {user.disabledAt ? copy.common.disabled : copy.common.enabled}
                 </Badge>
               </td>
-              <td data-label="Created">
+              <td data-label={copy.common.created}>
                 <time
                   dateTime={user.createdAt}
                   title={formatFullDateTime(user.createdAt)}
@@ -511,12 +523,12 @@ function AdminUsersTable({
                   {formatDateTime(user.createdAt)}
                 </time>
               </td>
-              <td data-label="Action">
+              <td data-label={t.action}>
                 <Button
                   variant={user.disabledAt ? 'secondary' : 'danger'}
                   onClick={() => onToggle(user)}
                 >
-                  {user.disabledAt ? 'Enable' : 'Disable'}
+                  {user.disabledAt ? copy.common.enable : copy.common.disable}
                 </Button>
               </td>
             </tr>
@@ -528,6 +540,8 @@ function AdminUsersTable({
 }
 
 export function AdminLinksPage() {
+  const copy = translations(useLocale());
+  const t = copy.admin;
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'' | AdminLink['status']>(
@@ -561,11 +575,11 @@ export function AdminLinksPage() {
       setVerified(true);
     } catch (failure) {
       if (denied(failure)) setUnauthorized(true);
-      else setError(message(failure));
+      else setError(message(failure, t.loadError));
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, debouncedUserId, filterStatus, page]);
+  }, [debouncedSearch, debouncedUserId, filterStatus, page, t.loadError]);
   useEffect(() => {
     const pending = Promise.resolve().then(load);
     void pending;
@@ -577,12 +591,12 @@ export function AdminLinksPage() {
       const next = target.status !== 'disabled';
       await setAdminLinkDisabled(target.id, next);
       setStatus(
-        `Link ${next ? 'disabled' : 'enabled'}. The server recorded the administrative action.`,
+        next ? t.linkDisabled : t.linkEnabled,
       );
       setTarget(null);
       await load();
     } catch (failure) {
-      setError(message(failure));
+      setError(message(failure, t.loadError));
       setTarget(null);
     } finally {
       setBusy(false);
@@ -593,13 +607,13 @@ export function AdminLinksPage() {
     return (
       <div className="dashboard-page">
         <AdminHeader
-          title="Links"
-          text="Filter links across the service and control redirect availability."
+          title={t.links}
+          text={t.linksLead}
         />
         {error ? (
           <DashboardError message={error} retry={() => void load()} />
         ) : (
-          <DashboardLoading label="Checking administrator access…" />
+          <DashboardLoading label={t.checking} />
         )}
       </div>
     );
@@ -607,19 +621,19 @@ export function AdminLinksPage() {
   return (
     <div className="dashboard-page">
       <AdminHeader
-        title="Links"
-        text="Filter links across the service and control redirect availability."
+        title={t.links}
+        text={t.linksLead}
       />
       <section
         className="card admin-filter admin-filter--links"
-        aria-label="Link filters"
+        aria-label={t.linkFilters}
       >
         <label className="admin-filter__primary">
-          Search links or owner email
+          {t.searchLinks}
           <input
             className="input"
             type="search"
-            placeholder="URL, short code, or owner email"
+            placeholder={t.searchPlaceholder}
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -628,7 +642,7 @@ export function AdminLinksPage() {
           />
         </label>
         <label>
-          Status
+          {copy.common.status}
           <select
             className="input"
             value={filterStatus}
@@ -644,14 +658,14 @@ export function AdminLinksPage() {
               setPage(1);
             }}
           >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-            <option value="expired">Expired</option>
+            <option value="">{t.allStatuses}</option>
+            <option value="active">{copy.common.active}</option>
+            <option value="disabled">{copy.common.disabled}</option>
+            <option value="expired">{copy.common.expired}</option>
           </select>
         </label>
         <label>
-          Owner ID
+          {t.ownerId}
           <input
             className="input"
             value={userId}
@@ -668,7 +682,7 @@ export function AdminLinksPage() {
         </p>
       )}
       {loading ? (
-        <DashboardLoading label="Loading links…" variant="admin" />
+        <DashboardLoading label={t.loadingLinks} variant="admin" />
       ) : error ? (
         <DashboardError message={error} retry={() => void load()} />
       ) : items.length ? (
@@ -683,26 +697,26 @@ export function AdminLinksPage() {
         </>
       ) : (
         <DashboardEmpty
-          title="No links found"
-          text="No links match the selected filters."
+          title={t.noLinks}
+          text={t.noLinksText}
         />
       )}
       <Dialog
         open={Boolean(target)}
         onClose={() => setTarget(null)}
-        title={`${target?.status === 'disabled' ? 'Enable' : 'Disable'} link`}
-        description="This changes whether the public short URL redirects. Ownership checks remain on the backend."
+        title={target?.status === 'disabled' ? t.enableLink : t.disableLink}
+        description={t.linkToggleDescription}
       >
         <div className="dashboard-confirm-actions">
           <Button variant="secondary" onClick={() => setTarget(null)}>
-            Cancel
+            {copy.common.cancel}
           </Button>
           <Button
             variant={target?.status === 'disabled' ? 'primary' : 'danger'}
             loading={busy}
             onClick={() => void confirm()}
           >
-            Confirm
+            {copy.common.confirm}
           </Button>
         </div>
       </Dialog>
@@ -717,23 +731,25 @@ function AdminLinksTable({
   items: AdminLink[];
   onToggle: (link: AdminLink) => void;
 }) {
+  const copy = translations(useLocale());
+  const t = copy.admin;
   return (
     <div className="table-scroll admin-table-scroll">
       <table className="table admin-table">
-        <caption>Administrative link results</caption>
+        <caption>{t.linkResults}</caption>
         <thead>
           <tr>
-            <th>Link</th>
-            <th>Owner</th>
-            <th>Status</th>
-            <th>Expires</th>
-            <th>Action</th>
+            <th>{copy.common.link}</th>
+            <th>{copy.common.owner}</th>
+            <th>{copy.common.status}</th>
+            <th>{t.expires}</th>
+            <th>{t.action}</th>
           </tr>
         </thead>
         <tbody>
           {items.map((link) => (
             <tr key={link.id}>
-              <td data-label="Link">
+              <td data-label={copy.common.link}>
                 <div className="admin-cell-stack">
                   <strong title={link.title ?? link.shortCode}>
                     {link.title ?? link.shortCode}
@@ -743,13 +759,13 @@ function AdminLinksTable({
                   </small>
                 </div>
               </td>
-              <td data-label="Owner">
+              <td data-label={copy.common.owner}>
                 <div className="admin-cell-stack">
                   <span
                     className="admin-owner-email"
-                    title={link.ownerEmail ?? 'Anonymous'}
+                    title={link.ownerEmail ?? copy.common.anonymous}
                   >
-                    {link.ownerEmail ?? 'Anonymous'}
+                    {link.ownerEmail ?? copy.common.anonymous}
                   </span>
                   {link.userId && (
                     <small className="admin-owner-id" title={link.userId}>
@@ -758,7 +774,7 @@ function AdminLinksTable({
                   )}
                 </div>
               </td>
-              <td data-label="Status">
+              <td data-label={copy.common.status}>
                 <Badge
                   tone={
                     link.status === 'active'
@@ -768,10 +784,14 @@ function AdminLinksTable({
                         : 'danger'
                   }
                 >
-                  {link.status}
+                  {link.status === 'active'
+                    ? copy.common.active
+                    : link.status === 'expired'
+                      ? copy.common.expired
+                      : copy.common.disabled}
                 </Badge>
               </td>
-              <td data-label="Expires">
+              <td data-label={t.expires}>
                 {link.expiresAt ? (
                   <time
                     dateTime={link.expiresAt}
@@ -783,13 +803,15 @@ function AdminLinksTable({
                   '—'
                 )}
               </td>
-              <td data-label="Action">
+              <td data-label={t.action}>
                 <Button
                   variant={link.status === 'disabled' ? 'secondary' : 'danger'}
                   disabled={link.status === 'expired'}
                   onClick={() => onToggle(link)}
                 >
-                  {link.status === 'disabled' ? 'Enable' : 'Disable'}
+                  {link.status === 'disabled'
+                    ? copy.common.enable
+                    : copy.common.disable}
                 </Button>
               </td>
             </tr>
@@ -811,27 +833,30 @@ function Pagination({
   setPage: (page: number) => void;
   total: number;
 }) {
+  const copy = translations(useLocale());
+  const t = copy.admin;
   return (
     <nav
       className="dashboard-pagination admin-results-pagination"
-      aria-label="Admin results pages"
+      aria-label={t.resultsPages}
     >
       <Button
         variant="secondary"
         disabled={page <= 1}
         onClick={() => setPage(page - 1)}
       >
-        Previous
+        {copy.common.previous}
       </Button>
       <span>
-        Page {page} of {pages} · {total.toLocaleString()} results
+        {copy.common.page} {page} {copy.common.of} {pages} ·{' '}
+        {total.toLocaleString()} {copy.common.results}
       </span>
       <Button
         variant="secondary"
         disabled={page >= pages}
         onClick={() => setPage(page + 1)}
       >
-        Next
+        {copy.common.next}
       </Button>
     </nav>
   );

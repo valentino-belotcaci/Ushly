@@ -19,7 +19,9 @@ export function AccountActions({
   showLogout?: boolean;
 }) {
   const notify = useToast();
-  const layoutText = translations(useLocale()).layout;
+  const copy = translations(useLocale());
+  const layoutText = copy.layout;
+  const t = copy.auth;
   const [linkOpen, setLinkOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [linkBusy, setLinkBusy] = useState(false);
@@ -32,28 +34,28 @@ export function AccountActions({
 
   useEffect(() => () => stopGoogleWatch.current?.(), []);
   useEffect(() => {
-    if (status !== 'Google account linked successfully.') return;
+    if (status !== t.linkSuccess) return;
     const timer = window.setTimeout(() => {
       setStatus('');
       setLinkOpen(false);
     }, 3000);
     return () => window.clearTimeout(timer);
-  }, [status]);
+  }, [status, t.linkSuccess]);
 
   async function finishGoogleLink(result: GooglePopupResult) {
     setLinkPending(false);
     if (result.status === 'closed' || result.status === 'timeout') {
       setError(result.status === 'closed'
-        ? 'Google linking was closed before it finished. Please try again.'
-        : 'Google linking timed out. Please try again.');
+        ? t.linkClosed
+        : t.linkTimeout);
       setStatus('');
       setLinkOpen(true);
       return;
     }
     if (result.status === 'error') {
       setError(result.code === 'oauth_conflict'
-        ? 'This Google identity is already connected to another account. No accounts were merged.'
-        : 'Google linking could not be completed. Please try again.');
+        ? t.linkConflict
+        : t.linkFailed);
       setStatus('');
       setLinkOpen(true);
       return;
@@ -63,12 +65,12 @@ export function AccountActions({
       const session = await apiSession.refreshAfterOAuth();
       if (session.status !== 'authenticated') throw new Error('Missing session');
       setError('');
-      setStatus('Google account linked successfully.');
-      notify('Google account linked successfully.', 'success', 3000);
+      setStatus(t.linkSuccess);
+      notify(t.linkSuccess, 'success', 3000);
       setLinkOpen(true);
     } catch {
       setStatus('');
-      setError('Google linking could not be confirmed. Please log in and try again.');
+      setError(t.linkConfirmFailed);
       setLinkOpen(true);
     } finally {
       setLinkBusy(false);
@@ -79,11 +81,11 @@ export function AccountActions({
     event.preventDefault();
     if (pending.current || linkPending) return;
     if (!apiOrigin) {
-      setError('Google linking is not configured yet. Please try again later.');
+      setError(t.linkNotConfigured);
       return;
     }
     if (password.length < 1 || password.length > 128) {
-      setError('Enter your account password to link Google.');
+      setError(t.linkPassword);
       return;
     }
     const popup = window.open(
@@ -92,7 +94,7 @@ export function AccountActions({
       'popup,width=560,height=720',
     );
     if (!popup) {
-      setError('Allow the Google linking window, then try again.');
+      setError(t.linkPopup);
       return;
     }
     pending.current = true;
@@ -109,13 +111,13 @@ export function AccountActions({
       setLinkPending(true);
       popup.location.assign(authorizationUrl);
       popup.focus();
-      setStatus('Complete linking in the Google window. This page will update automatically.');
+      setStatus(t.linkPending);
     } catch (failure) {
       popup.close();
       setError(
         failure instanceof ApiClientError
           ? failure.message
-          : 'Could not start Google linking. Please try again.',
+          : t.linkStartFailed,
       );
     } finally {
       pending.current = false;
@@ -151,7 +153,7 @@ export function AccountActions({
           setLinkOpen(true);
         }}
       >
-        Link Google account
+        {t.linkGoogle}
       </Button>}
       {showLogout && <Button
         variant="secondary"
@@ -163,12 +165,12 @@ export function AccountActions({
       <Dialog
         open={linkOpen}
         onClose={() => setLinkOpen(false)}
-        title="Link Google to your account"
-        description="For password accounts, confirm your current password before connecting a Google identity. Your accounts are never merged based only on email."
+        title={t.linkTitle}
+        description={t.linkDescription}
       >
         <form className="auth-link-form" onSubmit={linkGoogle}>
           <Input
-            label="Current password"
+            label={t.currentPassword}
             type="password"
             autoComplete="current-password"
             required
@@ -187,9 +189,9 @@ export function AccountActions({
             stopGoogleWatch.current?.();
             stopGoogleWatch.current = null;
             void finishGoogleLink({ status: 'closed' });
-          }}>Cancel Google linking</Button>}
+          }}>{t.cancelLink}</Button>}
           <Button type="submit" loading={linkBusy} disabled={linkPending}>
-            Verify and link Google
+            {t.verifyLink}
           </Button>
         </form>
       </Dialog>

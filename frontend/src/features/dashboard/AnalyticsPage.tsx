@@ -9,6 +9,8 @@ import {
   DashboardLoading,
 } from './DashboardState';
 import { useOwnedLinks } from './useOwnedLinks';
+import { translations, type Translation } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
 const MAX_RANGE_MS = 90 * 24 * 60 * 60 * 1000;
 const MAX_VISIBLE_BUCKETS = 240;
@@ -32,14 +34,16 @@ function initialRange(): Range {
 function inputToIso(value: string) {
   return new Date(`${value}:00.000Z`).toISOString();
 }
-function formatUtc(value: string | null, includeTime = true) {
+function formatUtc(value: string | null, fallback: string, includeTime = true) {
   return formatDateTime(value, {
-    fallback: 'No clicks',
+    fallback,
     includeTime,
     timeZone: 'UTC',
   });
 }
 export function AnalyticsPage() {
+  const copy = translations(useLocale());
+  const t = copy.dashboard.analytics;
   const links = useOwnedLinks(1, 100);
   const [selected, setSelected] = useState('');
   const [draft, setDraft] = useState<Range>(initialRange);
@@ -75,7 +79,7 @@ export function AnalyticsPage() {
         setError(
           failure instanceof ApiClientError
             ? failure.message
-            : 'Analytics could not be loaded.',
+            : t.loadError,
         );
       })
       .finally(() => {
@@ -84,7 +88,7 @@ export function AnalyticsPage() {
     return () => {
       current = false;
     };
-  }, [range, refreshKey, selectedId]);
+  }, [range, refreshKey, selectedId, t.loadError]);
 
   function applyRange(event: FormEvent) {
     event.preventDefault();
@@ -97,11 +101,11 @@ export function AnalyticsPage() {
       Number.isNaN(to.getTime()) ||
       from >= to
     ) {
-      setRangeError('Choose a UTC start time earlier than the end time.');
+      setRangeError(t.invalidRange);
       return;
     }
     if (to.getTime() - from.getTime() > MAX_RANGE_MS) {
-      setRangeError('The statistics range cannot exceed 90 days.');
+      setRangeError(t.rangeLong);
       return;
     }
     setRangeError('');
@@ -109,7 +113,7 @@ export function AnalyticsPage() {
   }
 
   if (links.loading)
-    return <DashboardLoading label="Loading analytics…" variant="analytics" />;
+    return <DashboardLoading label={t.loading} variant="analytics" />;
   if (links.error)
     return (
       <DashboardError message={links.error} retry={() => void links.reload()} />
@@ -117,20 +121,20 @@ export function AnalyticsPage() {
   if (!links.data?.items.length)
     return (
       <div className="dashboard-page">
-        <PageHeader />
+        <PageHeader text={t} />
         <DashboardEmpty
-          title="No analytics yet"
-          text="Create an owned link first. Click analytics will appear here after visits are recorded."
+          title={t.empty}
+          text={t.emptyText}
         />
       </div>
     );
 
   return (
     <div className="dashboard-page dashboard-analytics-page">
-      <PageHeader />
+      <PageHeader text={t} />
       <form className="card analytics-controls" onSubmit={applyRange}>
         <label>
-          Link
+          {t.link}
           <select
             className="input"
             value={selectedId}
@@ -144,7 +148,7 @@ export function AnalyticsPage() {
           </select>
         </label>
         <label>
-          From (UTC)
+          {t.from}
           <input
             className="input"
             type="datetime-local"
@@ -155,7 +159,7 @@ export function AnalyticsPage() {
           />
         </label>
         <label>
-          To (UTC)
+          {t.to}
           <input
             className="input"
             type="datetime-local"
@@ -164,7 +168,7 @@ export function AnalyticsPage() {
           />
         </label>
         <label>
-          Granularity
+          {t.granularity}
           <select
             className="input"
             value={draft.granularity}
@@ -174,18 +178,18 @@ export function AnalyticsPage() {
                 setDraft({ ...draft, granularity: value });
             }}
           >
-            <option value="hour">Hour</option>
-            <option value="day">Day</option>
-            <option value="week">Week</option>
+            <option value="hour">{t.hour}</option>
+            <option value="day">{t.day}</option>
+            <option value="week">{t.week}</option>
           </select>
         </label>
         <div className="analytics-controls__actions">
-          <Button type="submit">Apply range</Button>
+          <Button type="submit">{t.apply}</Button>
           <Button
             variant="secondary"
             onClick={() => setRefreshKey((value) => value + 1)}
           >
-            Refresh
+            {t.refresh}
           </Button>
         </div>
         {rangeError && (
@@ -195,14 +199,14 @@ export function AnalyticsPage() {
         )}
         {links.data.total > links.data.items.length && (
           <p className="analytics-data-note" role="status">
-            Showing the newest {links.data.items.length} of {links.data.total}{' '}
-            links. Use Links to manage the full dataset.
+            {t.newestPrefix} {links.data.items.length} {t.newestMiddle}{' '}
+            {links.data.total} {t.newestSuffix}
           </p>
         )}
       </form>
       {loading ? (
         <DashboardLoading
-          label="Loading click analytics…"
+          label={t.loadingClicks}
           variant="analytics"
         />
       ) : error ? (
@@ -211,13 +215,13 @@ export function AnalyticsPage() {
           retry={() => setRefreshKey((value) => value + 1)}
         />
       ) : stats ? (
-        <AnalyticsResults stats={stats} />
+        <AnalyticsResults stats={stats} text={t} />
       ) : null}
     </div>
   );
 }
 
-function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
+function AnalyticsResults({ stats, text: t }: { stats: LinkStatistics; text: Translation['dashboard']['analytics'] }) {
   const visibleSeries = stats.timeSeries.slice(0, MAX_VISIBLE_BUCKETS);
   const maximum = useMemo(
     () => Math.max(1, ...visibleSeries.map((point) => point.clicks)),
@@ -226,19 +230,19 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
   return (
     <>
       <p className="analytics-timezone" role="note">
-        All statistics use UTC. Range: {formatUtc(stats.from)} to{' '}
-        {formatUtc(stats.to)}.
+        {t.allUtc} {formatUtc(stats.from, t.noPeriod)} {t.rangeTo}{' '}
+        {formatUtc(stats.to, t.noPeriod)}.
       </p>
-      <section className="dashboard-metrics" aria-label="Analytics summary">
+      <section className="dashboard-metrics" aria-label={t.summary}>
         <article className="card metric-card">
           <div>
-            <span>Total clicks</span>
+            <span>{t.total}</span>
             <strong>{stats.total.toLocaleString()}</strong>
           </div>
         </article>
         <article className="card metric-card">
           <div>
-            <span>First click · UTC</span>
+            <span>{t.first}</span>
             <strong
               className="metric-date"
               title={
@@ -247,13 +251,13 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
                   : undefined
               }
             >
-              {formatUtc(stats.firstClickedAt)}
+              {formatUtc(stats.firstClickedAt, t.noPeriod)}
             </strong>
           </div>
         </article>
         <article className="card metric-card">
           <div>
-            <span>Last click · UTC</span>
+            <span>{t.last}</span>
             <strong
               className="metric-date"
               title={
@@ -262,7 +266,7 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
                   : undefined
               }
             >
-              {formatUtc(stats.lastClickedAt)}
+              {formatUtc(stats.lastClickedAt, t.noPeriod)}
             </strong>
           </div>
         </article>
@@ -273,24 +277,30 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
       >
         <header>
           <div>
-            <h2 id="time-series-title">Clicks over time</h2>
-            <p>{stats.granularity} buckets · UTC</p>
+            <h2 id="time-series-title">{t.series}</h2>
+            <p>
+              {stats.granularity === 'hour'
+                ? t.hour
+                : stats.granularity === 'week'
+                  ? t.week
+                  : t.day}{' '}
+              {t.buckets}
+            </p>
           </div>
         </header>
         {visibleSeries.length ? (
           <>
             {stats.timeSeries.length > MAX_VISIBLE_BUCKETS && (
               <p className="analytics-data-note" role="status">
-                Large dataset: showing the first {MAX_VISIBLE_BUCKETS} of{' '}
-                {stats.timeSeries.length} buckets. Choose day or week for a
-                complete compact view.
+                {t.largePrefix} {MAX_VISIBLE_BUCKETS} {t.largeMiddle}{' '}
+                {stats.timeSeries.length} {t.largeSuffix}
               </p>
             )}
             <ul className="analytics-bars">
               {visibleSeries.map((point) => (
                 <li key={point.bucket}>
                   <span title={formatFullDateTime(point.bucket, 'UTC')}>
-                    {formatUtc(point.bucket, stats.granularity === 'hour')}
+                    {formatUtc(point.bucket, t.noPeriod, stats.granularity === 'hour')}
                   </span>
                   <div aria-hidden="true">
                     <i
@@ -299,7 +309,7 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
                       }}
                     />
                   </div>
-                  <strong aria-label={`${point.clicks} clicks`}>
+                  <strong aria-label={`${point.clicks} ${t.clicks}`}>
                     {point.clicks}
                   </strong>
                 </li>
@@ -308,23 +318,25 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
           </>
         ) : (
           <DashboardEmpty
-            title="No clicks in this period"
-            text="Visits will appear here after the short URL is opened."
+            title={t.noPeriod}
+            text={t.noPeriodText}
           />
         )}
       </section>
       <div className="dashboard-analytics-grid">
         <Breakdown
-          title="Referrers"
-          description="Top recorded referrer origins."
+          title={t.referrers}
+          description={t.referrerLead}
           rows={stats.breakdowns.referrers}
-          empty="No referrer data in this period."
+          empty={t.noReferrers}
+          direct={t.direct}
         />
         <Breakdown
-          title="User agents"
-          description="Top recorded browser user-agent values."
+          title={t.agents}
+          description={t.agentsLead}
           rows={stats.breakdowns.userAgents}
-          empty="No user-agent data in this period."
+          empty={t.noAgents}
+          direct={t.direct}
         />
       </div>
     </>
@@ -336,11 +348,13 @@ function Breakdown({
   description,
   rows,
   empty,
+  direct,
 }: {
   title: string;
   description: string;
   rows: { value: string; clicks: number }[];
   empty: string;
+  direct: string;
 }) {
   const id = `breakdown-${title.replace(' ', '-').toLowerCase()}`;
   return (
@@ -358,7 +372,7 @@ function Breakdown({
         <ol className="breakdown-list">
           {rows.map((row) => (
             <li key={row.value}>
-              <span title={row.value}>{row.value || 'Direct'}</span>
+              <span title={row.value}>{row.value || direct}</span>
               <strong>{row.clicks}</strong>
             </li>
           ))}
@@ -370,13 +384,13 @@ function Breakdown({
   );
 }
 
-function PageHeader() {
+function PageHeader({ text: t }: { text: Translation['dashboard']['analytics'] }) {
   return (
     <header className="dashboard-page-header">
       <div>
-        <p className="dashboard-eyebrow">Insights</p>
-        <h1>Analytics</h1>
-        <p>Review owner-only click activity for one link at a time.</p>
+        <p className="dashboard-eyebrow">{t.eyebrow}</p>
+        <h1>{t.title}</h1>
+        <p>{t.lead}</p>
       </div>
     </header>
   );

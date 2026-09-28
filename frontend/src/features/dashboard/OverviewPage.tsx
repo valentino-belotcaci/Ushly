@@ -8,8 +8,13 @@ import {
 import { DashboardIcon } from './icons';
 import { useOwnedLinks } from './useOwnedLinks';
 import { publicShortUrl } from './api';
+import { translations } from '../../i18n';
+import { useLocale, useLocalizedRoute } from '../../i18n/locale';
 
 export function OverviewPage() {
+  const copy = translations(useLocale());
+  const t = copy.dashboard;
+  const route = useLocalizedRoute();
   const { data, loading, error, reload } = useOwnedLinks(1, 5);
   if (loading) return <DashboardLoading variant="overview" />;
   if (error)
@@ -20,33 +25,33 @@ export function OverviewPage() {
     <div className="dashboard-page">
       <header className="dashboard-page-header">
         <div>
-          <p className="dashboard-eyebrow">Workspace</p>
-          <h1>Overview</h1>
-          <p>Manage your Ushly links, QR codes, and click insights.</p>
+          <p className="dashboard-eyebrow">{t.workspace}</p>
+          <h1>{t.overview}</h1>
+          <p>{t.overviewLead}</p>
         </div>
-        <Link className="button button--primary" to="/dashboard/links">
-          Create a link
+        <Link className="button button--primary" to={route('/dashboard/links')}>
+          {t.createLink}
         </Link>
       </header>
-      <section className="dashboard-metrics" aria-label="Link summary">
+      <section className="dashboard-metrics" aria-label={t.linkSummary}>
         <article className="card metric-card">
           <DashboardIcon name="links" />
           <div>
-            <span>Total links</span>
+            <span>{t.totalLinks}</span>
             <strong>{data?.total ?? 0}</strong>
           </div>
         </article>
         <article className="card metric-card">
           <DashboardIcon name="power" />
           <div>
-            <span>Active on this page</span>
+            <span>{t.activePage}</span>
             <strong>{active}</strong>
           </div>
         </article>
         <article className="card metric-card">
           <DashboardIcon name="qr" />
           <div>
-            <span>QR ready</span>
+            <span>{t.qrReady}</span>
             <strong>{links.length}</strong>
           </div>
         </article>
@@ -54,18 +59,18 @@ export function OverviewPage() {
       <section className="card dashboard-panel">
         <header>
           <div>
-            <h2>Recent links</h2>
-            <p>Your latest owned links.</p>
+            <h2>{t.recentLinks}</h2>
+            <p>{t.latestLinks}</p>
           </div>
-          <Link to="/dashboard/links">View all</Link>
+          <Link to={route('/dashboard/links')}>{t.viewAll}</Link>
         </header>
         {links.length === 0 ? (
           <DashboardEmpty
-            title="No links yet"
-            text="Create your first shortened link to start building your workspace."
+            title={t.noLinks}
+            text={t.noLinksText}
             action={
-              <Link className="button button--primary" to="/dashboard/links">
-                Create a link
+              <Link className="button button--primary" to={route('/dashboard/links')}>
+                {t.createLink}
               </Link>
             }
           />
@@ -93,7 +98,11 @@ export function OverviewPage() {
                         : 'neutral'
                   }
                 >
-                  {link.status}
+                  {link.status === 'active'
+                    ? copy.common.active
+                    : link.status === 'expired'
+                      ? copy.common.expired
+                      : copy.common.disabled}
                 </Badge>
               </li>
             ))}

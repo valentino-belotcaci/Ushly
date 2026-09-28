@@ -2,10 +2,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ToastContext } from './toast-context';
 import { Button } from './Button';
 import type { Tone } from './Badge';
-import { uiText } from '../content/en';
+import { translations } from '../i18n';
+import { localeFromPath } from '../i18n/locale';
 
 type Toast = { id: number; message: string; tone: Tone };
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const text = translations(
+    typeof window === 'undefined' ? 'en' : localeFromPath(window.location.pathname),
+  ).common;
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
   const timers = useRef(new Map<number, number>());
@@ -34,7 +38,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         role="status"
         aria-live="polite"
         aria-atomic="false"
-        aria-label={uiText.notifications}
+        aria-label={text.notifications}
       >
         <ol className="toast-list">
           {toasts.map((toast) => (
@@ -42,7 +46,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <span>{toast.message}</span>
               <Button
                 variant="quiet"
-                aria-label={`${uiText.dismiss}: ${toast.message}`}
+                aria-label={`${text.dismissNotification}: ${toast.message}`}
                 onClick={() => dismiss(toast.id)}
               >
                 ×

@@ -1,4 +1,5 @@
-import { uiText } from '../content/en';
+import { translations } from '../i18n';
+import { useLocale } from '../i18n/locale';
 
 export type LoadingStateVariant =
   | 'page'
@@ -210,12 +211,13 @@ function SkeletonLayout({ variant }: { variant: LoadingStateVariant }) {
 }
 
 export function LoadingState({
-  label = uiText.loading,
+  label,
   variant = 'page',
 }: {
   label?: string;
   variant?: LoadingStateVariant;
 }) {
+  const text = translations(useLocale()).common;
   return (
     <div
       className={`loading-state loading-state--${variant}`}
@@ -225,7 +227,7 @@ export function LoadingState({
     >
       <span className="loading-state__label">
         <span className="spinner" aria-hidden="true" />
-        <span>{label}</span>
+        <span>{label ?? text.loading}</span>
       </span>
       <SkeletonLayout variant={variant} />
     </div>

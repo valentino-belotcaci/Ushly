@@ -4,17 +4,20 @@ import {
   LoadingState,
   type LoadingStateVariant,
 } from '../../components/LoadingState';
+import { translations } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
 export function DashboardLoading({
-  label = 'Loading your workspace…',
+  label,
   variant = 'page',
 }: {
   label?: string;
   variant?: LoadingStateVariant;
 }) {
+  const text = translations(useLocale()).dashboard;
   return (
     <div className={`dashboard-state dashboard-state--loading-${variant} card`}>
-      <LoadingState label={label} variant={variant} />
+      <LoadingState label={label ?? text.loadingWorkspace} variant={variant} />
     </div>
   );
 }
@@ -25,13 +28,14 @@ export function DashboardError({
   message: string;
   retry?: () => void;
 }) {
+  const text = translations(useLocale()).dashboard;
   return (
     <div className="dashboard-state card" role="alert">
-      <strong>We couldn’t load this view.</strong>
+      <strong>{text.loadError}</strong>
       <p>{message}</p>
       {retry && (
         <Button variant="secondary" onClick={retry}>
-          Try again
+          {text.tryAgain}
         </Button>
       )}
     </div>

@@ -20,11 +20,11 @@ beforeEach(() => {
 function renderApp(path = '/') {
   return render(
     <ThemeProvider>
-      <ToastProvider>
-        <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={[path]}>
+          <ToastProvider>
           <App />
+          </ToastProvider>
         </MemoryRouter>
-      </ToastProvider>
     </ThemeProvider>,
   );
 }
@@ -83,7 +83,7 @@ it('switches to the equivalent Italian public route', async () => {
 });
 it('renders localized authentication and legal routes with the same components', () => {
   const { unmount } = renderApp('/it/login');
-  expect(screen.getByRole('heading', { name: 'Log in to Ushly' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Accedi a Ushly' })).toBeVisible();
   expect(
     screen.getByRole('button', { name: 'Seleziona la lingua' }),
   ).toHaveTextContent('IT');

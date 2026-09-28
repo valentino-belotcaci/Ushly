@@ -21,16 +21,16 @@ beforeEach(() => {
 function renderDashboard() {
   render(
     <ThemeProvider>
-      <ToastProvider>
-        <MemoryRouter initialEntries={['/dashboard/links']}>
+      <MemoryRouter initialEntries={['/dashboard/links']}>
+          <ToastProvider>
           <Routes>
             <Route path="/login" element={<h1>Login page</h1>} />
             <Route path="/dashboard" element={<DashboardGuard />}>
               <Route path="links" element={<h1>Owned links</h1>} />
             </Route>
           </Routes>
+          </ToastProvider>
         </MemoryRouter>
-      </ToastProvider>
     </ThemeProvider>,
   );
 }

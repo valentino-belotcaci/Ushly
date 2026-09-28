@@ -8,8 +8,11 @@ import {
 } from './DashboardState';
 import { DashboardIcon } from './icons';
 import { useOwnedLinks } from './useOwnedLinks';
+import { translations } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
 export function QrCodesPage() {
+  const t = translations(useLocale()).dashboard.qr;
   const links = useOwnedLinks(1, 100);
   const [selected, setSelected] = useState('');
   const [source, setSource] = useState('');
@@ -31,7 +34,7 @@ export function QrCodesPage() {
           setError(
             failure instanceof ApiClientError
               ? failure.message
-              : 'The QR code could not be loaded.',
+              : t.loadError,
           );
       })
       .finally(() => {
@@ -41,9 +44,9 @@ export function QrCodesPage() {
       active = false;
       if (next) URL.revokeObjectURL(next);
     };
-  }, [selectedId]);
+  }, [selectedId, t.loadError]);
   if (links.loading)
-    return <DashboardLoading label="Loading QR codes…" variant="list" />;
+    return <DashboardLoading label={t.loading} variant="list" />;
   if (links.error)
     return (
       <DashboardError message={links.error} retry={() => void links.reload()} />
@@ -52,20 +55,20 @@ export function QrCodesPage() {
     <div className="dashboard-page">
       <header className="dashboard-page-header">
         <div>
-          <p className="dashboard-eyebrow">Share</p>
-          <h1>QR Codes</h1>
-          <p>Download the QR code generated for an owned short link.</p>
+          <p className="dashboard-eyebrow">{t.eyebrow}</p>
+          <h1>{t.title}</h1>
+          <p>{t.lead}</p>
         </div>
       </header>
       {!links.data?.items.length ? (
         <DashboardEmpty
-          title="No QR codes available"
-          text="Create an owned link first. Ushly generates its QR code from the public short URL."
+          title={t.empty}
+          text={t.emptyText}
         />
       ) : (
         <section className="card qr-workspace">
           <div className="qr-controls">
-            <label htmlFor="qr-link">Choose a link</label>
+            <label htmlFor="qr-link">{t.choose}</label>
             <select
               id="qr-link"
               className="input"
@@ -84,8 +87,7 @@ export function QrCodesPage() {
               ))}
             </select>
             <p>
-              QR codes encode the Ushly short URL. Analytics are recorded when
-              that short URL is opened.
+              {t.explanation}
             </p>
             {source && (
               <a
@@ -94,20 +96,20 @@ export function QrCodesPage() {
                 download={`ushly-${links.data.items.find((link) => link.id === selectedId)?.shortCode ?? 'qr'}.svg`}
               >
                 <DashboardIcon name="download" />
-                Download SVG
+                {t.download}
               </a>
             )}
           </div>
           <div className="qr-preview">
             {loading ? (
-              <DashboardLoading label="Generating QR code…" variant="cards" />
+              <DashboardLoading label={t.generating} variant="cards" />
             ) : error ? (
               <DashboardError message={error} />
             ) : (
               source && (
                 <img
                   src={source}
-                  alt={`QR code for /${links.data.items.find((link) => link.id === selectedId)?.shortCode ?? ''}`}
+                  alt={`${t.alt} /${links.data.items.find((link) => link.id === selectedId)?.shortCode ?? ''}`}
                 />
               )
             )}
