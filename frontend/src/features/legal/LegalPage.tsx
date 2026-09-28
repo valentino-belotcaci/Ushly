@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { PageContainer } from '../../layout/PageContainer';
 import { legalContactEmail, legalName } from '../../config/public';
 import { legalPages, type LegalPagePath } from './content';
+import { localizedLegalPath } from './content';
+import { legalPagesIt } from './content.it';
+import { localizedPath, useLocale } from '../../i18n/locale';
 import './legal.css';
 
 function configuredText(text: string) {
@@ -12,7 +15,27 @@ function configuredText(text: string) {
 }
 
 export function LegalPage({ path }: { path: LegalPagePath }) {
-  const page = legalPages[path];
+  const locale = useLocale();
+  const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(useLocation().pathname);
+  const page = locale === 'it' ? legalPagesIt[path] : legalPages[path];
+  const ui =
+    locale === 'it'
+      ? {
+          notice: 'Avviso di revisione prima della pubblicazione',
+          noticeText: 'Modello di progetto: fai revisionare questa pagina e sostituisci i dati configurabili del gestore e di contatto prima della pubblicazione.',
+          contents: 'Contenuti',
+          sections: `${page.title}: sezioni`,
+          related: 'Pagine legali correlate',
+          relatedTitle: 'Informazioni correlate',
+        }
+      : {
+          notice: 'Production review notice',
+          noticeText: 'Project template: review this page and replace its configurable legal identity and contact placeholders before production launch.',
+          contents: 'Contents',
+          sections: `${page.title} sections`,
+          related: 'Related legal pages',
+          relatedTitle: 'Related information',
+        };
   const [activeSection, setActiveSection] = useState(0);
 
   useEffect(() => {
@@ -43,15 +66,12 @@ export function LegalPage({ path }: { path: LegalPagePath }) {
         <p className="legal-page__eyebrow">{page.eyebrow}</p>
         <h1>{page.title}</h1>
         <p>{page.lead}</p>
-        <aside aria-label="Production review notice">
-          Project template: review this page and replace its configurable legal
-          identity and contact placeholders before production launch.
-        </aside>
+        <aside aria-label={ui.notice}>{ui.noticeText}</aside>
       </header>
       <hr />
       <div className="legal-page__layout">
-        <nav aria-label={`${page.title} sections`}>
-          <strong>Contents</strong>
+        <nav aria-label={ui.sections}>
+          <strong>{ui.contents}</strong>
           <ol>
             {page.sections.map((section, index) => (
               <li
@@ -81,13 +101,23 @@ export function LegalPage({ path }: { path: LegalPagePath }) {
               ))}
             </section>
           ))}
-          <div className="legal-page__related" aria-label="Related legal pages">
-            <h2>Related information</h2>
+          <div className="legal-page__related" aria-label={ui.related}>
+            <h2>{ui.relatedTitle}</h2>
             <div>
-              {Object.entries(legalPages)
+              {Object.entries(locale === 'it' ? legalPagesIt : legalPages)
                 .filter(([relatedPath]) => relatedPath !== path)
                 .map(([relatedPath, relatedPage]) => (
-                  <Link key={relatedPath} to={relatedPath}>
+                  <Link
+                    key={relatedPath}
+                    to={
+                      localePrefix
+                        ? localizedPath(
+                            localizedLegalPath(relatedPath as LegalPagePath),
+                            locale,
+                          )
+                        : relatedPath
+                    }
+                  >
                     {relatedPage.pageTitle}
                   </Link>
                 ))}

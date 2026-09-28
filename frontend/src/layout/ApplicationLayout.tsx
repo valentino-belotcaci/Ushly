@@ -3,11 +3,14 @@ import { Outlet, useLocation } from 'react-router';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import './layout.css';
+import { translations } from '../i18n';
+import { useLocale } from '../i18n/locale';
 
 export function ApplicationLayout() {
   const location = useLocation();
   const previousPath = useRef(location.pathname);
   const main = useRef<HTMLElement>(null);
+  const t = translations(useLocale());
   useEffect(() => {
     // Client-side navigation needs a predictable reading/focus starting point.
     if (previousPath.current !== location.pathname) {
@@ -19,7 +22,7 @@ export function ApplicationLayout() {
   return (
     <div className="application-layout">
       <a className="skip-link" href="#main-content">
-        Skip to content
+        {t.layout.skip}
       </a>
       {/* A new destination resets the disclosure, including browser back/forward. */}
       <Header key={location.pathname} />

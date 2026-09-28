@@ -8,32 +8,56 @@ import { isPublicPagePath, publicPages } from './features/public-pages/content';
 import { publicPageMetadata } from './features/public-pages/metadata';
 import { siteOrigin } from './config/public';
 import { authMetadata, isAuthPath } from './features/auth/metadata';
-import { isLegalPagePath, legalPages } from './features/legal/content';
+import {
+  isLegalPagePath,
+  isLocalizedLegalPath,
+  legalPages,
+  localizedLegalRoutes,
+} from './features/legal/content';
 import { legalPageMetadata } from './features/legal/metadata';
+import { localeFromPath, localizedPath, stripLocale } from './i18n/locale';
 
 export const publicPagePaths = [
   ...Object.keys(publicPages).filter(isPublicPagePath),
   ...Object.keys(legalPages).filter(isLegalPagePath),
 ];
+export const localizedPublicPagePaths = (['en', 'it'] as const).flatMap((locale) => [
+  localizedPath('/', locale),
+  ...Object.keys(publicPages).filter(isPublicPagePath).map((path) => localizedPath(path, locale)),
+  ...Object.keys(localizedLegalRoutes).map((path) => localizedPath(path, locale)),
+  localizedPath('/login', locale),
+  localizedPath('/register', locale),
+]);
 export const authPagePaths = ['/login', '/register'] as const;
 
 export function renderPage(path: string) {
+  const locale = localeFromPath(path);
+  const basePath = stripLocale(path.replace(/\/$/, '') || '/');
   if (
-    path !== '/' &&
-    !isPublicPagePath(path) &&
-    !isLegalPagePath(path) &&
-    !isAuthPath(path)
+    basePath !== '/' &&
+    !isPublicPagePath(basePath) &&
+    !isLocalizedLegalPath(basePath) &&
+    !isLegalPagePath(basePath) &&
+    !isAuthPath(basePath)
   )
     throw new Error('Unknown public page');
+  let head: string;
+  if (basePath === '/') head = homepageMetadata(siteOrigin, locale, path);
+  else if (isPublicPagePath(basePath))
+    head = publicPageMetadata(basePath, siteOrigin, locale, path);
+  else if (isLocalizedLegalPath(basePath))
+    head = legalPageMetadata(
+      localizedLegalRoutes[basePath],
+      siteOrigin,
+      locale,
+      path,
+    );
+  else if (isLegalPagePath(basePath))
+    head = legalPageMetadata(basePath, siteOrigin, locale, path);
+  else if (isAuthPath(basePath)) head = authMetadata(basePath);
+  else throw new Error('Unknown public page');
   return {
-    head:
-      path === '/'
-        ? homepageMetadata(siteOrigin)
-        : isPublicPagePath(path)
-          ? publicPageMetadata(path, siteOrigin)
-          : isLegalPagePath(path)
-            ? legalPageMetadata(path, siteOrigin)
-            : authMetadata(path),
+    head,
     html: renderToString(
       <ThemeProvider>
         <ToastProvider>

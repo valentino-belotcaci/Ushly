@@ -4,9 +4,11 @@ import { BrandLogo } from '../components/BrandLogo';
 import { Button } from '../components/Button';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { PageContainer } from './PageContainer';
-import { accountLinks, primaryLinks } from './navigation';
 import { useSession } from '../api/session';
 import { AccountActions } from '../features/auth/AccountActions';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { translations } from '../i18n';
+import { localizedPath, useLocale } from '../i18n/locale';
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -14,6 +16,10 @@ export function Header() {
   const navigation = useRef<HTMLElement>(null);
   const location = useLocation();
   const session = useSession();
+  const locale = useLocale();
+  const t = translations(locale);
+  const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(location.pathname);
+  const primaryPaths = ['/url-shortener', '/qr-codes', '/analytics', '/features'] as const;
 
   useEffect(() => {
     // Clear mobile disclosure state across breakpoint changes, including browser zoom.
@@ -66,8 +72,8 @@ export function Header() {
       <PageContainer className="header-inner">
         <Link
           className="brand-link"
-          to="/"
-          aria-label="Ushly home"
+          to={localizedPath('/', locale, localePrefix)}
+          aria-label={t.layout.home}
           onClick={closeMenu}
         >
           <BrandLogo />
@@ -82,29 +88,33 @@ export function Header() {
             aria-controls="primary-navigation"
             onClick={() => setOpen(!open)}
           >
-            {open ? 'Close menu' : 'Menu'}
+            {open ? t.layout.closeMenu : t.layout.menu}
           </Button>
         </div>
         <nav
           ref={navigation}
           id="primary-navigation"
-          aria-label="Primary"
+          aria-label={t.layout.primary}
           className={`primary-navigation ${open ? 'is-open' : ''}`}
         >
           <ul className="primary-links">
-            {primaryLinks.map((link) => (
-              <li key={link.to}>
-                <NavLink end to={link.to} onClick={closeMenu}>
-                  {link.label}
+            {primaryPaths.map((path, index) => (
+              <li key={path}>
+                <NavLink end to={localizedPath(path, locale, localePrefix)} onClick={closeMenu}>
+                  {t.layout.nav[index]}
                 </NavLink>
               </li>
             ))}
           </ul>
           <div className="account-links">
+            <LanguageSelector />
             {session.status === 'authenticated' ? (
               <AccountActions onAction={closeMenu} canLinkGoogle={false} />
             ) : (
-              accountLinks.map((link, index) => (
+              [
+                { label: t.layout.login, to: '/login' },
+                { label: t.layout.getStarted, to: '/register' },
+              ].map((link, index) => (
                 <Link
                   key={link.to}
                   to={link.to}

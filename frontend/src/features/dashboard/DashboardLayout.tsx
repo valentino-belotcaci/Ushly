@@ -12,10 +12,12 @@ import { BrandLogo } from '../../components/BrandLogo';
 import { Button } from '../../components/Button';
 import { LoadingState } from '../../components/LoadingState';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { LanguageSelector } from '../../components/LanguageSelector';
 import { useToast } from '../../components/toast-context';
 import { DashboardIcon, type DashboardIconName } from './icons';
 import { checkAdminAccess } from '../admin/api';
 import './dashboard.css';
+import { localizedPath, useLocale } from '../../i18n/locale';
 
 const navigation: {
   to: string;
@@ -33,6 +35,8 @@ const navigation: {
 export function DashboardGuard() {
   const session = useSession();
   const location = useLocation();
+  const locale = useLocale();
+  const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(location.pathname);
   if (session.status === 'checking')
     return (
       <main className="dashboard-auth-state">
@@ -40,7 +44,13 @@ export function DashboardGuard() {
       </main>
     );
   if (session.status === 'anonymous')
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to={localizedPath('/login', locale, localePrefix)}
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   return <DashboardLayout />;
 }
 
@@ -48,6 +58,10 @@ function DashboardLayout() {
   const session = useSession();
   const navigate = useNavigate();
   const notify = useToast();
+  const locale = useLocale();
+  const location = useLocation();
+  const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(location.pathname);
+  const route = (path: string) => localizedPath(path, locale, localePrefix);
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
@@ -82,13 +96,13 @@ function DashboardLayout() {
     try {
       await apiSession.logout();
       notify('You have logged out.', 'success', 3000);
-      navigate('/login', { replace: true });
+      navigate(route('/login'), { replace: true });
     } catch {
       notify(
         'You are signed out here, but the server could not confirm logout. Please try again when connected.',
         'warning',
       );
-      navigate('/login', { replace: true });
+      navigate(route('/login'), { replace: true });
     }
   }
 
@@ -98,7 +112,7 @@ function DashboardLayout() {
         Skip to dashboard content
       </a>
       <header className="dashboard-mobile-header">
-        <Link to="/dashboard" aria-label="Ushly dashboard">
+        <Link to={route('/dashboard')} aria-label="Ushly dashboard">
           <BrandLogo />
         </Link>
         <div className="row">
@@ -132,7 +146,7 @@ function DashboardLayout() {
       >
         <Link
           className="dashboard-brand"
-          to="/dashboard"
+          to={route('/dashboard')}
           aria-label="Ushly dashboard"
           onClick={() => setOpen(false)}
         >
@@ -144,7 +158,7 @@ function DashboardLayout() {
               <li key={item.to}>
                 <NavLink
                   {...(item.end ? { end: true } : {})}
-                  to={item.to}
+                  to={route(item.to)}
                   onClick={() => setOpen(false)}
                 >
                   <DashboardIcon name={item.icon} />
@@ -154,7 +168,10 @@ function DashboardLayout() {
             ))}
             {adminAccess && (
               <li>
-                <NavLink to="/dashboard/admin" onClick={() => setOpen(false)}>
+                <NavLink
+                  to={route('/dashboard/admin')}
+                  onClick={() => setOpen(false)}
+                >
                   <DashboardIcon name="settings" />
                   <span>Admin</span>
                 </NavLink>
@@ -162,6 +179,9 @@ function DashboardLayout() {
             )}
           </ul>
         </nav>
+        <div className="dashboard-language">
+          <LanguageSelector />
+        </div>
         <div className="dashboard-account">
           <div>
             <span className="dashboard-avatar" aria-hidden="true">

@@ -5,16 +5,18 @@ import {
   useSyncExternalStore,
   type FormEvent,
 } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { apiOrigin } from '../../config/public';
 import { apiSession, ApiClientError, useSession } from '../../api/session';
 import { BrandLogo } from '../../components/BrandLogo';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { LanguageSelector } from '../../components/LanguageSelector';
 import { useToast } from '../../components/toast-context';
 import { watchGooglePopup, type GooglePopupResult } from './googlePopup';
 import './auth.css';
+import { localizedPath, useLocale } from '../../i18n/locale';
 
 type Mode = 'login' | 'register';
 const subscribeToHydration = () => () => {};
@@ -52,6 +54,9 @@ export function AuthPage({ mode }: { mode: Mode }) {
   const session = useSession();
   const notify = useToast();
   const navigate = useNavigate();
+  const locale = useLocale();
+  const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(useLocation().pathname);
+  const route = (path: string) => localizedPath(path, locale, localePrefix);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -95,12 +100,12 @@ export function AuthPage({ mode }: { mode: Mode }) {
         setPassword('');
         setConfirm('');
         notify('Your account is ready.', 'success', 3000);
-        navigate('/dashboard', { replace: true });
+        navigate(route('/dashboard'), { replace: true });
       } else {
         await apiSession.login({ email: email.trim(), password });
         setPassword('');
         notify('You’re signed in. Your session is ready.', 'success', 3000);
-        navigate('/dashboard', { replace: true });
+        navigate(route('/dashboard'), { replace: true });
       }
     } catch (failure) {
       if (
@@ -170,7 +175,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
         setError('Google sign-in could not be completed. Please try again.');
       else {
         notify('You’re signed in. Your session is ready.', 'success', 3000);
-        navigate('/dashboard', { replace: true });
+        navigate(route('/dashboard'), { replace: true });
       }
     } catch (failure) {
       setError(
@@ -191,10 +196,17 @@ export function AuthPage({ mode }: { mode: Mode }) {
         Skip to content
       </a>
       <header className="auth-topbar">
-        <Link to="/" aria-label="Ushly home" className="brand-link">
+        <Link
+          to={route('/')}
+          aria-label="Ushly home"
+          className="brand-link"
+        >
           <BrandLogo />
         </Link>
-        <ThemeToggle />
+        <div className="auth-topbar__controls">
+          <LanguageSelector />
+          <ThemeToggle />
+        </div>
       </header>
       <main id="main-content" className="auth-main" tabIndex={-1}>
         <section className="auth-panel" aria-labelledby="auth-title">
@@ -211,7 +223,10 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 <strong>You’re signed in.</strong>
                 <p>Your session is ready.</p>
               </div>
-              <Link className="button button--primary" to="/dashboard">
+              <Link
+                className="button button--primary"
+                to={route('/dashboard')}
+              >
                 Open dashboard
               </Link>
             </div>
@@ -329,15 +344,22 @@ export function AuthPage({ mode }: { mode: Mode }) {
               {mode === 'register' && (
                 <p className="auth-legal">
                   By creating an account, you agree to our{' '}
-                  <Link to="/privacy">Privacy Policy</Link> and{' '}
-                  <Link to="/terms">Terms of Service</Link>.
+                  <Link to={localePrefix ? route('/privacy-policy') : '/privacy'}>
+                    Privacy Policy
+                  </Link>{' '}
+                  and{' '}
+                  <Link to={localePrefix ? route('/terms-of-service') : '/terms'}>
+                    Terms of Service
+                  </Link>.
                 </p>
               )}
               <p className="auth-switch">
                 {mode === 'register'
                   ? 'Already have an account? '
                   : 'New to Ushly? '}
-                <Link to={mode === 'register' ? '/login' : '/register'}>
+                <Link
+                  to={route(mode === 'register' ? '/login' : '/register')}
+                >
                   {mode === 'register' ? 'Log in' : 'Create an account'}
                 </Link>
               </p>

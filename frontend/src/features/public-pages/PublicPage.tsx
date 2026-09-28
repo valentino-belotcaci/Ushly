@@ -1,7 +1,9 @@
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { PageContainer } from '../../layout/PageContainer';
 import { publicPages, type PublicPagePath } from './content';
 import './public-pages.css';
+import { translations } from '../../i18n';
+import { localizedPath, useLocale } from '../../i18n/locale';
 
 function PageVisual({
   kind,
@@ -48,7 +50,10 @@ function PageVisual({
 }
 
 export function PublicPage({ path }: { path: PublicPagePath }) {
-  const page = publicPages[path];
+  const locale = useLocale();
+  const localePrefix = /^\/(?:en|it)(?:\/|$)/.test(useLocation().pathname);
+  const content = translations(locale).public;
+  const page = content.pages[path];
   return (
     <PageContainer className="public-page">
       <section
@@ -64,7 +69,7 @@ export function PublicPage({ path }: { path: PublicPagePath }) {
               <Link
                 key={action.label}
                 className={`button button--${action.style}`}
-                to={action.to}
+                to={localizedPath(action.to, locale, localePrefix)}
               >
                 {action.label}
                 {action.style === 'primary' && (
@@ -97,8 +102,8 @@ export function PublicPage({ path }: { path: PublicPagePath }) {
         aria-labelledby="public-page-highlights"
       >
         <div className="public-page__section-heading">
-          <p className="public-page__eyebrow">What Ushly offers</p>
-          <h2 id="public-page-highlights">Built around real link behavior</h2>
+          <p className="public-page__eyebrow">{content.offers}</p>
+          <h2 id="public-page-highlights">{content.built}</h2>
         </div>
         <div className="public-page__cards">
           {page.highlights.map((item) => (
@@ -118,8 +123,8 @@ export function PublicPage({ path }: { path: PublicPagePath }) {
         aria-labelledby="public-page-steps"
       >
         <div className="public-page__section-heading">
-          <p className="public-page__eyebrow">In practice</p>
-          <h2 id="public-page-steps">How it works</h2>
+          <p className="public-page__eyebrow">{content.practice}</p>
+          <h2 id="public-page-steps">{content.how}</h2>
         </div>
         <ol>
           {page.steps.map((step, index) => (
@@ -132,7 +137,7 @@ export function PublicPage({ path }: { path: PublicPagePath }) {
       </section>
 
       <section className="public-page__faq" aria-labelledby="public-page-faq">
-        <h2 id="public-page-faq">Frequently asked questions</h2>
+        <h2 id="public-page-faq">{content.faq}</h2>
         {page.faqs.map((faq) => (
           <details key={faq.question}>
             <summary>{faq.question}</summary>
@@ -141,7 +146,7 @@ export function PublicPage({ path }: { path: PublicPagePath }) {
         ))}
       </section>
 
-      <aside className="public-page__more" aria-label="Next steps">
+      <aside className="public-page__more" aria-label={content.next}>
         <div>
           <h2>{page.finalCta.title}</h2>
           <p>{page.finalCta.text}</p>
@@ -151,7 +156,7 @@ export function PublicPage({ path }: { path: PublicPagePath }) {
             <Link
               key={action.label}
               className={`button button--${action.style}`}
-              to={action.to}
+              to={localizedPath(action.to, locale, localePrefix)}
             >
               {action.label}
               {action.style === 'primary' && <span aria-hidden="true">→</span>}

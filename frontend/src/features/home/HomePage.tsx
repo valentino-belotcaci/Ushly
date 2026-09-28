@@ -2,10 +2,11 @@ import { Link } from 'react-router';
 import { PageContainer } from '../../layout/PageContainer';
 import { ShortenForm } from './ShortenForm';
 import { UrlExamples } from './UrlExamples';
-import { faqs, features, homeTitle } from './content';
 import './home.css';
+import { translations } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
-function FeatureIcon({ kind }: { kind: (typeof features)[number]['kind'] }) {
+function FeatureIcon({ kind }: { kind: 'shorten' | 'qr' | 'analytics' | 'lifetime' }) {
   return (
     <svg
       aria-hidden="true"
@@ -44,24 +45,21 @@ function FeatureIcon({ kind }: { kind: (typeof features)[number]['kind'] }) {
 }
 
 export function HomePage() {
+  const locale = useLocale();
+  const t = translations(locale).home;
   return (
     <PageContainer className="homepage">
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero__copy">
-          <p className="home-eyebrow">A simpler way to share</p>
-          <h1 id="home-title">{homeTitle}</h1>
-          <UrlExamples />
-          <p className="home-intro">
-            Create free short URLs, generate QR codes, and understand how people
-            interact with your links. Ushly provides privacy-conscious click
-            analytics, link management, expiration controls, and secure sharing
-            for individuals and small businesses.
-          </p>
+          <p className="home-eyebrow">{t.eyebrow}</p>
+          <h1 id="home-title">{t.title}</h1>
+          <UrlExamples label={t.exampleLabel} />
+          <p className="home-intro">{t.intro}</p>
           <Link
             className="button button--primary home-hero__cta"
             to="/register"
           >
-            Create free account
+            {t.createAccount}
           </Link>
         </div>
         <ShortenForm />
@@ -69,15 +67,12 @@ export function HomePage() {
       <section className="home-features" aria-labelledby="features-title">
         <div className="home-section-heading">
           <h2 id="features-title">
-            Everything you need to manage shared links
+            {t.featuresTitle}
           </h2>
-          <p>
-            Start with a short link, then use the tools available for sharing
-            and managing it.
-          </p>
+          <p>{t.featuresLead}</p>
         </div>
         <div className="home-feature-grid">
-          {features.map((feature) => (
+          {t.features.map((feature) => (
             <article
               key={feature.kind}
               className={`home-feature-card home-feature-card--${feature.kind}`}
@@ -109,8 +104,8 @@ export function HomePage() {
         </div>
       </section>
       <section className="home-faq" aria-labelledby="faq-title">
-        <h2 id="faq-title">Frequently asked questions</h2>
-        {faqs.map((faq) => (
+        <h2 id="faq-title">{t.faqTitle}</h2>
+        {t.faqs.map((faq) => (
           <details key={faq.question}>
             <summary>{faq.question}</summary>
             <p>{faq.answer}</p>
@@ -119,18 +114,15 @@ export function HomePage() {
       </section>
       <section className="home-account" aria-labelledby="account-title">
         <div>
-          <h2 id="account-title">Keep your links connected to you</h2>
-          <p className="muted">
-            Account pages are coming soon. Anonymous shortening is available
-            now.
-          </p>
+          <h2 id="account-title">{t.accountTitle}</h2>
+          <p className="muted">{t.accountText}</p>
         </div>
         <div className="row">
           <Link className="button button--primary" to="/register">
-            Sign up
+            {t.signup}
           </Link>
           <Link className="button button--secondary" to="/login">
-            Log in
+            {t.login}
           </Link>
         </div>
       </section>

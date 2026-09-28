@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import { App } from '../app/App';
 import { ThemeProvider } from '../theme/ThemeProvider';
+import { ToastProvider } from '../components/ToastProvider';
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -19,9 +20,11 @@ beforeEach(() => {
 function renderApp(path = '/') {
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+        </MemoryRouter>
+      </ToastProvider>
     </ThemeProvider>,
   );
 }
@@ -60,6 +63,37 @@ it('renders branded landmarks and all footer destinations', () => {
     }
   }
   expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+});
+it('switches to the equivalent Italian public route', async () => {
+  const user = userEvent.setup();
+  renderApp('/url-shortener');
+  await user.click(
+    screen.getByRole('button', { name: 'Select language' }),
+  );
+  await user.click(screen.getByRole('menuitem', { name: 'Italiano (IT)' }));
+  expect(
+    screen.getByRole('heading', {
+      level: 1,
+      name: 'Crea link brevi e condividili facilmente',
+    }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Seleziona la lingua' }),
+  ).toHaveTextContent('IT');
+});
+it('renders localized authentication and legal routes with the same components', () => {
+  const { unmount } = renderApp('/it/login');
+  expect(screen.getByRole('heading', { name: 'Log in to Ushly' })).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Seleziona la lingua' }),
+  ).toHaveTextContent('IT');
+  unmount();
+
+  renderApp('/it/privacy-policy');
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Informativa sulla privacy' }),
+  ).toBeVisible();
+  expect(document.documentElement).toHaveAttribute('lang', 'it');
 });
 it('supports disclosure activation, Escape restoration and public navigation', async () => {
   const user = userEvent.setup();

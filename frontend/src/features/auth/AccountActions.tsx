@@ -6,6 +6,8 @@ import { Dialog } from '../../components/Dialog';
 import { Input } from '../../components/Input';
 import { useToast } from '../../components/toast-context';
 import { watchGooglePopup, type GooglePopupResult } from './googlePopup';
+import { translations } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
 export function AccountActions({
   onAction,
@@ -17,6 +19,7 @@ export function AccountActions({
   showLogout?: boolean;
 }) {
   const notify = useToast();
+  const layoutText = translations(useLocale()).layout;
   const [linkOpen, setLinkOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [linkBusy, setLinkBusy] = useState(false);
@@ -126,10 +129,10 @@ export function AccountActions({
     onAction();
     try {
       await apiSession.logout();
-      notify('You have logged out.', 'success', 3000);
+      notify(layoutText.loggedOut, 'success', 3000);
     } catch {
       notify(
-        'You are signed out here, but the server could not confirm logout. Please try again when connected.',
+        layoutText.logoutWarning,
         'warning',
       );
     } finally {
@@ -155,7 +158,7 @@ export function AccountActions({
         loading={logoutBusy}
         onClick={() => void logout()}
       >
-        Log out
+        {layoutText.logout}
       </Button>}
       <Dialog
         open={linkOpen}

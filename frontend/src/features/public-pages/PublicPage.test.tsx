@@ -64,3 +64,30 @@ it('gives each public page unique indexable metadata and a configured canonical 
   expect(titles.size).toBe(paths.length);
   expect(descriptions.size).toBe(paths.length);
 });
+
+it('renders Italian content and localized SEO alternates without another page component', () => {
+  render(
+    <MemoryRouter initialEntries={['/it/url-shortener']}>
+      <PublicPage path="/url-shortener" />
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole('heading', {
+      level: 1,
+      name: 'Crea link brevi e condividili facilmente',
+    }),
+  ).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Abbrevia un URL' })).toHaveAttribute(
+    'href',
+    '/it/',
+  );
+  const head = publicPageMetadata(
+    '/url-shortener',
+    'https://ushly.example',
+    'it',
+    '/it/url-shortener',
+  );
+  expect(head).toContain('hreflang="en"');
+  expect(head).toContain('hreflang="it"');
+  expect(head).toContain('Abbreviatore URL gratuito | Ushly');
+});

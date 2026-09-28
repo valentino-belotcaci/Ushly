@@ -19,13 +19,18 @@ import {
 import { RouteMetadata } from './RouteMetadata';
 import { footerGroups } from '../layout/navigation';
 import { LegalPage } from '../features/legal/LegalPage';
-import { isLegalPagePath, legalPages } from '../features/legal/content';
+import {
+  isLegalPagePath,
+  legalPages,
+  localizedLegalRoutes,
+} from '../features/legal/content';
 import { CookieConsent } from '../features/consent/CookieConsent';
 import {
   AdminLinksPage,
   AdminOverviewPage,
   AdminUsersPage,
 } from '../features/admin/AdminPages';
+import { locales } from '../i18n/locale';
 
 // Vite removes this branch and its preview chunk from production builds.
 const ComponentPreview = import.meta.env.DEV
@@ -109,6 +114,41 @@ export function App() {
             }
           />
         </Route>
+        {locales.map((locale) => (
+          <Route key={locale} path={`/${locale}`}>
+            <Route path="login" element={<AuthPage mode="login" />} />
+            <Route path="register" element={<AuthPage mode="register" />} />
+            <Route path="dashboard" element={<DashboardGuard />}>
+              <Route index element={<OverviewPage />} />
+              <Route path="links" element={<LinksPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="qr-codes" element={<QrCodesPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="admin" element={<AdminOverviewPage />} />
+              <Route path="admin/users" element={<AdminUsersPage />} />
+              <Route path="admin/links" element={<AdminLinksPage />} />
+            </Route>
+            <Route element={<ApplicationLayout />}>
+              <Route index element={<HomePage />} />
+              {Object.keys(publicPages)
+                .filter(isPublicPagePath)
+                .map((path) => (
+                  <Route
+                    key={path}
+                    path={path.slice(1)}
+                    element={<PublicPage path={path} />}
+                  />
+                ))}
+              {Object.entries(localizedLegalRoutes).map(([route, path]) => (
+                <Route
+                  key={route}
+                  path={route.slice(1)}
+                  element={<LegalPage path={path} />}
+                />
+              ))}
+            </Route>
+          </Route>
+        ))}
         {ComponentPreview && (
           <Route
             path="/dev/components"

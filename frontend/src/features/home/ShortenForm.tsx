@@ -16,6 +16,8 @@ import {
 } from '../../api/links';
 
 import { generatePublicQr } from './qr';
+import { translations } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
 
 const subscribeToHydration = () => () => {};
 const clientSnapshot = () => true;
@@ -23,6 +25,8 @@ const serverSnapshot = () => false;
 
 // A future session provider can supply an in-memory access token; this task creates no session flow.
 export function ShortenForm({ accessToken }: { accessToken?: string }) {
+  const locale = useLocale();
+  const t = translations(locale).form;
   const interactive = useSyncExternalStore(
     subscribeToHydration,
     clientSnapshot,
@@ -130,7 +134,12 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
     event.preventDefault();
     if (pending.current) return;
     const invalid = validateUrl(url.trim());
-    setError(invalid ?? '');
+    const localizedInvalid = invalid
+      ? url.trim()
+        ? t.invalid
+        : t.required
+      : undefined;
+    setError(localizedInvalid ?? '');
     if (invalid) {
       input.current?.focus();
       return;
@@ -158,8 +167,10 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
       if (attempt === version.current)
         setError(
           failure instanceof ApiError
-            ? failure.message
-            : 'Something went wrong. Please try again.',
+            ? locale === 'en'
+              ? failure.message
+              : t.genericError
+            : t.genericError,
         );
     } finally {
       pending.current = false;
@@ -172,7 +183,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
     try {
       await navigator.clipboard.writeText(result.shortUrl);
       if (attempt === version.current) {
-        setCopyStatus('Copied');
+        setCopyStatus('copied');
         if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
         copyTimer.current = window.setTimeout(() => {
           setCopyStatus('');
@@ -181,7 +192,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
       }
     } catch {
       if (attempt === version.current) {
-        setCopyStatus('Copy unavailable');
+        setCopyStatus('unavailable');
       }
     }
   }
@@ -208,7 +219,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
       }
     } catch {
       if (attempt === version.current)
-        setQrError('Could not generate a QR code. Please try again.');
+        setQrError(t.qrError);
     } finally {
       if (attempt === version.current) {
         qrPending.current = null;
@@ -235,50 +246,49 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
               <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
               <path d="M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1" />
             </svg>
-            <h2 id="shorten-title">Shorten your URL</h2>
+            <h2 id="shorten-title">{t.title}</h2>
           </div>
-          <p>Paste a destination to create your short link.</p>
+          <p>{t.lead}</p>
         </div>
         <div className="card__body">
           <noscript>
             <p>
-              Enable JavaScript to shorten URLs. The information on this page is
-              available without it.
+              {t.noScript}
             </p>
           </noscript>
           <form
             onSubmit={submit}
             noValidate
-            aria-label="Shorten a URL"
+            aria-label={t.aria}
             aria-busy={busy}
           >
             <Input
               ref={input}
-              label="Destination URL"
+              label={t.destination}
               name="url"
               type="url"
               autoComplete="url"
               required
               maxLength={2048}
-              placeholder="https://example.com/your-long-link"
+              placeholder={t.placeholder}
               value={url}
               onChange={(event) => setUrl(event.target.value)}
               disabled={busy || !interactive}
-              hint="Use a complete http:// or https:// URL."
+              hint={t.hint}
               {...(error ? { error } : {})}
             />
             <Button type="submit" loading={busy} disabled={!interactive}>
-              {busy ? 'Shortening…' : 'Shorten link'}{' '}
+              {busy ? t.shortening : t.shorten}{' '}
               <span aria-hidden="true">→</span>
             </Button>
             {error && <p role="alert">{error}</p>}
           </form>
           <div role="status" className="shorten-status">
             {busy
-              ? 'Creating your short link…'
+              ? t.creating
               : result
-                ? 'Your short link is ready.'
-                : 'Your shortened URL will appear below.'}
+                ? t.ready
+                : t.empty}
           </div>
           <div className="shorten-analytics">
             <svg
@@ -292,8 +302,8 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
             >
               <path d="M4 19V5M4 19h16M8 15l4-4 3 2 5-6" />
             </svg>
-            <span>Want to get analytics insights?</span>
-            <Link to="/register">Create free account</Link>
+            <span>{t.analyticsPrompt}</span>
+            <Link to="/register">{t.createAccount}</Link>
           </div>
         </div>
       </section>
@@ -316,13 +326,13 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
         </section>
       )}
       {result && (
-        <section className="card shorten-result" aria-label="Shortening result">
+        <section className="card shorten-result" aria-label={t.result}>
           <div className="card__body">
             <div className="shorten-result__details">
               <p className="shorten-result__url">{result.shortUrl}</p>
               <p
                 className="shorten-destination"
-                aria-label={`Original destination URL: ${resultDestination}`}
+                aria-label={`${t.original}: ${resultDestination}`}
               >
                 <span
                   className="shorten-destination__value"
@@ -340,7 +350,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
                 rel="noopener noreferrer"
               >
                 <span aria-hidden="true">↗</span>
-                Visit URL
+                {t.visit}
               </a>
               <Button
                 ref={qrButton}
@@ -361,7 +371,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
                 >
                   <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h2v2h-2zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" />
                 </svg>
-                QR
+                {t.qr}
               </Button>
               <Button onClick={() => void copy()} aria-live="polite">
                 <svg
@@ -374,7 +384,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  {copyStatus === 'Copied' ? (
+                  {copyStatus === 'copied' ? (
                     <path d="m4 12 5 5L20 6" />
                   ) : (
                     <>
@@ -383,7 +393,11 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
                     </>
                   )}
                 </svg>
-                {copyStatus || 'Copy'}
+                {copyStatus === 'copied'
+                  ? t.copied
+                  : copyStatus === 'unavailable'
+                    ? t.copyUnavailable
+                    : t.copy}
               </Button>
             </div>
           </div>
@@ -402,7 +416,7 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
             ref={qrCloseButton}
             variant="quiet"
             className="qr-popover__close"
-            aria-label="Close QR code"
+            aria-label={t.closeQr}
             onClick={() => {
               setQrOpen(false);
               qrButton.current?.focus();
@@ -416,25 +430,25 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
                 src={qrUrl}
                 width="144"
                 height="144"
-                alt="QR code for your shortened URL"
+                alt={t.qrAlt}
               />
             ) : (
               <p role="status">
                 {qrBusy
-                  ? 'Generating your QR code…'
-                  : 'QR preview unavailable.'}
+                  ? t.qrGenerating
+                  : t.qrUnavailable}
               </p>
             )}
           </div>
           <div className="qr-popover__content">
-            <h2 id="qr-popover-title">Download your QR code</h2>
+            <h2 id="qr-popover-title">{t.qrTitle}</h2>
             <p id="qr-popover-description" className="muted">
-              Generated in your browser from the public short URL.
+              {t.qrDescription}
             </p>
             {qrError && <p role="alert">{qrError}</p>}
             {qrError && (
               <Button variant="secondary" onClick={() => void generateQr()}>
-                Try again
+                {t.retry}
               </Button>
             )}
             {qrUrl && (
@@ -444,11 +458,11 @@ export function ShortenForm({ accessToken }: { accessToken?: string }) {
                 download={`ushly-${result.shortCode}.svg`}
                 onClick={() =>
                   setDownloadStatus(
-                    'QR download requested. Check your browser downloads.',
+                    t.downloadReady,
                   )
                 }
               >
-                Download QR code (SVG)
+                {t.download}
               </a>
             )}
             <p role="status">{downloadStatus}</p>

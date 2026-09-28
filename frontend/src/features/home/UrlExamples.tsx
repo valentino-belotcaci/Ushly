@@ -9,7 +9,7 @@ const examples = [
   'https://photos.example.com/albums/summer-in-the-mountains',
 ];
 
-export function UrlExamples() {
+export function UrlExamples({ label }: { label: string }) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [index, setIndex] = useState(0);
   const [length, setLength] = useState(0);
@@ -46,7 +46,7 @@ export function UrlExamples() {
   }, [index, length, phase, reducedMotion]);
 
   return (
-    <div className="url-examples" aria-label="Illustrative URL example">
+    <div className="url-examples" aria-label={label}>
       <span className="url-example-static">{firstExample}</span>
       <span className="url-example-typed" aria-hidden="true">
         {(examples[index] ?? firstExample).slice(0, length)}

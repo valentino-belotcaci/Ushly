@@ -1,4 +1,6 @@
-import { legalPages, type LegalPagePath } from './content';
+import { legalPages, localizedLegalPath, type LegalPagePath } from './content';
+import { legalPagesIt } from './content.it';
+import type { Locale } from '../../i18n/locale';
 
 function escapeHtml(value: string): string {
   return value
@@ -8,10 +10,16 @@ function escapeHtml(value: string): string {
     .replaceAll('>', '&gt;');
 }
 
-export function legalPageMetadata(path: LegalPagePath, siteOrigin?: string) {
-  const page = legalPages[path];
+export function legalPageMetadata(
+  path: LegalPagePath,
+  siteOrigin?: string,
+  locale: Locale = 'en',
+  routePath: string = path,
+) {
+  const page = locale === 'it' ? legalPagesIt[path] : legalPages[path];
   const title = `${page.pageTitle} | Ushly`;
-  const canonical = siteOrigin ? `${siteOrigin}${path}` : undefined;
+  const canonical = siteOrigin ? `${siteOrigin}${routePath}` : undefined;
+  const localized = localizedLegalPath(path);
   return `<title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(page.description)}">
 <meta name="robots" content="index, follow">
@@ -19,5 +27,6 @@ export function legalPageMetadata(path: LegalPagePath, siteOrigin?: string) {
 <meta property="og:site_name" content="Ushly">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(page.description)}">
-${canonical ? `<link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:url" content="${escapeHtml(canonical)}">` : ''}`;
+<meta property="og:locale" content="${locale === 'it' ? 'it_IT' : 'en_US'}">
+${canonical ? `<link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:url" content="${escapeHtml(canonical)}"><link rel="alternate" hreflang="en" href="${escapeHtml(`${siteOrigin}/en${localized}`)}"><link rel="alternate" hreflang="it" href="${escapeHtml(`${siteOrigin}/it${localized}`)}"><link rel="alternate" hreflang="x-default" href="${escapeHtml(`${siteOrigin}${path}`)}">` : ''}`;
 }

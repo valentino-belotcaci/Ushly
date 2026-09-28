@@ -62,6 +62,27 @@
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
+.dashboard-language {
+  display: flex;
+  padding-block: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.dashboard-language .language-selector,
+.dashboard-language .language-selector__trigger {
+  width: 100%;
+}
+.dashboard-language .language-selector__trigger {
+  justify-content: flex-start;
+}
+.dashboard-language .language-selector__chevron {
+  margin-left: auto;
+}
+.dashboard-language .language-selector__menu {
+  right: auto;
+  bottom: calc(100% + 8px);
+  top: auto;
+  width: 100%;
+}
 .dashboard-account > div:first-child {
   display: flex;
   align-items: center;

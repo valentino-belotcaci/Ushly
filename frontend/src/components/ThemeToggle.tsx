@@ -1,13 +1,15 @@
 import { useEffect, useId, useState } from 'react';
 import { useTheme } from '../theme/theme-context';
-import { uiText } from '../content/en';
 import { Button } from './Button';
+import { translations } from '../i18n';
+import { useLocale } from '../i18n/locale';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipId = useId();
-  const label = theme === 'dark' ? uiText.lightTheme : uiText.darkTheme;
+  const text = translations(useLocale()).layout;
+  const label = theme === 'dark' ? text.lightTheme : text.darkTheme;
   useEffect(() => {
     if (!showTooltip) return;
     // Hovered tooltips must also dismiss with Escape when the button isn't focused.

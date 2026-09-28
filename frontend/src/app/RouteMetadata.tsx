@@ -5,13 +5,21 @@ import { homepageMetadata } from '../features/home/metadata';
 import { isPublicPagePath } from '../features/public-pages/content';
 import { publicPageMetadata } from '../features/public-pages/metadata';
 import { authMetadata, isAuthPath } from '../features/auth/metadata';
-import { isLegalPagePath } from '../features/legal/content';
+import {
+  isLegalPagePath,
+  isLocalizedLegalPath,
+  localizedLegalRoutes,
+} from '../features/legal/content';
 import { legalPageMetadata } from '../features/legal/metadata';
+import { localeFromPath, stripLocale } from '../i18n/locale';
 
 export function RouteMetadata() {
   const { pathname } = useLocation();
   useEffect(() => {
-    const pagePath = pathname === '/' ? pathname : pathname.replace(/\/$/, '');
+    const locale = localeFromPath(pathname);
+    document.documentElement.lang = locale;
+    const localizedPath = pathname === '/' ? pathname : pathname.replace(/\/$/, '');
+    const pagePath = stripLocale(localizedPath);
     const start = document.getElementById('page-metadata-start');
     const end = document.getElementById('page-metadata-end');
     if (!start || !end) return;
@@ -21,11 +29,18 @@ export function RouteMetadata() {
     const template = document.createElement('template');
     template.innerHTML =
       pagePath === '/'
-        ? homepageMetadata(siteOrigin)
+        ? homepageMetadata(siteOrigin, locale, pathname)
         : isPublicPagePath(pagePath)
-          ? publicPageMetadata(pagePath, siteOrigin)
+          ? publicPageMetadata(pagePath, siteOrigin, locale, localizedPath)
+          : isLocalizedLegalPath(pagePath)
+            ? legalPageMetadata(
+                localizedLegalRoutes[pagePath],
+                siteOrigin,
+                locale,
+                localizedPath,
+              )
           : isLegalPagePath(pagePath)
-            ? legalPageMetadata(pagePath, siteOrigin)
+            ? legalPageMetadata(pagePath, siteOrigin, locale, localizedPath)
             : isAuthPath(pagePath)
               ? authMetadata(pagePath)
               : pagePath === '/dashboard' || pagePath.startsWith('/dashboard/')

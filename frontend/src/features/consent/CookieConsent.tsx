@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import './cookie-consent.css';
+import { translations } from '../../i18n';
+import { useLocale } from '../../i18n/locale';
+import { localizedPath } from '../../i18n/locale';
 
 const STORAGE_KEY = 'ushly.cookie-consent';
 const CONSENT_VERSION = 1;
@@ -57,6 +60,9 @@ function storeConsent(analytics: boolean, advertising: boolean) {
 }
 
 export function CookieConsent() {
+  const locale = useLocale();
+  const translation = translations(locale);
+  const t = translation.consent;
   const [ready, setReady] = useState(false);
   const [hasChoice, setHasChoice] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -102,23 +108,21 @@ export function CookieConsent() {
   return (
     <>
       {!hasChoice && !bannerDismissed && (
-        <section className="cookie-banner" aria-label="Cookie consent">
+        <section className="cookie-banner" aria-label={t.label}>
           <button
             className="cookie-banner__close"
             type="button"
-            aria-label="Close cookie banner"
+            aria-label={t.closeBanner}
             onClick={() => setBannerDismissed(true)}
           >
             <span aria-hidden="true">×</span>
           </button>
           <div>
-            <strong>Your privacy choices</strong>
+            <strong>{t.title}</strong>
             <p>
-              Ushly uses essential cookies for secure sessions. Optional
-              analytics and advertising tools are not currently loaded. Read our{' '}
-              <Link to="/cookies">Cookie Policy</Link> and{' '}
-              <Link to="/privacy">Privacy Policy</Link>, plus the{' '}
-              <Link to="/terms">Terms of Service</Link>.
+              {t.text}{' '}<Link to={localizedPath('/cookie-policy', locale)}>{translation.layout.cookies}</Link>{' '}
+              {t.and}{' '}<Link to={localizedPath('/privacy-policy', locale)}>{translation.layout.privacy}</Link>,{' '}
+              {t.plus}{' '}<Link to={localizedPath('/terms-of-service', locale)}>{translation.layout.terms}</Link>.
             </p>
           </div>
           <div className="cookie-banner__actions">
@@ -126,19 +130,19 @@ export function CookieConsent() {
               className="button cookie-banner__button--outline"
               onClick={() => setSettingsOpen(true)}
             >
-              Manage preferences
+              {t.manage}
             </button>
             <button
               className="button cookie-banner__button--outline"
               onClick={() => save(false, false)}
             >
-              Reject non-essential
+              {t.reject}
             </button>
             <button
               className="button button--primary"
               onClick={() => save(true, true)}
             >
-              Accept all
+              {t.accept}
             </button>
           </div>
         </section>
@@ -152,33 +156,32 @@ export function CookieConsent() {
       >
         <div className="cookie-dialog__header">
           <div>
-            <p className="cookie-dialog__eyebrow">Privacy controls</p>
-            <h2 id="cookie-settings-title">Cookie settings</h2>
+            <p className="cookie-dialog__eyebrow">{t.controls}</p>
+            <h2 id="cookie-settings-title">{t.settings}</h2>
           </div>
           <button
             className="icon-button"
             type="button"
-            aria-label="Close cookie settings"
+            aria-label={t.closeSettings}
             onClick={() => setSettingsOpen(false)}
           >
             ×
           </button>
         </div>
         <p>
-          Essential session cookies always remain available. No optional tool is
-          currently implemented or loaded.
+          {t.explanation}
         </p>
         <div className="cookie-dialog__option">
           <div>
-            <strong>Essential</strong>
-            <span>Authentication and session security</span>
+            <strong>{t.essential}</strong>
+            <span>{t.essentialText}</span>
           </div>
-          <span aria-label="Always active">Always active</span>
+          <span aria-label={t.always}>{t.always}</span>
         </div>
         <label className="cookie-dialog__option">
           <span>
-            <strong>Optional analytics</strong>
-            <span>Reserved for a future disclosed provider</span>
+            <strong>{t.analytics}</strong>
+            <span>{t.futureProvider}</span>
           </span>
           <input
             type="checkbox"
@@ -188,8 +191,8 @@ export function CookieConsent() {
         </label>
         <label className="cookie-dialog__option">
           <span>
-            <strong>Advertising</strong>
-            <span>Reserved for a future disclosed provider</span>
+            <strong>{t.advertising}</strong>
+            <span>{t.futureProvider}</span>
           </span>
           <input
             type="checkbox"
@@ -198,14 +201,14 @@ export function CookieConsent() {
           />
         </label>
         <div className="cookie-dialog__actions">
-          <Link to="/cookies" onClick={() => setSettingsOpen(false)}>
-            Cookie Policy
+          <Link to={localizedPath('/cookie-policy', locale)} onClick={() => setSettingsOpen(false)}>
+            {translation.layout.cookies}
           </Link>
           <button
             className="button button--primary"
             onClick={() => save(analytics, advertising)}
           >
-            Save preferences
+            {t.save}
           </button>
         </div>
       </dialog>
