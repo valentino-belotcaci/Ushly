@@ -456,7 +456,7 @@ function AdminUsersTable({
   onToggle: (user: AdminUser) => void;
 }) {
   return (
-    <div className="table-scroll">
+    <div className="table-scroll admin-table-scroll">
       <table className="table admin-table">
         <caption>Administrative user results</caption>
         <thead>
@@ -471,22 +471,26 @@ function AdminUsersTable({
         <tbody>
           {items.map((user) => (
             <tr key={user.id}>
-              <td>
-                <strong>{user.email}</strong>
-                <small>{user.name ?? user.provider}</small>
+              <td data-label="User">
+                <div className="admin-cell-stack">
+                  <strong title={user.email}>{user.email}</strong>
+                  <small title={user.name ?? user.provider}>
+                    {user.name ?? user.provider}
+                  </small>
+                </div>
               </td>
-              <td>
+              <td data-label="Role">
                 <Badge tone={user.role === 'ADMIN' ? 'warning' : 'neutral'}>
                   {user.role}
                 </Badge>
               </td>
-              <td>
+              <td data-label="Status">
                 <Badge tone={user.disabledAt ? 'danger' : 'success'}>
                   {user.disabledAt ? 'Disabled' : 'Enabled'}
                 </Badge>
               </td>
-              <td>{formatUtc(user.createdAt)}</td>
-              <td>
+              <td data-label="Created · UTC">{formatUtc(user.createdAt)}</td>
+              <td data-label="Action">
                 <Button
                   variant={user.disabledAt ? 'secondary' : 'danger'}
                   onClick={() => onToggle(user)}
@@ -688,7 +692,7 @@ function AdminLinksTable({
   onToggle: (link: AdminLink) => void;
 }) {
   return (
-    <div className="table-scroll">
+    <div className="table-scroll admin-table-scroll">
       <table className="table admin-table">
         <caption>Administrative link results</caption>
         <thead>
@@ -703,21 +707,30 @@ function AdminLinksTable({
         <tbody>
           {items.map((link) => (
             <tr key={link.id}>
-              <td>
-                <strong>{link.title ?? link.shortCode}</strong>
-                <small title={link.destinationUrl}>{link.destinationUrl}</small>
+              <td data-label="Link">
+                <div className="admin-cell-stack">
+                  <strong title={link.title ?? link.shortCode}>
+                    {link.title ?? link.shortCode}
+                  </strong>
+                  <small title={link.destinationUrl}>{link.destinationUrl}</small>
+                </div>
               </td>
-              <td>
-                <span className="admin-owner-email">
-                  {link.ownerEmail ?? 'Anonymous'}
-                </span>
-                {link.userId && (
-                  <small className="admin-owner-id" title={link.userId}>
-                    ID: {link.userId}
-                  </small>
-                )}
+              <td data-label="Owner">
+                <div className="admin-cell-stack">
+                  <span
+                    className="admin-owner-email"
+                    title={link.ownerEmail ?? 'Anonymous'}
+                  >
+                    {link.ownerEmail ?? 'Anonymous'}
+                  </span>
+                  {link.userId && (
+                    <small className="admin-owner-id" title={link.userId}>
+                      ID: {link.userId}
+                    </small>
+                  )}
+                </div>
               </td>
-              <td>
+              <td data-label="Status">
                 <Badge
                   tone={
                     link.status === 'active'
@@ -730,8 +743,8 @@ function AdminLinksTable({
                   {link.status}
                 </Badge>
               </td>
-              <td>{formatUtc(link.expiresAt)}</td>
-              <td>
+              <td data-label="Expires · UTC">{formatUtc(link.expiresAt)}</td>
+              <td data-label="Action">
                 <Button
                   variant={link.status === 'disabled' ? 'secondary' : 'danger'}
                   disabled={link.status === 'expired'}
@@ -760,7 +773,10 @@ function Pagination({
   total: number;
 }) {
   return (
-    <nav className="dashboard-pagination" aria-label="Admin results pages">
+    <nav
+      className="dashboard-pagination admin-results-pagination"
+      aria-label="Admin results pages"
+    >
       <Button
         variant="secondary"
         disabled={page <= 1}
