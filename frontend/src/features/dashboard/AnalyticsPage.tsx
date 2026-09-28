@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ApiClientError } from '../../api/session';
 import { Button } from '../../components/Button';
+import { formatDateTime, formatFullDateTime } from '../../utils/dateTime';
 import { getOwnedStatistics, type LinkStatistics } from './api';
 import {
   DashboardEmpty,
@@ -32,12 +33,11 @@ function inputToIso(value: string) {
   return new Date(`${value}:00.000Z`).toISOString();
 }
 function formatUtc(value: string | null, includeTime = true) {
-  if (!value) return 'No clicks';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    ...(includeTime ? { timeStyle: 'short' as const } : {}),
+  return formatDateTime(value, {
+    fallback: 'No clicks',
+    includeTime,
     timeZone: 'UTC',
-  }).format(new Date(value));
+  });
 }
 export function AnalyticsPage() {
   const links = useOwnedLinks(1, 100);
@@ -235,7 +235,14 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
         <article className="card metric-card">
           <div>
             <span>First click · UTC</span>
-            <strong className="metric-date">
+            <strong
+              className="metric-date"
+              title={
+                stats.firstClickedAt
+                  ? formatFullDateTime(stats.firstClickedAt, 'UTC')
+                  : undefined
+              }
+            >
               {formatUtc(stats.firstClickedAt)}
             </strong>
           </div>
@@ -243,7 +250,14 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
         <article className="card metric-card">
           <div>
             <span>Last click · UTC</span>
-            <strong className="metric-date">
+            <strong
+              className="metric-date"
+              title={
+                stats.lastClickedAt
+                  ? formatFullDateTime(stats.lastClickedAt, 'UTC')
+                  : undefined
+              }
+            >
               {formatUtc(stats.lastClickedAt)}
             </strong>
           </div>
@@ -271,7 +285,7 @@ function AnalyticsResults({ stats }: { stats: LinkStatistics }) {
             <ul className="analytics-bars">
               {visibleSeries.map((point) => (
                 <li key={point.bucket}>
-                  <span title={formatUtc(point.bucket)}>
+                  <span title={formatFullDateTime(point.bucket, 'UTC')}>
                     {formatUtc(point.bucket, stats.granularity === 'hour')}
                   </span>
                   <div aria-hidden="true">

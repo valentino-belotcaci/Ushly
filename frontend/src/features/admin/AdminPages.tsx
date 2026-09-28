@@ -4,6 +4,7 @@ import { ApiClientError } from '../../api/session';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Dialog } from '../../components/Dialog';
+import { formatDateTime, formatFullDateTime } from '../../utils/dateTime';
 import {
   DashboardEmpty,
   DashboardError,
@@ -39,13 +40,7 @@ function denied(error: unknown) {
   return error instanceof ApiClientError && error.status === 403;
 }
 function formatUtc(value: string | null) {
-  return value
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone: 'UTC',
-      }).format(new Date(value))
-    : '—';
+  return formatDateTime(value, { timeZone: 'UTC' });
 }
 function utcInput(date: Date) {
   return date.toISOString().slice(0, 16);
@@ -221,7 +216,14 @@ export function AdminOverviewPage() {
             <article className="card metric-card">
               <div>
                 <span>First click · UTC</span>
-                <strong className="metric-date">
+                <strong
+                  className="metric-date"
+                  title={
+                    data.firstClickedAt
+                      ? formatFullDateTime(data.firstClickedAt, 'UTC')
+                      : undefined
+                  }
+                >
                   {formatUtc(data.firstClickedAt)}
                 </strong>
               </div>
@@ -229,7 +231,14 @@ export function AdminOverviewPage() {
             <article className="card metric-card">
               <div>
                 <span>Last click · UTC</span>
-                <strong className="metric-date">
+                <strong
+                  className="metric-date"
+                  title={
+                    data.lastClickedAt
+                      ? formatFullDateTime(data.lastClickedAt, 'UTC')
+                      : undefined
+                  }
+                >
                   {formatUtc(data.lastClickedAt)}
                 </strong>
               </div>
@@ -246,7 +255,9 @@ export function AdminOverviewPage() {
               <ul className="analytics-bars">
                 {data.timeSeries.map((point) => (
                   <li key={point.bucket}>
-                    <span>{formatUtc(point.bucket)}</span>
+                    <span title={formatFullDateTime(point.bucket, 'UTC')}>
+                      {formatUtc(point.bucket)}
+                    </span>
                     <div aria-hidden="true">
                       <i
                         style={{
@@ -464,7 +475,7 @@ function AdminUsersTable({
             <th>User</th>
             <th>Role</th>
             <th>Status</th>
-            <th>Created · UTC</th>
+            <th>Created</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -489,7 +500,14 @@ function AdminUsersTable({
                   {user.disabledAt ? 'Disabled' : 'Enabled'}
                 </Badge>
               </td>
-              <td data-label="Created · UTC">{formatUtc(user.createdAt)}</td>
+              <td data-label="Created">
+                <time
+                  dateTime={user.createdAt}
+                  title={formatFullDateTime(user.createdAt)}
+                >
+                  {formatDateTime(user.createdAt)}
+                </time>
+              </td>
               <td data-label="Action">
                 <Button
                   variant={user.disabledAt ? 'secondary' : 'danger'}
@@ -700,7 +718,7 @@ function AdminLinksTable({
             <th>Link</th>
             <th>Owner</th>
             <th>Status</th>
-            <th>Expires · UTC</th>
+            <th>Expires</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -743,7 +761,18 @@ function AdminLinksTable({
                   {link.status}
                 </Badge>
               </td>
-              <td data-label="Expires · UTC">{formatUtc(link.expiresAt)}</td>
+              <td data-label="Expires">
+                {link.expiresAt ? (
+                  <time
+                    dateTime={link.expiresAt}
+                    title={formatFullDateTime(link.expiresAt)}
+                  >
+                    {formatDateTime(link.expiresAt)}
+                  </time>
+                ) : (
+                  '—'
+                )}
+              </td>
               <td data-label="Action">
                 <Button
                   variant={link.status === 'disabled' ? 'secondary' : 'danger'}

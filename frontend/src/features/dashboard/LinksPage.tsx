@@ -7,6 +7,7 @@ import { Input } from '../../components/Input';
 import { Pagination } from '../../components/Pagination';
 import { Table } from '../../components/Table';
 import { useToast } from '../../components/toast-context';
+import { formatDateTime, formatFullDateTime } from '../../utils/dateTime';
 import {
   createOwnedLink,
   deleteOwnedLink,
@@ -58,14 +59,6 @@ function localDateTime(iso: string | null): string {
   const date = new Date(iso);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
-}
-
-function displayDate(iso: string | null): string {
-  if (!iso) return 'Never';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(iso));
 }
 
 function displayedStatus(link: OwnedLink): 'Active' | 'Disabled' | 'Expired' {
@@ -464,7 +457,16 @@ export function LinksPage() {
                   </td>
                   <td data-label="Expiration">
                     <span className="dashboard-expiration">
-                      {displayDate(link.expiresAt)}
+                      {link.expiresAt ? (
+                        <time
+                          dateTime={link.expiresAt}
+                          title={formatFullDateTime(link.expiresAt)}
+                        >
+                          {formatDateTime(link.expiresAt)}
+                        </time>
+                      ) : (
+                        'Never'
+                      )}
                     </span>
                   </td>
                   <td data-label="Actions">
