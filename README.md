@@ -26,6 +26,9 @@ contracts, themes, assets, and test coverage.
 Deployment configuration, origin alignment, cookie behavior, and OAuth setup
 are documented in [docs/deployment.md](docs/deployment.md).
 
+Pull-request checks, test-only service configuration, and branch-protection
+setup are documented in [docs/ci.md](docs/ci.md).
+
 ### Verified working commands
 
 From the repository root:

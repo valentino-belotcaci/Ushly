@@ -6,11 +6,15 @@ import {
   cleanTestDatabase,
   getTestEnvironment,
 } from './helpers/test-database.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const password = 'a long registration passphrase';
 
 test('registration returns only public fields, persists a hash, and rejects duplicate normalized emails', async (t) => {
-  const app = await buildApp({ env: getTestEnvironment() });
+  const app = await buildApp({
+    env: getTestEnvironment(),
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(async () => {
     try {
       await cleanTestDatabase(app.prisma);
@@ -52,7 +56,10 @@ test('registration returns only public fields, persists a hash, and rejects dupl
 });
 
 test('registration rejects invalid fields, types, extra properties and oversized bodies before writing', async (t) => {
-  const app = await buildApp({ env: getTestEnvironment() });
+  const app = await buildApp({
+    env: getTestEnvironment(),
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(async () => {
     try {
       await cleanTestDatabase(app.prisma);
@@ -91,7 +98,10 @@ test('registration rejects invalid fields, types, extra properties and oversized
 });
 
 test('concurrent registrations produce one success and one safe conflict', async (t) => {
-  const app = await buildApp({ env: getTestEnvironment() });
+  const app = await buildApp({
+    env: getTestEnvironment(),
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(async () => {
     try {
       await cleanTestDatabase(app.prisma);

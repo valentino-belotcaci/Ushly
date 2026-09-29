@@ -8,6 +8,7 @@ import {
   cleanTestDatabase,
   getTestEnvironment,
 } from './helpers/test-database.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const password = 'refresh integration passphrase';
 const digest = (token: string) =>
@@ -32,7 +33,11 @@ test('refresh sessions', async (t) => {
       done();
     },
   });
-  const app = await buildApp({ env, logger: { level: 'info', stream } });
+  const app = await buildApp({
+    env,
+    logger: { level: 'info', stream },
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   await app.ready();
   await cleanTestDatabase(app.prisma);
   t.after(async () => {
@@ -97,7 +102,7 @@ test('refresh sessions', async (t) => {
       assert.deepEqual(rotated.json().user, {
         id: user.id,
         email: user.email,
-        createdAt: user.createdAt.toISOString(),
+        createdAt: user.createdAt,
       });
       assert.equal(
         app.jwt.verify<{ sub: string }>(rotated.json().accessToken).sub,
@@ -173,7 +178,10 @@ test('refresh sessions', async (t) => {
 
 test('disabled users cannot rotate an existing refresh session', async (t) => {
   const env = getTestEnvironment();
-  const app = await buildApp({ env });
+  const app = await buildApp({
+    env,
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   await app.ready();
   await cleanTestDatabase(app.prisma);
   t.after(async () => {

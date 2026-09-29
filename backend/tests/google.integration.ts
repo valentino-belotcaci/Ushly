@@ -10,6 +10,7 @@ import {
   cleanTestDatabase,
   getTestEnvironment,
 } from './helpers/test-database.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', {
   modulusLength: 2048,
@@ -41,7 +42,11 @@ async function fixture(t: TestContext, secure = false) {
       done();
     },
   });
-  const app = await buildApp({ env, logger: { stream, level: 'info' } });
+  const app = await buildApp({
+    env,
+    logger: { stream, level: 'info' },
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   await app.ready();
   await cleanTestDatabase(app.prisma);
   const keys: string[] = [];

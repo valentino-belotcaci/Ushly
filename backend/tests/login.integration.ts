@@ -7,6 +7,7 @@ import {
   cleanTestDatabase,
   getTestEnvironment,
 } from './helpers/test-database.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const password = 'a login integration passphrase';
 
@@ -19,7 +20,11 @@ test('login returns minimal short-lived token, safe user, and authenticates a pr
       done();
     },
   });
-  const app = await buildApp({ env, logger: { level: 'info', stream } });
+  const app = await buildApp({
+    env,
+    logger: { level: 'info', stream },
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(async () => {
     try {
       await cleanTestDatabase(app.prisma);
@@ -76,7 +81,10 @@ test('login returns minimal short-lived token, safe user, and authenticates a pr
 });
 
 test('unknown email, wrong password and passwordless account have identical failures; every attempt is limited', async (t) => {
-  const app = await buildApp({ env: getTestEnvironment() });
+  const app = await buildApp({
+    env: getTestEnvironment(),
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(async () => {
     try {
       await cleanTestDatabase(app.prisma);
