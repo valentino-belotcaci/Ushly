@@ -59,6 +59,13 @@ export const authenticate: preHandlerAsyncHookHandler = async (request) => {
     ) {
       throw new Error('Invalid access token claims');
     }
+    const user = await request.server.prisma.user.findUnique({
+      where: { id: claims.sub },
+      select: { disabledAt: true },
+    });
+    if (!user || user.disabledAt !== null) {
+      throw new Error('Inactive user');
+    }
     request.authenticatedUser = { id: claims.sub };
   } catch {
     // Never log the original verifier error or attach token data as a cause.

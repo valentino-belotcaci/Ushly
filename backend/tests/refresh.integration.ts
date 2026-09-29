@@ -170,3 +170,44 @@ test('refresh sessions', async (t) => {
     },
   );
 });
+
+test('disabled users cannot rotate an existing refresh session', async (t) => {
+  const env = getTestEnvironment();
+  const app = await buildApp({ env });
+  await app.ready();
+  await cleanTestDatabase(app.prisma);
+  t.after(async () => {
+    await cleanTestDatabase(app.prisma);
+    await app.close();
+  });
+
+  const user = await registerUser(app.prisma, {
+    email: 'disabled-refresh@example.test',
+    password,
+  });
+  const login = await app.inject({
+    method: 'POST',
+    url: '/auth/login',
+    payload: { email: user.email, password },
+  });
+  assert.equal(login.statusCode, 200);
+  const refreshCookie = login.cookies.find(
+    (entry) => entry.name === env.cookie.name,
+  );
+  assert.ok(refreshCookie);
+  await app.prisma.user.update({
+    where: { id: user.id },
+    data: { disabledAt: new Date() },
+  });
+
+  const refreshed = await app.inject({
+    method: 'POST',
+    url: '/auth/refresh',
+    headers: { cookie: `${refreshCookie.name}=${refreshCookie.value}` },
+  });
+  assert.equal(refreshed.statusCode, 401);
+  assert.equal(
+    await app.prisma.refreshToken.count({ where: { userId: user.id, revokedAt: null } }),
+    0,
+  );
+});

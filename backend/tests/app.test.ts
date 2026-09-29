@@ -3,6 +3,7 @@ import test, { mock } from 'node:test';
 
 import { AppError, buildApp } from '../src/app.js';
 
+let appSequence = 0;
 const buildTestApp = async () => {
   const app = await buildApp({
     env: {
@@ -31,6 +32,9 @@ const buildTestApp = async () => {
       trustProxy: false,
     },
     logger: false,
+    rateLimitConfig: {
+      nameSpace: `test:app:${process.pid}:${appSequence += 1}:`,
+    },
   });
   mock.method(app.prisma, '$queryRaw', async () => [{ value: 1 }]);
   return app;

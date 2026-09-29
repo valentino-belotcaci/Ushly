@@ -7,6 +7,7 @@ import { buildApp } from '../src/app.js';
 import { registerUser } from '../src/modules/auth/auth.service.js';
 import { verifyPassword } from '../src/utils/password.js';
 import { getTestEnvironment } from './helpers/test-database.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const env = getTestEnvironment({
   NODE_ENV: 'test',
@@ -14,7 +15,10 @@ const env = getTestEnvironment({
 });
 
 test('registration service normalizes, hashes before persistence, and selects public fields', async (t) => {
-  const app = await buildApp({ env });
+  const app = await buildApp({
+    env,
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   let persistedHash = '';
   // Prisma delegates are Proxies without ordinary method descriptors. Replace
@@ -56,7 +60,10 @@ test('registration service normalizes, hashes before persistence, and selects pu
 });
 
 test('registration limit counts invalid attempts and leaves baseline routes available', async (t) => {
-  const app = await buildApp({ env });
+  const app = await buildApp({
+    env,
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   t.mock.method(app.prisma, '$queryRaw', async () => []);
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -92,7 +99,11 @@ test('registration failure and malformed JSON cannot expose passwords or driver 
       done();
     },
   });
-  const app = await buildApp({ env, logger: { level: 'info', stream } });
+  const app = await buildApp({
+    env,
+    logger: { level: 'info', stream },
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   t.mock.method(app.prisma, '$queryRaw', async () => []);
   const password = 'sensitive-password-marker';

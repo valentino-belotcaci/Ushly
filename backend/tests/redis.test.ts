@@ -4,6 +4,7 @@ import test from 'node:test';
 import { buildApp } from '../src/app.js';
 import { getEnvironmentConfig } from '../src/config/env.js';
 import { getRedisReconnectDelay } from '../src/plugins/redis.plugin.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const env = getEnvironmentConfig({
   NODE_ENV: 'test',
@@ -25,7 +26,11 @@ const env = getEnvironmentConfig({
 });
 
 test('Redis failure keeps liveness available and makes readiness unavailable', async (t) => {
-  const app = await buildApp({ env, logger: false });
+  const app = await buildApp({
+    env,
+    logger: false,
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   const query = t.mock.method(app.prisma, '$queryRaw', async () => [{ value: 1 }]);
 

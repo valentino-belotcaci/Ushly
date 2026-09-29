@@ -12,6 +12,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import linksRoutes from './modules/links/link.routes.js';
 import redirectRoutes from './modules/redirects/redirect.routes.js';
 import redisPlugin from './plugins/redis.plugin.js';
+import { createRedisRateLimitStore } from './plugins/rate-limit.store.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 
 export { AppError } from './errors/app-error.js';
@@ -63,6 +64,8 @@ type BuildAppOptions = {
   rateLimitConfig?: {
     max?: number;
     timeWindow?: number | string;
+    nameSpace?: string;
+    store?: ReturnType<typeof createRedisRateLimitStore>;
   };
 };
 
@@ -223,6 +226,15 @@ export async function buildApp(options: BuildAppOptions = {}) {
       options.rateLimitConfig?.max ??
       (env.loadTestMode ? env.loadTestRateLimitMax : DEFAULT_RATE_LIMIT_MAX),
     timeWindow: options.rateLimitConfig?.timeWindow ?? DEFAULT_RATE_LIMIT_WINDOW_MS,
+    ...(options.rateLimitConfig?.nameSpace
+      ? { nameSpace: options.rateLimitConfig.nameSpace }
+      : {}),
+    store:
+      options.rateLimitConfig?.store ??
+      createRedisRateLimitStore(
+        app.redis,
+        options.rateLimitConfig?.nameSpace,
+      ),
     keyGenerator: (request) => request.ip ?? 'unknown',
     addHeaders: {
       'x-ratelimit-limit': true,

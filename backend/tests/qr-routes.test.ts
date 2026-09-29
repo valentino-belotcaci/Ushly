@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test, { mock } from 'node:test';
 
 import { buildApp } from '../src/app.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const buildQrTestApp = async () => {
   const app = await buildApp({
@@ -31,6 +32,7 @@ const buildQrTestApp = async () => {
       trustProxy: false,
     },
     logger: false,
+    rateLimitConfig: { store: createTestRateLimitStore() },
   });
   mock.method(app.prisma, '$queryRaw', async () => [{ value: 1 }]);
   return app;
@@ -43,6 +45,9 @@ test('protected QR route preserves authentication and ownership for every public
   // Keep real route/JWT guards; replace only persistent lookup with a deterministic boundary fake.
   Object.defineProperty(app, 'prisma', {
     value: {
+      user: {
+        findUnique: async () => ({ disabledAt: null }),
+      },
       link: {
         findFirst: async (query: unknown) => {
           lookups += 1;

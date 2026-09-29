@@ -39,6 +39,7 @@ loadtest/results/
 # Prisma
 backend/prisma/dev.db
 backend/prisma/*.db-journal
+backend/T10.1-REPORT.md
 
 # TypeScript build info
 *.tsbuildinfo
