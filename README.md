@@ -23,6 +23,9 @@ development and production-preview servers.
 See [frontend/README.md](frontend/README.md) for design tokens, component
 contracts, themes, assets, and test coverage.
 
+Deployment configuration, origin alignment, cookie behavior, and OAuth setup
+are documented in [docs/deployment.md](docs/deployment.md).
+
 ### Verified working commands
 
 From the repository root:
@@ -540,7 +543,7 @@ and captured log checks. Integration writes remain limited to `ushly_test`.
 ### Refresh sessions (T3.4)
 
 Successful login sets the configured refresh cookie. `POST /auth/refresh` reads
-that cookie, rotates it, and returns `{ accessToken, googleLinkAvailable }`. `POST /auth/logout`
+that cookie, rotates it, and returns `{ accessToken, user, googleLinkAvailable }`. `POST /auth/logout`
 revokes the session and clears the cookie, returning 204 even if it is absent or
 already revoked. Both endpoints use `Cache-Control: no-store`.
 
@@ -572,7 +575,7 @@ public errors before logging. Never log cookie or token values in message text.
 ### Google OAuth (T8.1 decisions and T8.2 implementation)
 
 Google login uses the server-side authorization-code flow with
-`google-auth-library` 11.1.0 (Node 22+). No frontend OAuth UI is included.
+`google-auth-library` 11.1.0 (Node 22+).
 
 #### Configuration and deployment
 
@@ -584,14 +587,13 @@ placeholders. Automated tests mock Google and need no provider credentials.
 
 Register the exact `GOOGLE_OAUTH_REDIRECT_URI` in Google Cloud Console:
 
-- Development: `http://localhost:5173/auth/google/callback`
-- Test: `http://127.0.0.1:4173/auth/google/callback`
-- Production: `https://<approved-production-host>/auth/google/callback`
+- Direct local backend: `http://localhost:3000/auth/google/callback`
+- Production API: `https://api.example.com/auth/google/callback`
 
-These are public callback addresses, **not an assumption that Vite is running**.
-Route `/auth/google`, `/auth/google/link`, and `/auth/google/callback` at the
-configured origin to Fastify. For direct backend development, explicitly
-configure and register `http://localhost:3000/auth/google/callback` instead.
+The callback origin is the public origin that routes the OAuth request to
+Fastify. It is normally `VITE_API_ORIGIN`. A same-origin reverse proxy may expose
+it at the frontend origin only when `/auth/google/*` is actually forwarded to
+Fastify; register that public proxy URL instead.
 The callback path must remain `/auth/google/callback`. HTTPS is required in
 production; HTTP is allowed only for localhost/127.0.0.1 outside production.
 URLs with userinfo, query, fragment, or noncanonical spelling are rejected.

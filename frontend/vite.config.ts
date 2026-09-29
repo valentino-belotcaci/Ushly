@@ -3,19 +3,37 @@ import { loadEnv } from 'vite';
 import { homepageMetadata } from './src/features/home/metadata.ts';
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const site = env.VITE_SITE_ORIGIN ? new URL(env.VITE_SITE_ORIGIN) : undefined;
-  if (
-    site &&
-    (!['http:', 'https:'].includes(site.protocol) ||
-      site.username ||
-      site.password ||
-      site.pathname !== '/' ||
-      site.search ||
-      site.hash)
-  )
-    throw new Error('VITE_SITE_ORIGIN must be an HTTP(S) origin');
+  const configuredOrigin = (name: 'VITE_API_ORIGIN' | 'VITE_SITE_ORIGIN') => {
+    const value = env[name];
+    if (!value) {
+      if (command === 'build')
+        throw new Error(`${name} is required for production builds`);
+      return undefined;
+    }
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new Error(`${name} must be an HTTP(S) origin`);
+    }
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash ||
+      url.origin !== value
+    )
+      throw new Error(
+        `${name} must be an exact HTTP(S) origin without credentials, path, query, fragment, or trailing slash`,
+      );
+    return url;
+  };
+  configuredOrigin('VITE_API_ORIGIN');
+  const site = configuredOrigin('VITE_SITE_ORIGIN');
   return {
     plugins: [
       react(),

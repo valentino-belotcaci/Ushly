@@ -251,8 +251,7 @@ Copy `.env.example` to `.env.local` and set these public build-time values:
   origin in backend `CORS_ALLOWED_ORIGINS`; this task does not change backend CORS.
 - `VITE_SITE_ORIGIN`: the actual deployed frontend origin, without a path,
   credentials, query or fragment. Canonical, Open Graph URL and social image URLs
-  are derived from it. When unset, those absolute tags are omitted rather than
-  guessing a production domain. Set it before publishing and rebuild.
+  are derived from it. Production builds require it; deployments must use HTTPS.
 - `VITE_LEGAL_NAME`: the verified legal name of the production service operator.
 - `VITE_LEGAL_CONTACT_EMAIL`: the verified address for privacy and deletion
   requests. Until configured, the legal templates show an explicit placeholder.
@@ -261,6 +260,10 @@ Copy `.env.example` to `.env.local` and set these public build-time values:
 The API origin is also the short-link origin because the current QR endpoint
 uses its request origin. Deploy the API/redirect origin consistently; do not
 point returned short links at the frontend SPA server.
+
+See [../docs/deployment.md](../docs/deployment.md) for the complete local and
+production configuration matrix, exact CORS matching, cookie deployment modes,
+Google callback registration, build/preview steps, and hosting checklist.
 
 `src/features/home/` contains page content, the form, examples, styles and
 metadata. `src/api/links.ts` makes native-fetch calls and validates the fields
