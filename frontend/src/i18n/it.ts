@@ -695,8 +695,8 @@ export const it = {
     next: 'Passaggi successivi',
     pages: {
       '/url-shortener': {
-        title: 'Crea link brevi e condividili facilmente',
-        pageTitle: 'Abbreviatore URL gratuito',
+        title: 'Abbrevia URL gratis e crea link brevi da condividere',
+        pageTitle: 'Abbrevia URL gratis',
         description:
           'Abbrevia URL gratis con Ushly. Crea un link breve, copialo o genera un codice QR senza account.',
         eyebrow: 'Abbrevia URL',
@@ -751,8 +751,8 @@ export const it = {
         ],
       },
       '/qr-codes': {
-        title: 'Codici QR per i tuoi link brevi',
-        pageTitle: 'Generatore di codici QR',
+        title: 'Generatore gratuito di codici QR per link brevi',
+        pageTitle: 'Generatore di codici QR gratuito',
         description:
           'Genera e scarica gratis un codice QR SVG per un link breve Ushly, direttamente nel browser.',
         eyebrow: 'Codici QR',
@@ -812,8 +812,8 @@ export const it = {
         ],
       },
       '/analytics': {
-        title: 'Comprendi i clic sui link che possiedi',
-        pageTitle: 'Statistiche dei link',
+        title: 'Statistiche dei clic per i tuoi link brevi',
+        pageTitle: 'Statistiche per link brevi',
         description:
           'Consulta clic totali, andamento nel tempo, provenienza e user agent per i link brevi di tua proprietà.',
         eyebrow: 'Statistiche',
@@ -867,8 +867,8 @@ export const it = {
         ],
       },
       '/features': {
-        title: 'Funzionalità per condividere e gestire link',
-        pageTitle: 'Funzionalità di Ushly',
+        title: 'Funzionalità per creare e gestire link brevi',
+        pageTitle: 'Funzionalità per link brevi',
         description:
           'Scopri link brevi, codici QR, statistiche riservate al proprietario, scadenza e controllo dello stato.',
         eyebrow: 'Funzionalità',

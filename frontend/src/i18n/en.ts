@@ -136,7 +136,7 @@ const legalPages = {
 
 const publicPages = {
   '/url-shortener': {
-    title: 'Shorten long URLs, share them simply',
+    title: 'Free URL shortener for simple, shareable links',
     pageTitle: 'Free URL Shortener',
     description:
       'Create a free short URL for an HTTP or HTTPS destination. Copy it, visit it, or make a QR code without an account.',
@@ -188,8 +188,8 @@ const publicPages = {
     ],
   },
   '/qr-codes': {
-    title: 'QR codes for the short links you create',
-    pageTitle: 'QR Codes',
+    title: 'Free QR code generator for short links',
+    pageTitle: 'Free QR Code Generator for Short Links',
     description:
       'Generate and download an SVG QR code for a new Ushly short link in your browser, without an account.',
     eyebrow: 'QR Codes',
@@ -247,12 +247,12 @@ const publicPages = {
     ],
   },
   '/analytics': {
-    title: 'Understand clicks on links you own',
-    pageTitle: 'Click Analytics',
+    title: 'Link analytics for your short URLs',
+    pageTitle: 'Short Link Analytics',
     description:
-      'Learn about Ushly owner-only click totals, time series, referrer origins, and user-agent breakdowns available through the authenticated API.',
+      'View click totals, trends, referrer origins, and user-agent statistics for short links you own in the Ushly dashboard.',
     eyebrow: 'Analytics',
-    lead: 'Ushly records redirect clicks and provides statistics to authenticated link owners through its API. A dashboard interface is not available yet.',
+    lead: 'Ushly records redirect clicks and shows link analytics only to the authenticated owner in the dashboard.',
     visual: 'analytics',
     visualLabel: 'Owner-only click insights.',
     heroActions: [
@@ -261,7 +261,7 @@ const publicPages = {
     ],
     finalCta: {
       title: 'Create an account to explore link analytics',
-      text: 'Register to create owned links, or log in if you already have an account. Click statistics are currently available through the authenticated API.',
+      text: 'Register to create owned links and view their click statistics in the dashboard.',
       actions: [
         { label: 'Get started free', to: '/register', style: 'primary' },
       ],
@@ -269,7 +269,7 @@ const publicPages = {
     highlights: [
       {
         title: 'Follow activity over time',
-        text: 'The owner-only API reports click totals and a time series for a selected period.',
+        text: 'The dashboard reports click totals and a time series for a selected period.',
       },
       {
         title: 'Understand sources',
@@ -281,9 +281,9 @@ const publicPages = {
       },
     ],
     steps: [
-      'Create a link using an authenticated API request.',
+      'Create a link after signing in.',
       'Share the link and let visitors follow it.',
-      'Request statistics for a link you own through the authenticated API.',
+      'Open Analytics in the dashboard and select a link you own.',
     ],
     faqs: [
       {
@@ -292,15 +292,15 @@ const publicPages = {
           'No. Statistics are available only to the authenticated owner of that link.',
       },
       {
-        question: 'Is there an analytics dashboard?',
+        question: 'Where can I view short-link analytics?',
         answer:
-          'Not yet. The current analytics capability is available through the authenticated API.',
+          'Sign in, open Analytics in the dashboard, and select one of your links to view its click statistics.',
       },
     ],
   },
   '/features': {
-    title: 'Features for sharing and managing links',
-    pageTitle: 'Ushly Features',
+    title: 'URL shortener features for sharing and managing links',
+    pageTitle: 'URL Shortener Features',
     description:
       'Explore Ushly short links, browser-generated QR codes, owner-only click analytics, and link expiration and status controls.',
     eyebrow: 'Features',
@@ -329,7 +329,7 @@ const publicPages = {
       },
       {
         title: 'Owner-only analytics',
-        text: 'Authenticated owners can request click statistics through the API.',
+        text: 'Authenticated owners can view click statistics in the dashboard.',
       },
       {
         title: 'Lifetime controls',
@@ -339,7 +339,7 @@ const publicPages = {
     steps: [
       'Create a short URL.',
       'Share it directly or as a QR code.',
-      'For owned links, use the API for statistics and status controls.',
+      'Use the dashboard to manage owned links and view their statistics.',
     ],
     faqs: [
       {
@@ -355,12 +355,12 @@ const publicPages = {
       {
         question: 'Can I set an expiration date for a link?',
         answer:
-          'Yes. Authenticated owners can set an expiration date when creating or managing a link through the API. An expired link no longer redirects.',
+          'Yes. Authenticated owners can set an expiration date when creating or editing a link. An expired link no longer redirects.',
       },
       {
         question: 'Can I disable and reactivate a link?',
         answer:
-          'Yes. Authenticated owners can change their link’s active status through the API. A disabled link does not redirect until reactivated.',
+          'Yes. Authenticated owners can change a link’s active status in the dashboard. A disabled link does not redirect until reactivated.',
       },
       {
         question: 'Do QR codes include analytics?',
@@ -398,7 +398,7 @@ const features = [
   {
     kind: 'analytics',
     title: 'Privacy-conscious click analytics',
-    text: 'The owner-only API provides click statistics while storing a keyed hash of visitor IP addresses.',
+    text: 'The owner dashboard provides click statistics while storing a keyed hash of visitor IP addresses.',
     benefits: [
       'Click totals and time series',
       'Referrer and user-agent breakdowns',
@@ -430,7 +430,7 @@ const faqs = [
   {
     question: 'What analytics are available?',
     answer:
-      'The authenticated API provides owners with click totals, time series, referrer origins and user-agent breakdowns. Analytics are not public, and the dashboard interface is not available yet.',
+      'The dashboard provides authenticated owners with click totals, time series, referrer origins and user-agent breakdowns. Analytics are never public.',
   },
   {
     question: 'Can a short link expire?',

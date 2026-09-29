@@ -281,7 +281,7 @@ it('uses the exact static H1 and accurately qualifies current product capabiliti
   expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   expect(screen.getByText(/pseudonymous analytics/)).toBeInTheDocument();
   expect(
-    screen.getByText(/dashboard interface is not available/),
+    screen.getByText(/dashboard provides authenticated owners/),
   ).toBeInTheDocument();
   expect(document.body).not.toHaveTextContent(
     /unlimited|enterprise-grade|100% anonymous|GDPR compliant|SOC 2|custom domains/i,

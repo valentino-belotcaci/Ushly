@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import jsQR from 'jsqr';
 import AxeBuilder from '@axe-core/playwright';
+import { setEssentialCookieConsent } from './consent';
+
+test.beforeEach(async ({ page }) => setEssentialCookieConsent(page));
 
 const title = 'Free URL Shortener with QR Codes and Analytics';
 const response = {
@@ -89,7 +92,8 @@ test('anonymous keyboard shortening, copy, and persisted theme preference', asyn
   await page.getByRole('button', { name: 'Use light theme' }).click();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([
+  expect(await page.evaluate(() => Object.keys(localStorage).sort())).toEqual([
+    'ushly.cookie-consent',
     'ushly.theme',
   ]);
 });
@@ -280,24 +284,24 @@ test('production has indexable HTML and configuration-based metadata before Java
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:4174/');
+  await page.goto('http://127.0.0.1:4174/en/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
   await expect(
     page.getByRole('button', { name: 'Shorten link' }),
   ).toBeDisabled();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
-    'https://ushly.example/',
+    'https://ushly.example/en/',
   );
   await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
     'content',
-    'https://ushly.example/',
+    'https://ushly.example/en/',
   );
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
     'content',
     'summary',
   );
-  const html = await (await request.get('http://127.0.0.1:4174/')).text();
+  const html = await (await request.get('http://127.0.0.1:4174/en/')).text();
   expect(html).toContain('pseudonymous analytics');
   expect(html).toContain('What happens when a link is disabled?');
   expect(html).toContain('index, follow');
@@ -313,7 +317,7 @@ test('production hydration preserves saved light mode and updates metadata acros
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.addInitScript(() => localStorage.setItem('ushly.theme', 'light'));
-  await page.goto('http://127.0.0.1:4174/');
+  await page.goto('http://127.0.0.1:4174/en/');
   await expect(
     page.getByRole('button', { name: 'Use dark theme' }),
   ).toBeVisible();
@@ -328,7 +332,7 @@ test('production hydration preserves saved light mode and updates metadata acros
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
-    'https://ushly.example/features',
+    'https://ushly.example/en/features',
   );
   await page
     .getByRole('banner')

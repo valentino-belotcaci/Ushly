@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { setEssentialCookieConsent } from './consent';
+
+test.beforeEach(async ({ page }) => setEssentialCookieConsent(page));
 
 const user = {
   id: 'user-1',
@@ -209,17 +212,13 @@ test('explicit Google linking confirms success after the callback', async ({
     }),
   );
   await context.route('https://accounts.google.com/**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'text/html',
-      body: '<script>location.replace("http://127.0.0.1:4173/auth/google/callback")</script>',
-    }),
+    route.fulfill({ status: 204, body: '' }),
   );
   await context.route('**/auth/google/callback', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'text/html',
-      body: '<script>window.opener.postMessage({type:"ushly-google-oauth",status:"success"},"http://127.0.0.1:4174");window.close()</script>',
+      body: '<script>window.addEventListener("message",event=>{if(event.origin==="http://127.0.0.1:4174"&&event.data?.type==="ushly-google-oauth-ack")window.close()});window.opener.postMessage({type:"ushly-google-oauth",status:"success"},"http://127.0.0.1:4174")</script>',
     }),
   );
   await page.goto('http://127.0.0.1:4174/login/');
@@ -230,10 +229,28 @@ test('explicit Google linking confirms success after the callback', async ({
   await page.getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'Link Google' }).click();
   await page.getByLabel('Current password').fill('safe-password');
+  const popupPromise = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'Verify and link Google' }).click();
+  const popup = await popupPromise;
   await expect(page.getByRole('dialog').getByRole('status')).toContainText(
-    'Google account linked successfully.',
+    'Complete linking in the Google window.',
   );
+  await page.evaluate((origin) => {
+    const oauthPopup = window.open('', 'ushly-google-link');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin,
+        source: oauthPopup,
+        data: { type: 'ushly-google-oauth', status: 'success' },
+      }),
+    );
+    oauthPopup?.close();
+  }, 'http://127.0.0.1:4173');
+  await expect.poll(() => popup.isClosed()).toBe(true);
+  await expect(
+    page.getByText('Google account linked successfully.'),
+  ).toBeVisible();
+  await expect(page.getByText('Google account linked', { exact: true })).toBeVisible();
   expect(refreshes).toBe(2);
 });
 

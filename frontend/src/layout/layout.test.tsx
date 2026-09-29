@@ -74,7 +74,7 @@ it('switches to the equivalent Italian public route', async () => {
   expect(
     screen.getByRole('heading', {
       level: 1,
-      name: 'Crea link brevi e condividili facilmente',
+      name: 'Abbrevia URL gratis e crea link brevi da condividere',
     }),
   ).toBeVisible();
   expect(
@@ -116,7 +116,7 @@ it('supports disclosure activation, Escape restoration and public navigation', a
   expect(
     screen.getByRole('heading', {
       level: 1,
-      name: 'QR codes for the short links you create',
+      name: 'Free QR code generator for short links',
     }),
   ).toBeInTheDocument();
   expect(screen.getByRole('main')).toHaveFocus();

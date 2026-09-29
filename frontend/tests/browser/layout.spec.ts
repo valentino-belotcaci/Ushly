@@ -1,11 +1,16 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { setEssentialCookieConsent } from './consent';
+
+test.beforeEach(async ({ page }) => setEssentialCookieConsent(page));
 
 const publicHeadings: Record<string, string> = {
-  '/url-shortener': 'Shorten long URLs, share them simply',
-  '/qr-codes': 'QR codes for the short links you create',
-  '/analytics': 'Understand clicks on links you own',
-  '/features': 'Features for sharing and managing links',
+  '/url-shortener': 'Free URL shortener for simple, shareable links',
+  '/qr-codes': 'Free QR code generator for short links',
+  '/analytics': 'Link analytics for your short URLs',
+  '/features': 'URL shortener features for sharing and managing links',
+  '/login': 'Log in to Ushly',
+  '/register': 'Create an account',
 };
 
 for (const width of [320, 768, 1440]) {
@@ -63,9 +68,9 @@ test('desktop header places brand, primary links, account links and theme contro
     const selectors = [
       '.brand-link',
       '.primary-links',
-      '.account-links a:first-child',
-      '.account-links a:last-child',
-      '.theme-toggle',
+      '.language-selector',
+      '.account-links a:first-of-type',
+      '.account-links a:last-of-type',
     ];
     return selectors.map((selector) => {
       const element = header.querySelector(selector);
@@ -115,7 +120,7 @@ test('mobile disclosure keyboard order, Escape, navigation and breakpoint change
   await page.keyboard.press('Space');
   await navigation.getByRole('link', { name: 'QR Codes' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'QR codes for the short links you create',
+    'Free QR code generator for short links',
   );
   await expect(page.getByRole('main')).toBeFocused();
   await expect(navigation).toBeHidden();
@@ -162,15 +167,19 @@ test('footer links reach public pages or planned placeholders and browser histor
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto('/');
-  const footer = page.getByRole('contentinfo');
-  const destinations = await footer.locator('li a').evaluateAll((links) =>
+  const destinations = await page
+    .getByRole('contentinfo')
+    .locator('li a')
+    .evaluateAll((links) =>
     links.map((link) => ({
       href: link.getAttribute('href'),
       label: link.textContent,
     })),
   );
   for (const destination of destinations) {
-    await footer
+    await page.goto('/');
+    await page
+      .getByRole('contentinfo')
       .getByRole('link', { name: destination.label ?? '', exact: true })
       .click();
     await expect(page).toHaveURL(destination.href ?? '/');
@@ -180,6 +189,7 @@ test('footer links reach public pages or planned placeholders and browser histor
         : (publicHeadings[destination.href ?? ''] ?? destination.label ?? ''),
     );
   }
+  await page.goto('/');
   await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await page.goBack();
   await expect(

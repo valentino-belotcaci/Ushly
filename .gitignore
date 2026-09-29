@@ -8,11 +8,11 @@ build/
 frontend/dist/
 backend/dist/
 
-# Environment variables
+
+# Environment variables and secrets
 .env
-.env.local
-.env.test
-.env.*.local
+.env.*
+!.env.example
 
 # Logs
 *.log

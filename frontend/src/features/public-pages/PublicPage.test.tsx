@@ -36,7 +36,7 @@ it('gives each public page unique indexable metadata and a configured canonical 
   const descriptions = new Set<string>();
   for (const path of paths) {
     const document = new DOMParser().parseFromString(
-      publicPageMetadata(path, 'https://ushly.example'),
+      publicPageMetadata(path, 'https://ushly.example', 'en', `/en${path}`),
       'text/html',
     );
     titles.add(document.title);
@@ -47,12 +47,12 @@ it('gives each public page unique indexable metadata and a configured canonical 
     );
     expect(
       document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
-    ).toBe(`https://ushly.example${path}`);
+    ).toBe(`https://ushly.example/en${path}`);
     expect(
       document
         .querySelector('meta[property="og:url"]')
         ?.getAttribute('content'),
-    ).toBe(`https://ushly.example${path}`);
+    ).toBe(`https://ushly.example/en${path}`);
     expect(
       document
         .querySelector('meta[property="og:description"]')
@@ -66,6 +66,19 @@ it('gives each public page unique indexable metadata and a configured canonical 
   expect(descriptions.size).toBe(paths.length);
 });
 
+it('keeps unlocalized public routes as non-indexable English aliases', () => {
+  const document = new DOMParser().parseFromString(
+    publicPageMetadata('/url-shortener', 'https://ushly.example'),
+    'text/html',
+  );
+  expect(
+    document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+  ).toBe('noindex, follow');
+  expect(
+    document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+  ).toBe('https://ushly.example/en/url-shortener');
+});
+
 it('renders Italian content and localized SEO alternates without another page component', () => {
   render(
     <MemoryRouter initialEntries={['/it/url-shortener']}>
@@ -75,7 +88,7 @@ it('renders Italian content and localized SEO alternates without another page co
   expect(
     screen.getByRole('heading', {
       level: 1,
-      name: 'Crea link brevi e condividili facilmente',
+      name: 'Abbrevia URL gratis e crea link brevi da condividere',
     }),
   ).toBeVisible();
   expect(screen.getByRole('link', { name: 'Abbrevia un URL' })).toHaveAttribute(
@@ -90,5 +103,5 @@ it('renders Italian content and localized SEO alternates without another page co
   );
   expect(head).toContain('hreflang="en"');
   expect(head).toContain('hreflang="it"');
-  expect(head).toContain('Abbreviatore URL gratuito | Ushly');
+  expect(head).toContain('Abbrevia URL gratis | Ushly');
 });

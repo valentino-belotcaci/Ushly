@@ -4,6 +4,10 @@ import { useMemo } from 'react';
 export const locales = ['en', 'it'] as const;
 export type Locale = (typeof locales)[number];
 
+export function hasLocalePrefix(pathname: string): boolean {
+  return /^\/(?:en|it)(?:\/|$)/.test(pathname);
+}
+
 export function localeFromPath(pathname: string): Locale {
   return pathname === '/it' || pathname.startsWith('/it/') ? 'it' : 'en';
 }
@@ -42,7 +46,7 @@ export function useLocale(): Locale {
 export function useLocalizedRoute() {
   const location = useLocation();
   const locale = localeFromPath(location.pathname);
-  const prefixed = /^\/(?:en|it)(?:\/|$)/.test(location.pathname);
+  const prefixed = hasLocalePrefix(location.pathname);
   return useMemo(
     () => (path: string) => localizedPath(path, locale, prefixed),
     [locale, prefixed],

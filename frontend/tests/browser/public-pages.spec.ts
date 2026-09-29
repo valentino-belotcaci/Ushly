@@ -13,7 +13,7 @@ for (const path of publicPagePaths) {
     }) => {
       const content = en.public.pages[path];
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`http://127.0.0.1:4174${path}/`);
+      await page.goto(`http://127.0.0.1:4174/en${path}/`);
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(
         content.title,
       );
@@ -28,14 +28,19 @@ for (const path of publicPagePaths) {
       );
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         'href',
-        `https://ushly.example${path}`,
+        `https://ushly.example/en${path}`,
       );
       await expect(
         page
           .getByRole('main')
           .getByRole('link', { name: content.heroActions[0].label })
           .first(),
-      ).toHaveAttribute('href', content.heroActions[0].to);
+      ).toHaveAttribute(
+        'href',
+        content.heroActions[0].to === '/'
+          ? '/en/'
+          : `/en${content.heroActions[0].to}`,
+      );
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
@@ -43,10 +48,10 @@ for (const path of publicPagePaths) {
       ).toBe(true);
       if (width === 320) {
         const html = await (
-          await request.get(`http://127.0.0.1:4174${path}/`)
+          await request.get(`http://127.0.0.1:4174/en${path}/`)
         ).text();
         expect(html).toContain(content.title);
-        expect(html).toContain(`https://ushly.example${path}`);
+        expect(html).toContain(`https://ushly.example/en${path}`);
         expect(
           (
             await new AxeBuilder({ page })

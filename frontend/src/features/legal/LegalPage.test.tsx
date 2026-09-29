@@ -2,7 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { expect, it } from 'vitest';
 import { LegalPage } from './LegalPage';
-import { legalPagePaths, type LegalPagePath } from './routes';
+import {
+  legalPagePaths,
+  localizedLegalPath,
+  type LegalPagePath,
+} from './routes';
 import { en } from '../../i18n/en';
 import { legalPageMetadata } from './metadata';
 
@@ -33,7 +37,12 @@ it('provides distinct metadata and configured canonical URLs', () => {
   const titles = new Set<string>();
   for (const path of paths) {
     const document = new DOMParser().parseFromString(
-      legalPageMetadata(path, 'https://ushly.example'),
+      legalPageMetadata(
+        path,
+        'https://ushly.example',
+        'en',
+        `/en${localizedLegalPath(path)}`,
+      ),
       'text/html',
     );
     titles.add(document.title);
@@ -41,7 +50,7 @@ it('provides distinct metadata and configured canonical URLs', () => {
       document
         .querySelector('link[rel="canonical"]')
         ?.getAttribute('href'),
-    ).toBe(`https://ushly.example${path}`);
+    ).toBe(`https://ushly.example/en${localizedLegalPath(path)}`);
     expect(
       document
         .querySelector('meta[property="og:description"]')
@@ -49,4 +58,17 @@ it('provides distinct metadata and configured canonical URLs', () => {
     ).toBe(en.legal.pages[path].description);
   }
   expect(titles.size).toBe(paths.length);
+});
+
+it('keeps unlocalized legal routes as non-indexable English aliases', () => {
+  const document = new DOMParser().parseFromString(
+    legalPageMetadata('/privacy', 'https://ushly.example'),
+    'text/html',
+  );
+  expect(
+    document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+  ).toBe('noindex, follow');
+  expect(
+    document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+  ).toBe('https://ushly.example/en/privacy-policy');
 });

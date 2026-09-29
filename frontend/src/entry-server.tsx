@@ -24,14 +24,20 @@ export const publicPagePaths = [
   ...marketingPagePaths,
   ...legalPagePaths,
 ];
-export const localizedPublicPagePaths = (['en', 'it'] as const).flatMap((locale) => [
-  localizedPath('/', locale),
-  ...marketingPagePaths.map((path) => localizedPath(path, locale)),
-  ...Object.keys(localizedLegalRoutes).map((path) => localizedPath(path, locale)),
-  localizedPath('/login', locale),
-  localizedPath('/register', locale),
-]);
 export const authPagePaths = ['/login', '/register'] as const;
+export const localizedPublicPagePaths = (['en', 'it'] as const).flatMap(
+  (locale) => [
+    localizedPath('/', locale),
+    ...marketingPagePaths.map((path) => localizedPath(path, locale)),
+    ...Object.keys(localizedLegalRoutes).map((path) =>
+      localizedPath(path, locale),
+    ),
+  ],
+);
+export const localizedAuthPagePaths = (['en', 'it'] as const).flatMap(
+  (locale) => authPagePaths.map((path) => localizedPath(path, locale)),
+);
+export const prerenderSiteOrigin = siteOrigin;
 
 export function renderPage(path: string) {
   const locale = localeFromPath(path);
