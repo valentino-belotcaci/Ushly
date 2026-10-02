@@ -59,7 +59,7 @@ test('registration service normalizes, hashes before persistence, and selects pu
   assert.equal(await verifyPassword(password, persistedHash), true);
 });
 
-test('registration limit counts invalid attempts and leaves baseline routes available', async (t) => {
+test('registration limit counts invalid attempts and leaves liveness unthrottled', async (t) => {
   const app = await buildApp({
     env,
     rateLimitConfig: { store: createTestRateLimitStore() },
@@ -88,7 +88,7 @@ test('registration limit counts invalid attempts and leaves baseline routes avai
   assert.ok(limited.headers['retry-after']);
   const live = await app.inject('/health/live');
   assert.equal(live.statusCode, 200);
-  assert.equal(live.headers['x-ratelimit-limit'], '100');
+  assert.equal(live.headers['x-ratelimit-limit'], undefined);
 });
 
 test('registration failure and malformed JSON cannot expose passwords or driver details in logs/responses', async (t) => {

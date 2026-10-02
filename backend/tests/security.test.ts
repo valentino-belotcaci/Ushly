@@ -39,8 +39,9 @@ const buildSecurityApp = async () => {
   return app;
 };
 
-void test('allowed origins receive expected CORS headers', async () => {
+void test('allowed origins receive expected CORS headers', async (t) => {
   const app = await buildSecurityApp();
+  t.after(() => app.close());
 
   const response = await app.inject({
     method: 'OPTIONS',
@@ -54,12 +55,11 @@ void test('allowed origins receive expected CORS headers', async () => {
   assert.equal(response.statusCode, 204);
   assert.equal(response.headers['access-control-allow-origin'], 'http://localhost:5173');
   assert.equal(response.headers['access-control-allow-credentials'], 'true');
-
-  await app.close();
 });
 
-void test('rejected origins are not allowed by CORS', async () => {
+void test('rejected origins are not allowed by CORS', async (t) => {
   const app = await buildSecurityApp();
+  t.after(() => app.close());
 
   const response = await app.inject({
     method: 'GET',
@@ -72,12 +72,11 @@ void test('rejected origins are not allowed by CORS', async () => {
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers['access-control-allow-origin'], undefined);
   assert.equal(response.headers['access-control-allow-credentials'], undefined);
-
-  await app.close();
 });
 
-void test('security headers are present on responses', async () => {
+void test('security headers are present on responses', async (t) => {
   const app = await buildSecurityApp();
+  t.after(() => app.close());
 
   const response = await app.inject({
     method: 'GET',
@@ -88,27 +87,25 @@ void test('security headers are present on responses', async () => {
   assert.equal(response.headers['x-dns-prefetch-control'], 'off');
   assert.equal(response.headers['x-frame-options'], 'SAMEORIGIN');
   assert.equal(response.headers['x-download-options'], 'noopen');
-
-  await app.close();
 });
 
-void test('repeated requests trigger rate limiting', async () => {
+void test('repeated requests trigger rate limiting', async (t) => {
   const app = await buildSecurityApp();
+  t.after(() => app.close());
+  app.get('/rate-limit-test', async () => ({ ok: true }));
 
   for (let index = 0; index < 101; index += 1) {
     await app.inject({
       method: 'GET',
-      url: '/health/live',
+      url: '/rate-limit-test',
     });
   }
 
   const response = await app.inject({
     method: 'GET',
-    url: '/health/live',
+    url: '/rate-limit-test',
   });
 
   assert.equal(response.statusCode, 429);
   assert.equal(response.headers['x-ratelimit-limit'], '100');
-
-  await app.close();
 });

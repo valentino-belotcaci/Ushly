@@ -19,7 +19,7 @@
 :root[data-theme='light'] .auth-screen::before {
   background-image: url('/images/ushly-auth-background-light.webp');
   opacity:0.8;
-  
+
 }
 .auth-topbar {
   width: min(100%, var(--content-width));
