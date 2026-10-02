@@ -54,6 +54,8 @@ test('startup failure preserves liveness; probe errors are safe in responses and
   );
   await app.ready();
   assert.equal(query.mock.callCount(), 1);
+  assert.equal((await app.inject('/health')).statusCode, 200);
+  assert.equal(query.mock.callCount(), 1);
   assert.equal((await app.inject('/health/live')).statusCode, 200);
   assert.equal(query.mock.callCount(), 1);
   const response = await app.inject('/health/ready');

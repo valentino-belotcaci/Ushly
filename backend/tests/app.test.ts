@@ -40,20 +40,24 @@ const buildTestApp = async () => {
   return app;
 };
 
-test('buildApp exposes a health endpoint with service metadata', async () => {
+test('buildApp exposes dependency-free liveness endpoints with service metadata', async () => {
   const app = await buildTestApp();
 
-  const response = await app.inject({
+  const healthResponse = await app.inject({
     method: 'GET',
-    url: '/health/live',
+    url: '/health',
   });
 
-  assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.json(), {
+  assert.equal(healthResponse.statusCode, 200);
+  assert.deepEqual(healthResponse.json(), {
     ok: true,
     service: 'ushly-backend',
     environment: 'test',
   });
+
+  const liveResponse = await app.inject('/health/live');
+  assert.equal(liveResponse.statusCode, 200);
+  assert.deepEqual(liveResponse.json(), healthResponse.json());
 
   await app.close();
 });

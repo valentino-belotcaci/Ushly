@@ -1,0 +1,9 @@
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!Dockerfile.lambda
+!src/
+!src/**
+!prisma/
+!prisma/schema.prisma

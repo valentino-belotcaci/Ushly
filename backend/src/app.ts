@@ -297,13 +297,19 @@ export async function buildApp(options: BuildAppOptions = {}) {
     return reply.code(500).send(response);
   });
 
-  app.get('/health/live', async () => ({
+  const livenessResponse = () => ({
     ok: true,
     service: 'ushly-backend',
     environment: env.nodeEnv,
-  }));
+  });
 
-  app.get('/health/ready', async () => {
+  const healthRouteOptions = { config: { rateLimit: false } };
+
+  app.get('/health', healthRouteOptions, async () => livenessResponse());
+
+  app.get('/health/live', healthRouteOptions, async () => livenessResponse());
+
+  app.get('/health/ready', healthRouteOptions, async () => {
     await app.checkDatabaseConnection();
     await app.checkRedisConnection();
     return { ok: true };

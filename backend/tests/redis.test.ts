@@ -38,6 +38,8 @@ test('Redis failure keeps liveness available and makes readiness unavailable', a
   query.mock.resetCalls();
   assert.equal(typeof app.redis.close, 'function');
   assert.equal(app.redis.isReady, false);
+  assert.equal((await app.inject('/health')).statusCode, 200);
+  assert.equal(query.mock.callCount(), 0);
   assert.equal((await app.inject('/health/live')).statusCode, 200);
   const readiness = await app.inject('/health/ready');
   assert.equal(readiness.statusCode, 503);

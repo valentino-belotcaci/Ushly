@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+
+FROM public.ecr.aws/lambda/nodejs:22 AS build
+
+WORKDIR ${LAMBDA_TASK_ROOT}
+
+COPY package.json package-lock.json ./
+COPY prisma/schema.prisma prisma/schema.prisma
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build \
+    && npx prisma generate \
+    && npm prune --omit=dev \
+    && node --input-type=module -e "import { readdirSync, rmSync } from 'node:fs'; import { join } from 'node:path'; const clean = (directory) => { for (const entry of readdirSync(directory, { withFileTypes: true })) { const path = join(directory, entry.name); if (entry.isDirectory()) clean(path); else if (entry.name.endsWith('.map')) rmSync(path); } }; clean('dist');"
+
+FROM public.ecr.aws/lambda/nodejs:22 AS runtime
+
+ENV NODE_ENV=production
+WORKDIR ${LAMBDA_TASK_ROOT}
+
+COPY --from=build ${LAMBDA_TASK_ROOT}/package.json ${LAMBDA_TASK_ROOT}/package-lock.json ./
+COPY --from=build ${LAMBDA_TASK_ROOT}/node_modules ./node_modules
+COPY --from=build ${LAMBDA_TASK_ROOT}/dist ./dist
+
+CMD ["dist/lambda.handler"]

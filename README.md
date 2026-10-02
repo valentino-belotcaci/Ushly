@@ -29,6 +29,10 @@ are documented in [docs/deployment.md](docs/deployment.md).
 Pull-request checks, test-only service configuration, and branch-protection
 setup are documented in [docs/ci.md](docs/ci.md).
 
+Production image builds, local container startup, health checks, graceful
+shutdown, image-content inspection, and vulnerability scanning are documented
+in [docs/containers.md](docs/containers.md).
+
 ### Verified working commands
 
 From the repository root:
