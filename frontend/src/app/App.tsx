@@ -149,10 +149,6 @@ export function App() {
                   element={<LegalPage path={path} />}
                 />
               ))}
-              <Route
-                path="contact"
-                element={<Placeholder title={translations(locale).layout.contact} />}
-              />
               <Route path="*" element={<UnavailablePage />} />
             </Route>
           </Route>

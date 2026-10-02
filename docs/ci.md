@@ -54,3 +54,52 @@ controlled error or add an ignore rule for it.
 Locally, the whitespace failure can be demonstrated by temporarily adding a
 trailing space to a tracked file, running `git diff --check`, and then restoring
 only that temporary character. This does not require database services.
+
+## Production deployment workflow
+
+`.github/workflows/deploy.yml` runs only after the existing `Pull request CI`
+workflow completes successfully for a push to `main`. It checks out
+`workflow_run.head_sha`, so deployment uses the exact commit verified by CI.
+Pull-request workflow runs and failed or cancelled CI runs cannot enter either
+deployment job.
+
+The workflow requires these GitHub repository variables:
+
+| Variable                     | Value                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `AWS_ROLE_ARN`               | ARN of the narrowly scoped IAM role trusted through GitHub OIDC        |
+| `AWS_REGION`                 | AWS region containing ECR and Lambda                                   |
+| `VITE_SITE_ORIGIN`           | Public HTTPS frontend origin compiled into the Vite build              |
+| `VITE_API_ORIGIN`            | Public HTTPS API origin compiled into the Vite build                   |
+| `S3_BUCKET`                  | Private frontend bucket name, without `s3://`                          |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Distribution serving the private S3 origin                             |
+| `ECR_REPOSITORY`             | Existing private ECR repository name, without registry hostname or tag |
+| `LAMBDA_FUNCTION`            | Existing image-based Lambda function name or ARN                       |
+
+These values identify public origins or AWS resources; they are not application
+secrets. Do not configure access-key variables or store long-lived AWS access
+keys in GitHub. The workflow grants `id-token: write` solely so
+`aws-actions/configure-aws-credentials` can exchange GitHub's OIDC token for
+short-lived role credentials. Configure the role trust policy for this
+repository and `refs/heads/main` only.
+
+The IAM role needs only the deployed resources and these actions:
+
+- S3 list plus object read/write/delete for `S3_BUCKET`;
+- `cloudfront:CreateInvalidation` for `CLOUDFRONT_DISTRIBUTION_ID`;
+- `ecr:GetAuthorizationToken` and the layer/image upload actions for
+  `ECR_REPOSITORY`;
+- `lambda:UpdateFunctionCode` and `lambda:GetFunctionConfiguration` for
+  `LAMBDA_FUNCTION`.
+
+The frontend job runs `npm ci` and builds with the two repository-provided
+`VITE_*` origins before requesting AWS credentials. It synchronizes the contents
+of `frontend/dist` to S3 with deletion of obsolete objects, then creates a `/*`
+CloudFront invalidation.
+
+The backend job invokes `npm run build:lambda-image`, whose entrypoint, handler,
+and architecture checks prevent the regular backend image from being published
+as a Lambda artifact. It tags that verified image with the full tested Git commit
+SHA, pushes the immutable tag to ECR, updates Lambda to that exact URI, and waits
+for the update to finish. It does not run Prisma migrations or alter Lambda
+configuration and environment variables.

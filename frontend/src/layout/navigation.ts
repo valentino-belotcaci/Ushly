@@ -11,10 +11,6 @@ export const accountLinks = [
 export const footerGroups = [
   { label: 'Product', links: primaryLinks },
   {
-    label: 'Resources',
-    links: [{ label: 'Contact', to: '/contact' }],
-  },
-  {
     label: 'Legal',
     links: [
       { label: 'Privacy Policy', to: '/privacy' },

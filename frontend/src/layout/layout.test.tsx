@@ -43,9 +43,6 @@ it('renders branded landmarks and all footer destinations', () => {
       Analytics: '/analytics',
       Features: '/features',
     },
-    Resources: {
-      Contact: '/contact',
-    },
     Legal: {
       'Privacy Policy': '/privacy',
       'Cookie Policy': '/cookies',

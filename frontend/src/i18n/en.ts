@@ -475,7 +475,6 @@ export const en = {
     resources: 'Resources',
     legal: 'Legal',
     account: 'Account',
-    contact: 'Contact',
     privacy: 'Privacy Policy',
     cookies: 'Cookie Policy',
     terms: 'Terms of Service',

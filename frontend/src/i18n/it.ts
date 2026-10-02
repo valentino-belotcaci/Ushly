@@ -150,7 +150,6 @@ export const it = {
     resources: 'Risorse',
     legal: 'Note legali',
     account: 'Account',
-    contact: 'Contatti',
     privacy: 'Informativa sulla privacy',
     cookies: 'Informativa sui cookie',
     terms: 'Termini di servizio',
