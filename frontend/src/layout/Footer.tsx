@@ -11,7 +11,6 @@ export function Footer() {
   const productPaths = ['/url-shortener', '/qr-codes', '/analytics', '/features'] as const;
   const groups = [
     { label: t.layout.product, links: productPaths.map((to, index) => ({ label: t.layout.nav[index], to: localizedPath(to, locale, localePrefix) })) },
-    { label: t.layout.resources, links: [{ label: t.layout.contact, to: localizedPath('/contact', locale, localePrefix) }] },
     { label: t.layout.legal, links: [
       { label: t.layout.privacy, to: localePrefix ? localizedPath('/privacy-policy', locale) : '/privacy' },
       { label: t.layout.cookies, to: localePrefix ? localizedPath('/cookie-policy', locale) : '/cookies' },
