@@ -62,6 +62,26 @@ export async function changeSession(
       return null;
     }
 
+    const user = await tx.user.findUnique({
+      where: { id: token.userId },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        provider: true,
+        passwordHash: true,
+        disabledAt: true,
+        identities: { where: { provider: 'google' }, select: { id: true }, take: 1 },
+      },
+    });
+    if (!user || user.disabledAt !== null) {
+      await tx.refreshToken.update({
+        where: { id: token.id },
+        data: { revokedAt: now },
+      });
+      return null;
+    }
+
     //if the token is valid, create a new refresh token in the database 
     // with the hash of the new token and the same expiration date as the old one
     const next = await tx.refreshToken.create({
@@ -77,7 +97,21 @@ export async function changeSession(
       data: { revokedAt: now, replacedByTokenId: next.id },
     });
 
-    //returns what the server needs to create new access token and cookie
-    return { userId: token.userId, expiresAt: token.expiresAt };
+    // The account was checked before rotation, so this flag describes its state.
+    const googleLinkEligible = user?.provider === 'local' &&
+      user.passwordHash !== null && user.disabledAt === null &&
+      user.identities.length === 0;
+    return {
+      userId: token.userId,
+      expiresAt: token.expiresAt,
+      googleLinkEligible,
+      user: user
+        ? {
+            id: user.id,
+            email: user.email,
+            createdAt: user.createdAt.toISOString(),
+          }
+        : null,
+    };
   });
 }

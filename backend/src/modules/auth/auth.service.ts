@@ -56,10 +56,19 @@ export async function loginUser(prisma: PrismaClient, input: RegisterBody) {
   if (!user || user.provider !== 'local' || !user.passwordHash || !valid || user.disabledAt !== null) {
     throw new AppError('invalid_credentials', 'Invalid email or password', 401);
   }
+  let googleLinkEligible: boolean;
+  try {
+    googleLinkEligible = (await prisma.userIdentity.count({
+      where: { userId: user.id, provider: 'google' },
+    })) === 0;
+  } catch {
+    throw new AppError('internal_server_error', 'An unexpected error occurred', 500);
+  }
   //return user data to the client, without the password hash
   return {
     id: user.id,
     email: user.email,
     createdAt: user.createdAt.toISOString(),
+    googleLinkEligible,
   };
 }

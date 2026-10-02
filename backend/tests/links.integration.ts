@@ -100,3 +100,33 @@ test('applies the stricter anonymous rate limit', async (t) => {
   });
   assert.equal(limited.statusCode, 429);
 });
+
+test('shares anonymous link limits across backend instances', async (t) => {
+  const first = await buildApp({ env: getTestEnvironment() });
+  const second = await buildApp({ env: getTestEnvironment() });
+  t.after(async () => {
+    await cleanTestDatabase(first.prisma);
+    await Promise.all([first.close(), second.close()]);
+  });
+  await first.ready();
+  await second.ready();
+  await cleanTestDatabase(first.prisma);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await first.inject({
+      method: 'POST',
+      url: '/links',
+      remoteAddress: '127.0.0.10',
+      payload: { url: `https://example.com/shared-${attempt}` },
+    });
+    assert.equal(response.statusCode, 201);
+  }
+
+  const limited = await second.inject({
+    method: 'POST',
+    url: '/links',
+    remoteAddress: '127.0.0.10',
+    payload: { url: 'https://example.com/shared-limited' },
+  });
+  assert.equal(limited.statusCode, 429);
+});

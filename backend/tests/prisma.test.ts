@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import { buildApp } from '../src/app.js';
 import { getEnvironmentConfig } from '../src/config/env.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const env = getEnvironmentConfig({
   NODE_ENV: 'test',
@@ -37,7 +38,11 @@ test('startup failure preserves liveness; probe errors are safe in responses and
       done();
     },
   });
-  const app = await buildApp({ env, logger: { level: 'warn', stream } });
+  const app = await buildApp({
+    env,
+    logger: { level: 'warn', stream },
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   t.mock.method(app, 'checkRedisConnection', async () => undefined);
   const query = t.mock.method(
@@ -48,6 +53,8 @@ test('startup failure preserves liveness; probe errors are safe in responses and
     },
   );
   await app.ready();
+  assert.equal(query.mock.callCount(), 1);
+  assert.equal((await app.inject('/health')).statusCode, 200);
   assert.equal(query.mock.callCount(), 1);
   assert.equal((await app.inject('/health/live')).statusCode, 200);
   assert.equal(query.mock.callCount(), 1);
@@ -64,7 +71,10 @@ test('startup failure preserves liveness; probe errors are safe in responses and
 });
 
 test('timeout bounds responses, shares pending queries, and handles late rejection', async (t) => {
-  const app = await buildApp({ env });
+  const app = await buildApp({
+    env,
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   t.mock.method(app, 'checkRedisConnection', async () => undefined);
   let rejectQuery: (error: Error) => void = () => {

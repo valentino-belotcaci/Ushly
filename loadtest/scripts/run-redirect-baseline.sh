@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${BASE_URL:=http://127.0.0.1:3000}"
+: "${BASE_URL:=http://127.0.0.1:3001}"
 : "${DATABASE_URL:?Set DATABASE_URL to the load-test database}"
 : "${DURATION:=30s}"
 : "${DURATION_SECONDS:=40}"

@@ -10,7 +10,7 @@ mkdir -p "$(dirname "$OUTPUT_FILE")"
 printf 'timestamp,postgres_cpu,postgres_memory,redis_cpu,redis_memory,postgres_connections\n' > "$OUTPUT_FILE"
 
 if [[ -z "$POSTGRES_CONTAINER" ]]; then
-  POSTGRES_CONTAINER="$(docker compose ps -q postgres)"
+  POSTGRES_CONTAINER="$(docker compose --profile loadtest ps -q postgres-loadtest)"
 fi
 if [[ -z "$REDIS_CONTAINER" ]]; then
   REDIS_CONTAINER="$(docker compose ps -q redis)"

@@ -52,7 +52,8 @@ export function getTestEnvironment(
     PORT: '3000',
     DATABASE_URL: databaseUrl,
     DATABASE_READY_TIMEOUT_MS: '1000',
-    REDIS_URL: options.redisUrl ?? 'redis://127.0.0.1:1',
+    REDIS_URL:
+      options.redisUrl ?? input.REDIS_URL ?? 'redis://127.0.0.1:1',
     REDIS_CONNECT_TIMEOUT_MS: '25',
     REDIS_MAX_RECONNECT_ATTEMPTS: '0',
     REDIS_RECONNECT_BASE_DELAY_MS: '1',

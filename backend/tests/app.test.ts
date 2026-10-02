@@ -3,6 +3,7 @@ import test, { mock } from 'node:test';
 
 import { AppError, buildApp } from '../src/app.js';
 
+let appSequence = 0;
 const buildTestApp = async () => {
   const app = await buildApp({
     env: {
@@ -31,25 +32,32 @@ const buildTestApp = async () => {
       trustProxy: false,
     },
     logger: false,
+    rateLimitConfig: {
+      nameSpace: `test:app:${process.pid}:${appSequence += 1}:`,
+    },
   });
   mock.method(app.prisma, '$queryRaw', async () => [{ value: 1 }]);
   return app;
 };
 
-test('buildApp exposes a health endpoint with service metadata', async () => {
+test('buildApp exposes dependency-free liveness endpoints with service metadata', async () => {
   const app = await buildTestApp();
 
-  const response = await app.inject({
+  const healthResponse = await app.inject({
     method: 'GET',
-    url: '/health/live',
+    url: '/health',
   });
 
-  assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.json(), {
+  assert.equal(healthResponse.statusCode, 200);
+  assert.deepEqual(healthResponse.json(), {
     ok: true,
     service: 'ushly-backend',
     environment: 'test',
   });
+
+  const liveResponse = await app.inject('/health/live');
+  assert.equal(liveResponse.statusCode, 200);
+  assert.deepEqual(liveResponse.json(), healthResponse.json());
 
   await app.close();
 });

@@ -2,7 +2,36 @@
 
 ## Baseline setup
 
-This repository is configured for a Node 22 + TypeScript backend and a Dockerized PostgreSQL/Redis local stack.
+This repository contains a Node 22 + TypeScript backend, a React frontend foundation, and a Dockerized PostgreSQL/Redis local stack.
+
+### Frontend foundation, layout and homepage (T9.1–T9.3)
+
+The frontend uses Node 22.12+ within Node 22, npm, Vite, React, and strict
+TypeScript. From `frontend/`, run `npm ci`, then `npm run dev`. Visit
+`/dev/components` to explore the development-only design system. The production
+build prerenders the public homepage with anonymous URL shortening, responsive
+layout and theme switching. Configure the public API/site origins from
+`frontend/.env.example`. Other pages and authentication remain placeholders;
+anonymous visitors can generate/download QR images locally. The existing
+backend QR endpoint remains restricted to authenticated link owners.
+
+Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and
+`npm run format:check`. For browser checks, run `npx playwright install chromium`
+once, then `npm run test:browser`. The browser suite starts and stops its own
+development and production-preview servers.
+
+See [frontend/README.md](frontend/README.md) for design tokens, component
+contracts, themes, assets, and test coverage.
+
+Deployment configuration, origin alignment, cookie behavior, and OAuth setup
+are documented in [docs/deployment.md](docs/deployment.md).
+
+Pull-request checks, test-only service configuration, and branch-protection
+setup are documented in [docs/ci.md](docs/ci.md).
+
+Production image builds, local container startup, health checks, graceful
+shutdown, image-content inspection, and vulnerability scanning are documented
+in [docs/containers.md](docs/containers.md).
 
 ### Verified working commands
 
@@ -474,7 +503,7 @@ email trimming/lowercasing and format/length checks, a 4 KiB body limit, and a
 1–128-character password input limit. Login verifies existing passwords rather
 than imposing the registration minimum again. No password normalization occurs.
 
-Success returns HTTP 200 with `{ accessToken, user: { id, email, createdAt } }`
+Success returns HTTP 200 with `{ accessToken, user: { id, email, createdAt }, googleLinkAvailable }`
 and `Cache-Control: no-store`. The service looks up the normalized email through
 the repository and verifies Argon2 via the existing utility. The controller signs
 the token using Fastify JWT. Unknown email, wrong password, and accounts without
@@ -521,7 +550,7 @@ and captured log checks. Integration writes remain limited to `ushly_test`.
 ### Refresh sessions (T3.4)
 
 Successful login sets the configured refresh cookie. `POST /auth/refresh` reads
-that cookie, rotates it, and returns only `{ accessToken }`. `POST /auth/logout`
+that cookie, rotates it, and returns `{ accessToken, user, googleLinkAvailable }`. `POST /auth/logout`
 revokes the session and clears the cookie, returning 204 even if it is absent or
 already revoked. Both endpoints use `Cache-Control: no-store`.
 
@@ -553,7 +582,7 @@ public errors before logging. Never log cookie or token values in message text.
 ### Google OAuth (T8.1 decisions and T8.2 implementation)
 
 Google login uses the server-side authorization-code flow with
-`google-auth-library` 11.1.0 (Node 22+). No frontend OAuth UI is included.
+`google-auth-library` 11.1.0 (Node 22+).
 
 #### Configuration and deployment
 
@@ -565,14 +594,13 @@ placeholders. Automated tests mock Google and need no provider credentials.
 
 Register the exact `GOOGLE_OAUTH_REDIRECT_URI` in Google Cloud Console:
 
-- Development: `http://localhost:5173/auth/google/callback`
-- Test: `http://127.0.0.1:4173/auth/google/callback`
-- Production: `https://<approved-production-host>/auth/google/callback`
+- Direct local backend: `http://localhost:3000/auth/google/callback`
+- Production API: `https://api.example.com/auth/google/callback`
 
-These are public callback addresses, **not an assumption that Vite is running**.
-Route `/auth/google`, `/auth/google/link`, and `/auth/google/callback` at the
-configured origin to Fastify. For direct backend development, explicitly
-configure and register `http://localhost:3000/auth/google/callback` instead.
+The callback origin is the public origin that routes the OAuth request to
+Fastify. It is normally `VITE_API_ORIGIN`. A same-origin reverse proxy may expose
+it at the frontend origin only when `/auth/google/*` is actually forwarded to
+Fastify; register that public proxy URL instead.
 The callback path must remain `/auth/google/callback`. HTTPS is required in
 production; HTTP is allowed only for localhost/127.0.0.1 outside production.
 URLs with userinfo, query, fragment, or noncanonical spelling are rejected.
@@ -609,7 +637,7 @@ associations. Back up the database before shared-environment migration.
 | --- | --- |
 | `GET /auth/google` | Starts login and redirects to Google's fixed authorization endpoint. Accepts no query parameters. |
 | `POST /auth/google/link` | Requires an Ushly bearer access token and JSON `{ "password": "<current local password>" }`. Re-verifies the local password and returns `{ "authorizationUrl": "..." }` for explicit browser navigation. Accepts no user ID or redirect override. |
-| `GET /auth/google/callback` | Consumes the browser-bound attempt, exchanges the code, verifies Google identity, resolves/links the user, and issues the existing HttpOnly refresh cookie. Returns `{ "ok": true }` without tokens or a frontend redirect. |
+| `GET /auth/google/callback` | Consumes the browser-bound attempt, exchanges the code, verifies Google identity, resolves/links the user, and issues the existing HttpOnly refresh cookie. Returns a no-store popup completion page that sends only a status or safe error code to configured frontend origins, then closes. |
 | `POST /auth/refresh` | Existing endpoint: rotates the refresh cookie and returns the Ushly JWT in JSON. |
 
 The linking authorization URL contains public OAuth parameters, state, nonce,

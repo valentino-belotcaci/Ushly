@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "build:lambda-image": "bash scripts/build-lambda-image.sh",
+    "package:lambda": "bash scripts/package-lambda.sh",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -18,6 +21,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fastify/aws-lambda": "^6.4.1",
     "@fastify/cookie": "11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",

@@ -3,6 +3,7 @@ import { Writable } from 'node:stream';
 import test from 'node:test';
 import { buildApp } from '../src/app.js';
 import { getTestEnvironment } from './helpers/test-database.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const env = getTestEnvironment({
   NODE_ENV: 'test',
@@ -17,9 +18,23 @@ test('authenticate accepts valid identity and rejects missing, expired, malforme
       done();
     },
   });
-  const app = await buildApp({ env, logger: { level: 'info', stream } });
+  const app = await buildApp({
+    env,
+    logger: { level: 'info', stream },
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   t.mock.method(app.prisma, '$queryRaw', async () => []);
+  let disabledAt: Date | null = null;
+  const originalFindUser = app.prisma.user.findUnique;
+  t.after(() => {
+    Reflect.set(app.prisma.user, 'findUnique', originalFindUser);
+  });
+  Reflect.set(
+    app.prisma.user,
+    'findUnique',
+    t.mock.fn(async () => ({ disabledAt })),
+  );
   app.get(
     '/protected-test',
     { preHandler: app.authenticate },
@@ -32,6 +47,12 @@ test('authenticate accepts valid identity and rejects missing, expired, malforme
   });
   assert.equal(good.statusCode, 200);
   assert.deepEqual(good.json(), { id: 'user-test-id' });
+  disabledAt = new Date();
+  const disabled = await app.inject({
+    url: '/protected-test',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  assert.equal(disabled.statusCode, 401);
   const expired = app.jwt.sign({ sub: 'user-test-id' }, { expiresIn: -1 });
   const parts = token.split('.');
   const tampered = `${parts[0]}.${Buffer.from(JSON.stringify({ sub: 'attacker' })).toString('base64url')}.${parts[2]}`;
@@ -76,7 +97,10 @@ test('authenticate accepts valid identity and rejects missing, expired, malforme
 });
 
 test('login rate limit counts invalid bodies before database work and preserves baseline', async (t) => {
-  const app = await buildApp({ env });
+  const app = await buildApp({
+    env,
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   t.after(() => app.close());
   t.mock.method(app.prisma, '$queryRaw', async () => []);
   for (let i = 0; i < 5; i++) {

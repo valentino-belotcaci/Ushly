@@ -40,9 +40,10 @@ export const loginSchema = {
     200: {
       type: 'object',
       additionalProperties: false,
-      required: ['accessToken', 'user'],
+      required: ['accessToken', 'user', 'googleLinkAvailable'],
       properties: {
         accessToken: { type: 'string' },
+        googleLinkAvailable: { type: 'boolean' },
         user: registerSchema.response[201],
       },
     },

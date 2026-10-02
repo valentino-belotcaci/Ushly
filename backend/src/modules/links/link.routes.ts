@@ -1,3 +1,4 @@
+import type { RedisClientType } from 'redis';
 import type {
   FastifyPluginAsync,
   preHandlerAsyncHookHandler,
@@ -32,11 +33,7 @@ const ANONYMOUS_MAX = 5;
 const AUTHENTICATED_MAX = 20;
 const WINDOW_MS = 60_000;
 
-type RateEntry = { count: number; startedAt: number };
-
 const linksRoutes: FastifyPluginAsync = async (app) => {
-  const requestsByIp = new Map<string, RateEntry>();
-
   const optionalAuthenticate: preHandlerAsyncHookHandler = async (
     request,
     reply,
@@ -49,15 +46,12 @@ const linksRoutes: FastifyPluginAsync = async (app) => {
   const limitLinkCreation: preHandlerAsyncHookHandler = async (request) => {
     const key = request.authenticatedUser?.id ?? `anonymous:${request.ip}`;
     const limit = request.authenticatedUser ? AUTHENTICATED_MAX : ANONYMOUS_MAX;
-    const now = Date.now();
-    const existing = requestsByIp.get(key);
-    const entry =
-      !existing || now - existing.startedAt >= WINDOW_MS
-        ? { count: 1, startedAt: now }
-        : { count: existing.count + 1, startedAt: existing.startedAt };
-
-    requestsByIp.set(key, entry);
-    if (entry.count > limit) {
+    const count = await consumeLinkCreationRateLimit(
+      app.redis,
+      key,
+      WINDOW_MS,
+    );
+    if (count > limit) {
       throw new AppError(
         'rate_limit_exceeded',
         'Too many link creation requests',
@@ -118,5 +112,32 @@ const linksRoutes: FastifyPluginAsync = async (app) => {
     deleteLinkController,
   );
 };
+
+export async function consumeLinkCreationRateLimit(
+  redis: RedisClientType,
+  identity: string,
+  windowMs: number,
+): Promise<number> {
+  if (!redis.isReady) {
+    throw new AppError(
+      'service_unavailable',
+      'Rate limiting temporarily unavailable',
+      503,
+    );
+  }
+
+  const key = `ushly:rate-limit:links:${identity}`;
+  try {
+    const count = await redis.incr(key);
+    if (count === 1) await redis.pExpire(key, windowMs);
+    return count;
+  } catch {
+    throw new AppError(
+      'service_unavailable',
+      'Rate limiting temporarily unavailable',
+      503,
+    );
+  }
+}
 
 export default linksRoutes;

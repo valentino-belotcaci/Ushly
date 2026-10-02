@@ -8,6 +8,7 @@ import {
   cleanTestDatabase,
   getTestEnvironment,
 } from './helpers/test-database.js';
+import { createTestRateLimitStore } from './helpers/rate-limit-store.js';
 
 const password = 'refresh integration passphrase';
 const digest = (token: string) =>
@@ -32,7 +33,11 @@ test('refresh sessions', async (t) => {
       done();
     },
   });
-  const app = await buildApp({ env, logger: { level: 'info', stream } });
+  const app = await buildApp({
+    env,
+    logger: { level: 'info', stream },
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
   await app.ready();
   await cleanTestDatabase(app.prisma);
   t.after(async () => {
@@ -89,7 +94,16 @@ test('refresh sessions', async (t) => {
       assert.ok(!JSON.stringify(stored).includes(old));
       const rotated = await post('/auth/refresh', old);
       assert.equal(rotated.statusCode, 200);
-      assert.deepEqual(Object.keys(rotated.json()), ['accessToken']);
+      assert.deepEqual(Object.keys(rotated.json()).sort(), [
+        'accessToken',
+        'googleLinkAvailable',
+        'user',
+      ]);
+      assert.deepEqual(rotated.json().user, {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt,
+      });
       assert.equal(
         app.jwt.verify<{ sub: string }>(rotated.json().accessToken).sub,
         user.id,
@@ -159,5 +173,49 @@ test('refresh sessions', async (t) => {
       assert.equal((await post('/auth/refresh', next)).statusCode, 401);
       for (const secret of secrets) assert.ok(!logs.includes(secret));
     },
+  );
+});
+
+test('disabled users cannot rotate an existing refresh session', async (t) => {
+  const env = getTestEnvironment();
+  const app = await buildApp({
+    env,
+    rateLimitConfig: { store: createTestRateLimitStore() },
+  });
+  await app.ready();
+  await cleanTestDatabase(app.prisma);
+  t.after(async () => {
+    await cleanTestDatabase(app.prisma);
+    await app.close();
+  });
+
+  const user = await registerUser(app.prisma, {
+    email: 'disabled-refresh@example.test',
+    password,
+  });
+  const login = await app.inject({
+    method: 'POST',
+    url: '/auth/login',
+    payload: { email: user.email, password },
+  });
+  assert.equal(login.statusCode, 200);
+  const refreshCookie = login.cookies.find(
+    (entry) => entry.name === env.cookie.name,
+  );
+  assert.ok(refreshCookie);
+  await app.prisma.user.update({
+    where: { id: user.id },
+    data: { disabledAt: new Date() },
+  });
+
+  const refreshed = await app.inject({
+    method: 'POST',
+    url: '/auth/refresh',
+    headers: { cookie: `${refreshCookie.name}=${refreshCookie.value}` },
+  });
+  assert.equal(refreshed.statusCode, 401);
+  assert.equal(
+    await app.prisma.refreshToken.count({ where: { userId: user.id, revokedAt: null } }),
+    0,
   );
 });

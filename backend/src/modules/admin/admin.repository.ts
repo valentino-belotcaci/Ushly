@@ -18,7 +18,18 @@ const linkSelect = {
   status: true,
   expiresAt: true,
   createdAt: true,
+  user: { select: { email: true } },
 } as const;
+
+type AdminLinkRow = Prisma.LinkGetPayload<{ select: typeof linkSelect }>;
+export type AdminLinkListItem = Omit<AdminLinkRow, 'user'> & {
+  ownerEmail: string | null;
+};
+
+function adminLinkListItem(row: AdminLinkRow): AdminLinkListItem {
+  const { user, ...link } = row;
+  return { ...link, ownerEmail: user?.email ?? null };
+}
 
 export type AdminUserListQuery = {
   skip: number;
@@ -77,6 +88,11 @@ export async function listAdminLinks(
           OR: [
             { shortCode: { contains: query.search } },
             { destinationUrl: { contains: query.search } },
+            {
+              user: {
+                email: { contains: query.search, mode: 'insensitive' },
+              },
+            },
           ],
         }
       : {}),
@@ -93,7 +109,7 @@ export async function listAdminLinks(
     }),
     prisma.link.count({ where }),
   ]);
-  return { items, total };
+  return { items: items.map(adminLinkListItem), total };
 }
 
 export async function countAdminClicks(

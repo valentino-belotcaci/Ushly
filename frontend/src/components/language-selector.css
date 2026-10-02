@@ -1,0 +1,88 @@
+.language-selector {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+.language-selector__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 82px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-button);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+.language-selector__trigger:hover,
+.language-selector__trigger[aria-expanded='true'] {
+  border-color: var(--brand);
+  background: var(--surface-raised);
+  color: var(--brand-ink);
+}
+.language-selector__trigger:focus-visible,
+.language-selector__menu a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+.language-selector__icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.language-selector__chevron {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+.language-selector__menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  min-width: 168px;
+  padding: 6px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 16%);
+}
+.language-selector__menu a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+.language-selector__menu a:hover {
+  background: var(--surface-raised);
+}
+.language-selector__menu a.is-current {
+  border-color: var(--brand);
+  background: var(--warning-bg);
+  color: var(--brand-ink);
+}
+.language-selector__menu strong {
+  color: inherit;
+  font-size: 0.75rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .language-selector__trigger {
+    transition: none;
+  }
+}

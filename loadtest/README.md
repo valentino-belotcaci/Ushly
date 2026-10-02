@@ -20,41 +20,78 @@ PostgreSQL connection count once per second. k6 and the sampler run only after
 
 ## Environment
 
-The baseline assumes:
+The baseline requires an isolated local environment:
 
-- Node 22 backend running at `http://127.0.0.1:3000`.
-- PostgreSQL 16 and Redis 7 from the repository's Docker Compose file.
-- `DATABASE_URL` points to the same database used by the running backend.
+- Node 22 backend running at `http://127.0.0.1:3001` with
+  `loadtest/.env`, copied from `loadtest/.env.example`.
+- PostgreSQL 16 in the Compose `postgres-loadtest` service on port 5433.
+- `DATABASE_URL` points to the dedicated `ushly_loadtest` database used by
+  both the seed script and benchmark backend. Mutation scripts verify the
+  connected database name before changing rows.
+- Redis database 1 is used by the example configuration to keep benchmark
+  cache keys separate from ordinary development keys.
 - `psql`, Docker Compose, curl, and k6 are installed separately.
 - The machine is otherwise idle and the backend is run as a single process.
 - The benchmark backend is started with `LOAD_TEST_MODE=true` and
   `LOAD_TEST_RATE_LIMIT_MAX=100000`; this is an explicit local-only override.
 
-No application, Redis, or PostgreSQL configuration is changed by these scripts.
-The seed script deletes and recreates only rows whose short codes use the
-load-test prefixes.
+The seed script deletes and recreates only rows whose IDs or short codes use
+the configured load-test prefixes, and refuses to run outside
+`ushly_loadtest`.
 
 ## Reproducible command sequence
 
 From the repository root:
 
 ```bash
-docker compose up -d
-docker compose ps
+cp loadtest/.env.example loadtest/.env
+docker compose --profile loadtest up -d postgres-loadtest redis
+set -a
+source loadtest/.env
+set +a
+cd backend
+npx prisma migrate deploy
+cd ..
+docker compose --profile loadtest ps
 cd backend
 npm run build
-NODE_ENV=development LOAD_TEST_MODE=true LOAD_TEST_RATE_LIMIT_MAX=100000 npm run start
+node --env-file=../loadtest/.env dist/server.js
 ```
 
 In another terminal, from the repository root:
 
 ```bash
-export DATABASE_URL='postgresql://ushly:change_me@127.0.0.1:5432/ushly'
-export BASE_URL='http://127.0.0.1:3000'
+set -a
+source loadtest/.env
+set +a
+export BASE_URL='http://127.0.0.1:3001'
 export DURATION='30s'
 export DURATION_SECONDS=40
 bash loadtest/scripts/run-redirect-baseline.sh
 ```
+
+## Fixture inspection and cleanup
+
+Cleanup is dry-run by default and selects only `loadhit0001` and short codes
+beginning with `loadmiss`. It prints every matching link and its dependent
+click count without changing data:
+
+```bash
+bash loadtest/scripts/cleanup-redirect-data.sh
+```
+
+After reviewing that output, deletion additionally requires both `--execute`
+and an exact confirmation phrase:
+
+```bash
+CONFIRM_LOAD_FIXTURE_CLEANUP=delete-loadhit0001-and-loadmiss \
+  bash loadtest/scripts/cleanup-redirect-data.sh --execute
+```
+
+The schema cascades dependent click rows when a selected link is deleted. For
+legacy fixtures in a database other than `ushly_loadtest`, the command also
+requires `ALLOW_NON_LOADTEST_DATABASE=yes`; use that override only after a
+separate review of the printed rows.
 
 The default load is 20 hit requests/second, 20 miss requests/second, and 10
 not-found requests/second. Override `HIT_RATE`, `MISS_RATE`,

@@ -9,11 +9,14 @@ import {
   type LinkConfirmation,
 } from './google.state.js';
 import { sessionCookie } from './refresh.controller.js';
+import { sendGooglePopupResult } from './google.popup.js';
+import { oauthRequestOrigin } from './google.origin.js';
 
 export function googleControllers(
   app: FastifyInstance,
   env: EnvironmentConfig,
   config: GoogleOAuthConfig,
+  lambdaRuntime: boolean,
 ) {
   const client = googleClient(config);
   const cookieName = `${env.cookie.name}_google`;
@@ -23,9 +26,15 @@ export function googleControllers(
     sameSite: 'lax' as const,
     path: '/auth/google',
   };
+  const requestOrigin = (request: FastifyRequest) =>
+    oauthRequestOrigin(
+      request,
+      config.redirectUri,
+      lambdaRuntime,
+    );
   function checkUri(request: FastifyRequest) {
     const path = request.raw.url?.split('?')[0];
-    if (`${request.protocol}://${request.host}${path}` !== config.redirectUri)
+    if (`${requestOrigin(request)}${path}` !== config.redirectUri)
       throw oauthFailure();
   }
 
@@ -36,8 +45,7 @@ export function googleControllers(
   ) {
     // All starts must use the callback origin, so its host-only cookie returns to the callback.
     if (
-      `${request.protocol}://${request.host}` !==
-      new URL(config.redirectUri).origin
+      requestOrigin(request) !== new URL(config.redirectUri).origin
     )
       throw oauthFailure();
     if (request.raw.url?.includes('?')) throw oauthFailure();
@@ -111,7 +119,7 @@ export function googleControllers(
       expires: session.expiresAt,
     });
     // The browser obtains its Ushly JWT through POST /auth/refresh, just as after reload.
-    return reply.send({ ok: true });
+    return sendGooglePopupResult(reply, env.corsAllowedOrigins, { status: 'success' });
   }
   return {
     login: (request: FastifyRequest, reply: FastifyReply) =>
