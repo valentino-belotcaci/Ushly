@@ -60,6 +60,7 @@ type ErrorResponse = {
 
 type BuildAppOptions = {
   env?: EnvironmentConfig;
+  lambdaRuntime?: boolean;
   logger?: boolean | LoggerWithRedaction;
   rateLimitConfig?: {
     max?: number;
@@ -315,7 +316,10 @@ export async function buildApp(options: BuildAppOptions = {}) {
     return { ok: true };
   });
 
-  await app.register(authRoutes, { env });
+  await app.register(authRoutes, {
+    env,
+    lambdaRuntime: options.lambdaRuntime ?? false,
+  });
   await app.register(linksRoutes);
   await app.register(redirectRoutes);
 

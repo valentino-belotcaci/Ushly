@@ -5,12 +5,15 @@ import { googleControllers } from './google.controller.js';
 import { oauthFailure } from './google.state.js';
 import { sendGooglePopupResult } from './google.popup.js';
 
-const googleRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
+const googleRoutes: FastifyPluginAsync<{
+  env: EnvironmentConfig;
+  lambdaRuntime: boolean;
+}> = async (
   app,
-  { env },
+  { env, lambdaRuntime },
 ) => {
   if (!env.google) return;
-  const controllers = googleControllers(app, env, env.google);
+  const controllers = googleControllers(app, env, env.google, lambdaRuntime);
   const routeOptions = {
     exposeHeadRoute: false,
     config: { rateLimit: { max: 10, timeWindow: 60_000 } },

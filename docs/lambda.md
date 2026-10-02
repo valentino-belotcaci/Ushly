@@ -177,8 +177,14 @@ GOOGLE_OAUTH_STATE_TTL_SECONDS=300
 
 API Gateway supplies the client address in its version 2 proxy event and the
 adapter translates it into the injected Fastify request. `TRUST_PROXY=false`
-avoids trusting arbitrary forwarded headers. Revalidate this setting against the
-final API Gateway event and any additional proxy layer before deployment.
+avoids trusting arbitrary forwarded headers. For Google OAuth, the application
+reads the adapter's reserved serialized-event header only on the Lambda-marked
+Fastify instance. The adapter removes client-supplied copies before inserting
+the real version 2 event. Its `requestContext.domainName` is used only when it
+exactly matches the host in `GOOGLE_OAUTH_REDIRECT_URI`. This restores the
+configured HTTPS origin without accepting a client-controlled host or redirect
+URI. Revalidate this setting against the final API Gateway event and any
+additional proxy layer before deployment.
 
 ## Migrations
 

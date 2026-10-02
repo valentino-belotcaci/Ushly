@@ -44,9 +44,12 @@ const validateCredentials: preValidationAsyncHookHandler = async (request) => {
   body.email = body.email.trim();
 };
 
-const authRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
+const authRoutes: FastifyPluginAsync<{
+  env: EnvironmentConfig;
+  lambdaRuntime: boolean;
+}> = async (
   app,
-  { env },
+  { env, lambdaRuntime },
 ) => {
   await app.register(cookie);//activates for all the routes the cookie plugin to read and write cookies in the browser
 
@@ -68,7 +71,7 @@ const authRoutes: FastifyPluginAsync<{ env: EnvironmentConfig }> = async (
   });
 
   //creates the controllers for the refresh and logout endpoints, passing the environment configuration to them
-  await app.register(googleRoutes, { env });
+  await app.register(googleRoutes, { env, lambdaRuntime });
   const controllers = refreshControllers(env);
 
   app.post(
