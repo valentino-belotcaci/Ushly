@@ -133,6 +133,62 @@ The repository also generates `dist/200.html`; the actual CloudFront deployment
 uses `/index.html` for its SPA fallback. Keep documentation and distribution
 behavior aligned if this choice changes.
 
+### Localized prerender route function
+
+S3 stores localized prerenders as directory objects such as
+`en/index.html` and `it/url-shortener/index.html`. An S3 REST origin does not
+automatically resolve `/en/` to that nested `index.html`. If CloudFront sends
+the directory URI unchanged, the origin returns an error and the distribution's
+SPA fallback serves root `/index.html`, whose unlocalized metadata is `noindex`.
+
+`frontend/cloudfront/localized-public-routes.js` is the Viewer Request
+CloudFront Function for this boundary. It rewrites only the allowlisted English
+and Italian public routes to their generated objects. It leaves assets, files,
+`robots.txt`, `sitemap.xml`, authentication, dashboard, admin, development,
+API, other locales, nested files, and unknown routes unchanged so the existing
+SPA fallback continues to handle application routes.
+
+Create and associate it manually:
+
+1. In CloudFront Functions, create a function such as
+   `ushly-localized-public-routes` using the current JavaScript runtime.
+2. Copy the complete contents of
+   `frontend/cloudfront/localized-public-routes.js` into the function editor.
+3. Use the console's test feature with Viewer Request events. Verify at least
+   `/en/`, `/it/`, `/en/url-shortener/`, an asset path, `/en/login`, and an
+   unknown route. Only the localized public examples should change.
+4. Publish the tested function. A saved development version cannot be associated
+   with a production distribution.
+5. Edit the CloudFront distribution's **default cache behavior** and associate
+   the published function with **Viewer request**. Do not associate it with an
+   origin event and do not change the private S3 origin, OAC, or SPA error
+   responses.
+6. Wait for the distribution update to deploy, then create a `/*` invalidation
+   so earlier fallback responses cannot remain cached.
+7. Verify the response body and metadata for all URLs listed below. CloudFront
+   logs are optional diagnostic evidence and must not contain credentials.
+
+The function has an explicit route allowlist. When the prerenderer gains another
+localized public route, update the function and its focused test in the same
+change before publishing a new function version.
+
+Rollback consists of removing the Viewer Request association from the default
+cache behavior or associating the last known-good published function version,
+waiting for distribution deployment, and invalidating `/*`. Removing the
+association restores the previous SPA fallback behavior; it does not remove S3
+objects or change OAC.
+
+Verification URLs:
+
+- `/en/` and `/it/` serve their localized `index.html` with indexable localized
+  metadata.
+- `/en/url-shortener/` and `/it/url-shortener/` serve their corresponding
+  prerendered documents.
+- Other generated product/legal routes behave the same way.
+- `/assets/...`, `/robots.txt`, and `/sitemap.xml` remain unchanged.
+- `/en/login`, `/it/register`, dashboard, admin, development, and unknown routes
+  retain the existing SPA behavior and private-page metadata rules.
+  
 The workflow supplies public build-time values:
 
 ```text
