@@ -62,5 +62,5 @@ This is a local single-host baseline using container-level resource samples and
 one backend process. It does not establish production capacity, multi-instance
 behavior, network behavior, or a service-level objective. The host identity,
 Node/k6 versions, Git revision, backend CPU/memory, and database query timing
-were not recorded by the run artifacts. No optimization was made as part of
-T5.3.
+were not recorded by the run artifacts. No optimization was made from this
+baseline alone.
