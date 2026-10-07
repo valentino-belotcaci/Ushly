@@ -26,14 +26,12 @@ export function watchGooglePopup(
     if (!data || typeof data !== 'object' || Array.isArray(data)) return;
     if (!('type' in data) || data.type !== 'ushly-google-oauth') return;
     if ('status' in data && data.status === 'success') {
-      popup.postMessage({ type: 'ushly-google-oauth-ack' }, apiOrigin);
       finish({ status: 'success' }, false);
     } else if (
       'status' in data && data.status === 'error' &&
       'code' in data &&
       (data.code === 'oauth_conflict' || data.code === 'oauth_failed')
     ) {
-      popup.postMessage({ type: 'ushly-google-oauth-ack' }, apiOrigin);
       finish({ status: 'error', code: data.code }, false);
     }
   }

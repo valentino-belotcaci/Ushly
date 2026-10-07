@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { ApiClientError } from '../../api/session';
@@ -94,4 +94,56 @@ it('shows link owner email as the primary owner detail', async () => {
   expect(
     screen.queryByRole('button', { name: 'Apply filters' }),
   ).not.toBeInTheDocument();
+});
+
+it('derives admin link statuses with disabled taking priority over expiration', async () => {
+  const link = {
+    id: 'active-link',
+    userId: 'user-1',
+    ownerEmail: 'owner@example.test',
+    shortCode: 'active1',
+    destinationUrl: 'https://example.test/active',
+    title: 'Active link',
+    status: 'active' as const,
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+  vi.mocked(listAdminLinks).mockResolvedValue({
+    items: [
+      link,
+      {
+        ...link,
+        id: 'expired-link',
+        shortCode: 'expired1',
+        title: 'Expired link',
+        expiresAt: '2020-01-01T00:00:00.000Z',
+      },
+      {
+        ...link,
+        id: 'disabled-expired-link',
+        shortCode: 'disabled1',
+        title: 'Disabled expired link',
+        status: 'disabled',
+        expiresAt: '2020-01-01T00:00:00.000Z',
+      },
+    ],
+    total: 3,
+    page: 1,
+    pageSize: 20,
+  });
+
+  render(
+    <MemoryRouter>
+      <AdminLinksPage />
+    </MemoryRouter>,
+  );
+
+  await screen.findByText('Active link');
+  const table = within(screen.getByRole('table'));
+  expect(table.getByText('Active')).toBeVisible();
+  expect(table.getByText('Expired')).toBeVisible();
+  expect(table.getByText('Disabled')).toBeVisible();
+  expect(table.getAllByRole('button', { name: 'Disable' })).toHaveLength(2);
+  expect(table.getByRole('button', { name: 'Enable' })).toBeEnabled();
+  expect(table.getAllByRole('button', { name: 'Disable' })[1]).toBeDisabled();
 });
