@@ -3,13 +3,11 @@ import { ToastContext } from './toast-context';
 import { Button } from './Button';
 import type { Tone } from './Badge';
 import { translations } from '../i18n';
-import { localeFromPath } from '../i18n/locale';
+import { useLocale } from '../i18n/locale';
 
 type Toast = { id: number; message: string; tone: Tone };
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const text = translations(
-    typeof window === 'undefined' ? 'en' : localeFromPath(window.location.pathname),
-  ).common;
+  const text = translations(useLocale()).common;
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
   const timers = useRef(new Map<number, number>());

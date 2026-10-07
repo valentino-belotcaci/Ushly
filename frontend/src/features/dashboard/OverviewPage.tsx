@@ -7,9 +7,32 @@ import {
 } from './DashboardState';
 import { DashboardIcon } from './icons';
 import { useOwnedLinks } from './useOwnedLinks';
-import { publicShortUrl } from './api';
+import { publicShortUrl, type OwnedLink } from './api';
 import { translations } from '../../i18n';
 import { useLocale, useLocalizedRoute } from '../../i18n/locale';
+import { displayedLinkStatus } from './linkStatus';
+
+function OverviewLinkStatusBadge({ link }: { link: OwnedLink }) {
+  const common = translations(useLocale()).common;
+  const status = displayedLinkStatus(link);
+  return (
+    <Badge
+      tone={
+        status === 'active'
+          ? 'success'
+          : status === 'expired'
+            ? 'warning'
+            : 'neutral'
+      }
+    >
+      {status === 'active'
+        ? common.active
+        : status === 'expired'
+          ? common.expired
+          : common.disabled}
+    </Badge>
+  );
+}
 
 export function OverviewPage() {
   const copy = translations(useLocale());
@@ -20,7 +43,9 @@ export function OverviewPage() {
   if (error)
     return <DashboardError message={error} retry={() => void reload()} />;
   const links = data?.items ?? [];
-  const active = links.filter((link) => link.status === 'active').length;
+  const active = links.filter(
+    (link) => displayedLinkStatus(link) === 'active',
+  ).length;
   return (
     <div className="dashboard-page">
       <header className="dashboard-page-header">
@@ -89,21 +114,7 @@ export function OverviewPage() {
                   </a>
                   <small>{link.destinationUrl}</small>
                 </div>
-                <Badge
-                  tone={
-                    link.status === 'active'
-                      ? 'success'
-                      : link.status === 'expired'
-                        ? 'warning'
-                        : 'neutral'
-                  }
-                >
-                  {link.status === 'active'
-                    ? copy.common.active
-                    : link.status === 'expired'
-                      ? copy.common.expired
-                      : copy.common.disabled}
-                </Badge>
+                <OverviewLinkStatusBadge link={link} />
               </li>
             ))}
           </ul>

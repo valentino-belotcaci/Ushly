@@ -26,6 +26,7 @@ import { DashboardIcon } from './icons';
 import { useOwnedLinks } from './useOwnedLinks';
 import { translations, type Translation } from '../../i18n';
 import { useLocale } from '../../i18n/locale';
+import { displayedLinkStatus } from './linkStatus';
 
 const pageSizes = [10, 20, 50] as const;
 
@@ -64,10 +65,12 @@ function localDateTime(iso: string | null): string {
 }
 
 function displayedStatus(link: OwnedLink): 'Active' | 'Disabled' | 'Expired' {
-  if (link.expiresAt && Date.parse(link.expiresAt) <= Date.now())
-    return 'Expired';
-  if (link.status === 'disabled') return 'Disabled';
-  return 'Active';
+  const status = displayedLinkStatus(link);
+  return status === 'active'
+    ? 'Active'
+    : status === 'expired'
+      ? 'Expired'
+      : 'Disabled';
 }
 
 function LinkStatusBadge({ link }: { link: OwnedLink }) {

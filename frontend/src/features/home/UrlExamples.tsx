@@ -48,9 +48,17 @@ export function UrlExamples({ label }: { label: string }) {
   return (
     <div className="url-examples" aria-label={label}>
       <span className="url-example-static">{firstExample}</span>
-      <span className="url-example-typed" aria-hidden="true">
-        {(examples[index] ?? firstExample).slice(0, length)}
-        {phase === 'typing' && <span className="url-example-cursor">_</span>}
+      <span
+        className="url-example-typed notranslate"
+        aria-hidden="true"
+        translate="no"
+      >
+        <span className="url-example-value">
+          {(examples[index] ?? firstExample).slice(0, length)}
+        </span>
+        <span className="url-example-cursor" hidden={phase !== 'typing'}>
+          _
+        </span>
       </span>
     </div>
   );

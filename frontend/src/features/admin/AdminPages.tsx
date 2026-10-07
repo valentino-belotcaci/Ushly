@@ -5,6 +5,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Dialog } from '../../components/Dialog';
 import { formatDateTime, formatFullDateTime } from '../../utils/dateTime';
+import { displayedLinkStatus } from '../dashboard/linkStatus';
 import {
   DashboardEmpty,
   DashboardError,
@@ -777,16 +778,16 @@ function AdminLinksTable({
               <td data-label={copy.common.status}>
                 <Badge
                   tone={
-                    link.status === 'active'
+                    displayedLinkStatus(link) === 'active'
                       ? 'success'
-                      : link.status === 'expired'
+                      : displayedLinkStatus(link) === 'expired'
                         ? 'warning'
                         : 'danger'
                   }
                 >
-                  {link.status === 'active'
+                  {displayedLinkStatus(link) === 'active'
                     ? copy.common.active
-                    : link.status === 'expired'
+                    : displayedLinkStatus(link) === 'expired'
                       ? copy.common.expired
                       : copy.common.disabled}
                 </Badge>
@@ -805,11 +806,11 @@ function AdminLinksTable({
               </td>
               <td data-label={t.action}>
                 <Button
-                  variant={link.status === 'disabled' ? 'secondary' : 'danger'}
-                  disabled={link.status === 'expired'}
+                  variant={displayedLinkStatus(link) === 'disabled' ? 'secondary' : 'danger'}
+                  disabled={displayedLinkStatus(link) === 'expired'}
                   onClick={() => onToggle(link)}
                 >
-                  {link.status === 'disabled'
+                  {displayedLinkStatus(link) === 'disabled'
                     ? copy.common.enable
                     : copy.common.disable}
                 </Button>
